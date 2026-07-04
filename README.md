@@ -13,6 +13,7 @@
   <img src="https://img.shields.io/badge/Java-25%20LTS-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white" alt="Java 25 LTS"/>
   <img src="https://img.shields.io/badge/Spring%20Boot-3.5-6DB33F?style=for-the-badge&logo=springboot&logoColor=white" alt="Spring Boot 3.5"/>
   <img src="https://img.shields.io/badge/Spring%20Security-6-6DB33F?style=for-the-badge&logo=springsecurity&logoColor=white" alt="Spring Security"/>
+  <img src="https://img.shields.io/badge/Thymeleaf-3-005F0F?style=for-the-badge&logo=thymeleaf&logoColor=white" alt="Thymeleaf"/>
   <img src="https://img.shields.io/badge/PostgreSQL-16-336791?style=for-the-badge&logo=postgresql&logoColor=white" alt="PostgreSQL 16"/>
   <img src="https://img.shields.io/badge/Liquibase-4.x-2962FF?style=for-the-badge&logo=liquibase&logoColor=white" alt="Liquibase"/>
   <img src="https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker"/>
@@ -180,7 +181,7 @@ src/main/resources/
 ### Frontend
 | Tecnologia | Papel |
 |---|---|
-| **Thymeleaf** | UI server-side (fragments), **sem SPA** |
+| **Thymeleaf** | Motor de templates — renderiza as telas (HTML) no servidor (SSR) com fragments; **sem SPA** |
 | **HTML/CSS/JS** | Arquivos separados, **sem inline** (compatível com a CSP) |
 | **Chart.js** | Gráficos do dashboard |
 
