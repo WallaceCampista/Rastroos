@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ─────────────────────────────────────────────────────────────
+  002 — Seed das categorias base
+  ─────────────────────────────────────────────────────────────
+  Categorias do design original (data.js). Globais — usuário não
+  edita por enquanto. Cores/ícones espelham os do mockup.
+-->
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.27.xsd">
+
+    <changeSet id="002-01-seed-categories" author="rastroos">
+        <insert tableName="categories">
+            <column name="id" value="moradia"/>
+            <column name="name_pt" value="Moradia"/>
+            <column name="name_en" value="Housing"/>
+            <column name="color_hex" value="#6366f1"/>
+            <column name="icon_name" value="home"/>
+            <column name="sort_order" valueNumeric="10"/>
+        </insert>
+        <insert tableName="categories">
+            <column name="id" value="transporte"/>
+            <column name="name_pt" value="Transporte"/>
+            <column name="name_en" value="Transport"/>
+            <column name="color_hex" value="#22d3ee"/>
+            <column name="icon_name" value="car"/>
+            <column name="sort_order" valueNumeric="20"/>
+        </insert>
+        <insert tableName="categories">
+            <column name="id" value="alimentacao"/>
+            <column name="name_pt" value="Alimentação"/>
+            <column name="name_en" value="Food"/>
+            <column name="color_hex" value="#fb7185"/>
+            <column name="icon_name" value="fork"/>
+            <column name="sort_order" valueNumeric="30"/>
+        </insert>
+        <insert tableName="categories">
+            <column name="id" value="educacao"/>
+            <column name="name_pt" value="Educação"/>
+            <column name="name_en" value="Education"/>
+            <column name="color_hex" value="#a78bfa"/>
+            <column name="icon_name" value="cap"/>
+            <column name="sort_order" valueNumeric="40"/>
+        </insert>
+        <insert tableName="categories">
+            <column name="id" value="saude"/>
+            <column name="name_pt" value="Saúde"/>
+            <column name="name_en" value="Health"/>
+            <column name="color_hex" value="#34d399"/>
+            <column name="icon_name" value="heart"/>
+            <column name="sort_order" valueNumeric="50"/>
+        </insert>
+        <insert tableName="categories">
+            <column name="id" value="lazer"/>
+            <column name="name_pt" value="Lazer"/>
+            <column name="name_en" value="Leisure"/>
+            <column name="color_hex" value="#fbbf24"/>
+            <column name="icon_name" value="star"/>
+            <column name="sort_order" valueNumeric="60"/>
+        </insert>
+        <insert tableName="categories">
+            <column name="id" value="familia"/>
+            <column name="name_pt" value="Família"/>
+            <column name="name_en" value="Family"/>
+            <column name="color_hex" value="#f472b6"/>
+            <column name="icon_name" value="users"/>
+            <column name="sort_order" valueNumeric="70"/>
+        </insert>
+        <insert tableName="categories">
+            <column name="id" value="servicos"/>
+            <column name="name_pt" value="Serviços"/>
+            <column name="name_en" value="Services"/>
+            <column name="color_hex" value="#a3e635"/>
+            <column name="icon_name" value="wrench"/>
+            <column name="sort_order" valueNumeric="80"/>
+        </insert>
+        <insert tableName="categories">
+            <column name="id" value="impostos"/>
+            <column name="name_pt" value="Impostos/Taxas"/>
+            <column name="name_en" value="Taxes"/>
+            <column name="color_hex" value="#fb923c"/>
+            <column name="icon_name" value="doc"/>
+            <column name="sort_order" valueNumeric="90"/>
+        </insert>
+        <insert tableName="categories">
+            <column name="id" value="casamento"/>
+            <column name="name_pt" value="Casamento"/>
+            <column name="name_en" value="Wedding"/>
+            <column name="color_hex" value="#e879f9"/>
+            <column name="icon_name" value="rings"/>
+            <column name="sort_order" valueNumeric="100"/>
+        </insert>
+        <insert tableName="categories">
+            <column name="id" value="outros"/>
+            <column name="name_pt" value="Outros"/>
+            <column name="name_en" value="Other"/>
+            <column name="color_hex" value="#94a3b8"/>
+            <column name="icon_name" value="dots"/>
+            <column name="sort_order" valueNumeric="999"/>
+        </insert>
+
+        <rollback>
+            <delete tableName="categories">
+                <where>id IN ('moradia','transporte','alimentacao','educacao','saude',
+                              'lazer','familia','servicos','impostos','casamento','outros')</where>
+            </delete>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

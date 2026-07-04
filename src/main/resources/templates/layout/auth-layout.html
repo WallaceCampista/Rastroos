@@ -1,0 +1,27 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${pageTitle != null ? pageTitle + ' · Rastro$' : 'Rastro$'}">Rastro$</title>
+    <link rel="stylesheet" th:href="@{/css/tokens.css}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/auth.css}">
+</head>
+<body>
+    <main class="auth-shell">
+        <a class="auth-brand" th:href="@{/}">
+            <span class="auth-brand-mark">R<span class="accent">$</span></span>
+            <span>Rastro<span class="accent">$</span></span>
+        </a>
+
+        <section class="auth-card" th:replace="${content}">
+            <p>Content fragment goes here.</p>
+        </section>
+
+        <footer class="auth-foot">
+            <small>© <span th:text="${#dates.format(#dates.createNow(), 'yyyy')}">2026</span> Rastro$</small>
+        </footer>
+    </main>
+</body>
+</html>

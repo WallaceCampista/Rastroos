@@ -1,0 +1,51 @@
+# ─────────────────────────────────────────────────────────────
+# Rastro$ — perfil PROD
+# Credenciais vêm SEMPRE de variáveis de ambiente.
+# ─────────────────────────────────────────────────────────────
+
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 5000
+      max-lifetime: 1800000
+
+  jpa:
+    show-sql: false
+
+  thymeleaf:
+    cache: true
+
+server:
+  error:
+    include-message: never
+    include-stacktrace: never
+    include-binding-errors: never
+
+# Swagger desativado em prod (ligar apenas quando precisar via env)
+springdoc:
+  api-docs:
+    enabled: ${SPRINGDOC_ENABLED:false}
+  swagger-ui:
+    enabled: ${SPRINGDOC_ENABLED:false}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: never
+
+logging:
+  level:
+    root: INFO
+    com.rastroos: INFO
+    org.springframework: WARN
+    org.hibernate: WARN

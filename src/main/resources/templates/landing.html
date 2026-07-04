@@ -1,0 +1,700 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Rastro$ — Seu dinheiro, no seu controle.</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500;1,600;1,700&amp;display=swap">
+
+  <link rel="stylesheet" th:href="@{/css/tokens.css}">
+  <link rel="stylesheet" th:href="@{/css/base.css}">
+  <link rel="stylesheet" th:href="@{/css/landing.css}">
+
+  <script th:src="@{/js/landing.js}" defer></script>
+</head>
+<body>
+
+<div class="aurora">
+  <div class="aurora-3"></div>
+</div>
+<div class="grain"></div>
+
+<header class="nav" id="nav">
+  <a class="brand" href="#" aria-label="Rastro$ — início">
+    <span class="brand-logo">R</span>
+    <span>Rastro<span class="brand-dollar">$</span></span>
+  </a>
+  <nav class="nav-links" aria-label="Principal">
+    <a href="#features">Recursos</a>
+    <a href="#how">Como funciona</a>
+    <a href="#depoimentos">Depoimentos</a>
+    <a href="#numbers">Em números</a>
+  </nav>
+  <button class="btn-login" type="button" data-open-login>
+    <span>Entrar</span>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M5 12h14M13 5l7 7-7 7"/>
+    </svg>
+  </button>
+</header>
+
+<main>
+
+<!-- ── HERO ───────────────────────────────────────────────────────────── -->
+<section class="hero">
+  <div class="hero-left">
+    <div class="hero-tag">
+      <span class="hero-tag-dot"></span>
+      <span>Novo · O detetive do seu bolso</span>
+    </div>
+    <h1 class="hero-title">
+      <span class="line"><span class="line-tight">Siga o rastro</span></span>
+      <span class="line"><span class="grad">do seu dinheiro.</span></span>
+    </h1>
+    <p class="hero-sub">
+      Como um bom detetive, <strong>Rastro$</strong> investiga cada centavo
+      que sai do seu bolso &mdash; e te entrega, em tempo real, o destino
+      exato de cada real. Cartões, contas, investimentos e metas, num só lugar.
+    </p>
+    <div class="hero-cta">
+      <button class="btn btn-primary" type="button" data-open-login>
+        Rastrear
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12h14M13 5l7 7-7 7"/>
+        </svg>
+      </button>
+      <a class="btn btn-ghost" href="#how">Como funciona</a>
+    </div>
+    <div class="hero-trust">
+      <span class="hero-trust-avatars">
+        <span>L</span><span>M</span><span>R</span><span>T</span>
+      </span>
+      <span>+12 mil pessoas no controle do próprio bolso.</span>
+    </div>
+  </div>
+
+  <!-- mockup -->
+  <div class="hero-mock" id="heroMock">
+    <div class="hm-stage" id="hmStage">
+
+      <!-- Card principal -->
+      <div class="hm-card hm-main">
+        <div class="hm-main-head">
+          <div class="hm-main-label">Total investido</div>
+          <span class="hm-pill">
+            <span class="hm-pill-dot"></span>
+            102% CDI
+          </span>
+        </div>
+        <div class="hm-main-value">
+          <span class="hm-main-currency">R$</span>38.4<span class="hm-main-k">k</span>
+        </div>
+        <div class="hm-main-sub">
+          <span class="hm-up">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg>
+            R$ 442
+          </span>
+          rendimento do mês
+        </div>
+        <div class="hm-spark">
+          <svg viewBox="0 0 300 50" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="sparkGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#818cf8" stop-opacity="0.5"/>
+                <stop offset="1" stop-color="#818cf8" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <path class="hm-spark-fill" d="M0,40 C30,32 50,38 80,28 C110,18 140,24 170,16 C200,8 230,12 260,8 L300,4 L300,50 L0,50 Z"/>
+            <path class="hm-spark-line" d="M0,40 C30,32 50,38 80,28 C110,18 140,24 170,16 C200,8 230,12 260,8 L300,4"/>
+          </svg>
+          <span class="hm-spark-dot"></span>
+        </div>
+      </div>
+
+      <!-- Cofrinho -->
+      <div class="hm-card hm-piggy">
+        <div class="hm-piggy-head">
+          <span class="hm-piggy-icon">◐</span>
+          <span class="hm-piggy-name">Casamento</span>
+        </div>
+        <div class="hm-piggy-ring-wrap">
+          <svg class="hm-piggy-ring" viewBox="0 0 120 120">
+            <circle class="track" cx="60" cy="60" r="50"/>
+            <circle class="prog"  cx="60" cy="60" r="50"/>
+          </svg>
+          <span class="hm-piggy-pct">60%</span>
+        </div>
+        <div class="hm-piggy-foot">R$ 14.8k / R$ 25k</div>
+      </div>
+
+      <!-- Months -->
+      <div class="hm-card hm-months">
+        <div class="hm-months-label">2026 · sua sequência</div>
+        <div class="hm-months-row">
+          <div class="hm-month">JAN<span class="hm-month-badge">👍</span></div>
+          <div class="hm-month">FEV<span class="hm-month-badge down">👎</span></div>
+          <div class="hm-month">MAR<span class="hm-month-badge">👍</span></div>
+          <div class="hm-month">ABR<span class="hm-month-badge">👍</span></div>
+          <div class="hm-month on">MAI</div>
+          <div class="hm-month">JUN</div>
+        </div>
+      </div>
+
+      <!-- Emojis -->
+      <div class="hm-emojis">
+        <span>🤑</span>
+        <span>💰</span>
+        <span>🫰</span>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── Marquee ────────────────────────────────────────────────────────── -->
+<div class="marquee">
+  <div class="marquee-track">
+    <span>cartões<span class="marquee-dot"></span></span>
+    <span>cofrinhos<span class="marquee-dot"></span></span>
+    <span>investimentos<span class="marquee-dot"></span></span>
+    <span>contas fixas<span class="marquee-dot"></span></span>
+    <span>receitas<span class="marquee-dot"></span></span>
+    <span>relatórios<span class="marquee-dot"></span></span>
+    <span>meu gerente<span class="marquee-dot"></span></span>
+    <span>cartões<span class="marquee-dot"></span></span>
+    <span>cofrinhos<span class="marquee-dot"></span></span>
+    <span>investimentos<span class="marquee-dot"></span></span>
+    <span>contas fixas<span class="marquee-dot"></span></span>
+    <span>receitas<span class="marquee-dot"></span></span>
+    <span>relatórios<span class="marquee-dot"></span></span>
+    <span>meu gerente<span class="marquee-dot"></span></span>
+  </div>
+</div>
+
+<!-- ── FEATURES ───────────────────────────────────────────────────────── -->
+<section class="section" id="features">
+  <div class="section-head reveal">
+    <div class="section-eyebrow">Recursos</div>
+    <h2 class="section-title">Tudo que você precisa, <em class="t-emph">nada que sobra.</em></h2>
+    <p class="section-sub">
+      Cada tela foi pensada pra te dar uma resposta &mdash; rápida, honesta e bonita &mdash;
+      sem te enterrar em gráficos que não dizem nada.
+    </p>
+  </div>
+
+  <div class="features-grid">
+
+    <!-- 1. Cartões -->
+    <div class="feature reveal" data-demo="cards">
+      <div class="feature-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="5" width="20" height="14" rx="3"/><path d="M2 10h20"/>
+        </svg>
+      </div>
+      <h3>Cartões &amp; contas no mesmo lugar</h3>
+      <p>Acompanhe a fatura de cada cartão e o vencimento das suas contas fixas.
+        Marque como pago e veja seus emojis subindo na tela. (Sim, é gostoso.)</p>
+      <div class="feature-demo">
+        <div class="demo-cat">
+          <span class="demo-cat-dot"></span>
+          <span class="demo-cat-name">Nubank Roxinho</span>
+          <span class="demo-cat-bar"><span></span></span>
+        </div>
+        <div class="demo-cat">
+          <span class="demo-cat-dot"></span>
+          <span class="demo-cat-name">Inter Gold</span>
+          <span class="demo-cat-bar"><span></span></span>
+        </div>
+        <div class="demo-cat">
+          <span class="demo-cat-dot"></span>
+          <span class="demo-cat-name">Conta luz</span>
+          <span class="demo-cat-bar"><span></span></span>
+        </div>
+        <div class="demo-cat">
+          <span class="demo-cat-dot"></span>
+          <span class="demo-cat-name">Internet</span>
+          <span class="demo-cat-bar"><span></span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. Cofrinhos -->
+    <div class="feature reveal" data-demo="piggies">
+      <div class="feature-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 11a7 7 0 1 0-14 0v5h14v-5z"/>
+          <circle cx="16" cy="11" r="1" fill="currentColor"/>
+          <path d="M9 18v2M15 18v2"/>
+        </svg>
+      </div>
+      <h3>Cofrinhos que celebram com você</h3>
+      <p>Reserva de emergência, viagem, casamento &mdash; cada meta vira um anel
+        animado que enche conforme você guarda. E o sistema te dá um <em>tchau</em> em emoji.</p>
+      <div class="feature-demo">
+        <div class="demo-piggies">
+          <div class="demo-piggy-row">
+            <span class="demo-piggy-mini">◐</span>
+            <div class="demo-piggy-info">
+              <b>Casamento</b>
+              <div class="demo-piggy-prog"><span></span></div>
+            </div>
+            <span class="demo-piggy-pct">60%</span>
+          </div>
+          <div class="demo-piggy-row">
+            <span class="demo-piggy-mini">☂</span>
+            <div class="demo-piggy-info">
+              <b>Reserva</b>
+              <div class="demo-piggy-prog"><span></span></div>
+            </div>
+            <span class="demo-piggy-pct">78%</span>
+          </div>
+          <div class="demo-piggy-row">
+            <span class="demo-piggy-mini">✈</span>
+            <div class="demo-piggy-info">
+              <b>Bariloche</b>
+              <div class="demo-piggy-prog"><span></span></div>
+            </div>
+            <span class="demo-piggy-pct">37%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Meu Gerente / IA -->
+    <div class="feature reveal" data-demo="manager">
+      <div class="feature-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 3l2.5 5 5.5.8-4 3.9 1 5.5L12 16l-5 2.2 1-5.5-4-3.9 5.5-.8L12 3z"/>
+        </svg>
+      </div>
+      <h3>Meu Gerente lê seus números</h3>
+      <p>Pergunte em português normal: <em>&ldquo;onde dá pra cortar?&rdquo;</em>,
+        <em>&ldquo;quanto falta pro casamento?&rdquo;</em> &mdash; e receba uma
+        resposta visual, com base no seu mês real.</p>
+      <div class="feature-demo">
+        <div class="demo-months">
+          <div class="demo-mo paid">JAN<span class="demo-mo-emoji">👍</span></div>
+          <div class="demo-mo neg">FEV<span class="demo-mo-emoji">👎</span></div>
+          <div class="demo-mo paid">MAR<span class="demo-mo-emoji">👍</span></div>
+          <div class="demo-mo paid">ABR<span class="demo-mo-emoji">👍</span></div>
+          <div class="demo-mo">MAI</div>
+          <div class="demo-mo">JUN</div>
+        </div>
+        <div class="feature-manager-note">
+          <span class="tag">Gerente</span><br>
+          Você tem <b>3 meses no controle</b> seguidos. Bora 4?
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ── NUMBERS ────────────────────────────────────────────────────────── -->
+<section id="numbers">
+  <div class="stats" id="stats">
+    <div class="stat reveal">
+      <div class="stat-num" data-count="12500">0</div>
+      <div class="stat-lbl">Usuários no controle</div>
+    </div>
+    <div class="stat reveal">
+      <div class="stat-num"><span data-count="48">0</span><span class="stat-suf">M</span></div>
+      <div class="stat-lbl">Em cofrinhos rastreados</div>
+    </div>
+    <div class="stat reveal">
+      <div class="stat-num"><span data-count="97">0</span><span class="stat-suf">%</span></div>
+      <div class="stat-lbl">Contas pagas no prazo</div>
+    </div>
+    <div class="stat reveal">
+      <div class="stat-num"><span data-count="4.8">0</span><span class="stat-suf">★</span></div>
+      <div class="stat-lbl">Avaliação na loja</div>
+    </div>
+  </div>
+</section>
+
+<!-- ── HOW IT WORKS ───────────────────────────────────────────────────── -->
+<section class="section" id="how">
+  <div class="section-head reveal">
+    <div class="section-eyebrow">Como funciona</div>
+    <h2 class="section-title">Três passos. Sem planilha.</h2>
+    <p class="section-sub">
+      Você não precisa entender de finanças. O Rastro$ entende por você.
+    </p>
+  </div>
+  <div class="steps">
+    <div class="step reveal">
+      <div class="step-num">1</div>
+      <h4>Conecte ou cadastre</h4>
+      <p>Importe sua fatura ou cadastre na mão &mdash; do jeito que for mais rápido pra você.</p>
+    </div>
+    <div class="step reveal">
+      <div class="step-num">2</div>
+      <h4>Marque suas metas</h4>
+      <p>Crie cofrinhos pras coisas que importam: casamento, viagem, reserva de emergência.</p>
+    </div>
+    <div class="step reveal">
+      <div class="step-num">3</div>
+      <h4>Acompanhe (e comemore)</h4>
+      <p>Cada conta paga e cada meta batida ganha uma microcomemoração na tela. Seu histórico mensal cresce junto com você.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ── TESTIMONIALS ───────────────────────────────────────────────────── -->
+<section class="testimonials" id="depoimentos">
+  <div class="section-head reveal">
+    <div class="section-eyebrow">Quem usa, recomenda</div>
+    <h2 class="section-title">Gente real, <em class="t-emph">no controle.</em></h2>
+    <p class="section-sub">
+      Mais de 12 mil pessoas trocaram a planilha bagunçada pelo Rastro$.
+    </p>
+  </div>
+  <div class="tm-grid">
+    <div class="tm-card reveal">
+      <span class="tm-stars">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.8.7-5 4.6 1.4 6.7L12 17.8 5.9 20.3 7.3 13.6l-5-4.6 6.8-.7z"/></svg>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.8.7-5 4.6 1.4 6.7L12 17.8 5.9 20.3 7.3 13.6l-5-4.6 6.8-.7z"/></svg>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.8.7-5 4.6 1.4 6.7L12 17.8 5.9 20.3 7.3 13.6l-5-4.6 6.8-.7z"/></svg>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.8.7-5 4.6 1.4 6.7L12 17.8 5.9 20.3 7.3 13.6l-5-4.6 6.8-.7z"/></svg>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.8.7-5 4.6 1.4 6.7L12 17.8 5.9 20.3 7.3 13.6l-5-4.6 6.8-.7z"/></svg>
+      </span>
+      <p class="tm-quote">"Pela primeira vez eu sei <span class="hl">exatamente</span> para onde meu salário vai. Os cofrinhos com meta me fizeram juntar pro casamento sem nem sentir."</p>
+      <div class="tm-author">
+        <span class="tm-avatar" data-tm="larissa">LR</span>
+        <div>
+          <div class="tm-author-name">Larissa Ribeiro</div>
+          <div class="tm-author-role">Designer · São Paulo</div>
+        </div>
+      </div>
+    </div>
+    <div class="tm-card reveal">
+      <span class="tm-stars">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.8.7-5 4.6 1.4 6.7L12 17.8 5.9 20.3 7.3 13.6l-5-4.6 6.8-.7z"/></svg>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.8.7-5 4.6 1.4 6.7L12 17.8 5.9 20.3 7.3 13.6l-5-4.6 6.8-.7z"/></svg>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.8.7-5 4.6 1.4 6.7L12 17.8 5.9 20.3 7.3 13.6l-5-4.6 6.8-.7z"/></svg>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.8.7-5 4.6 1.4 6.7L12 17.8 5.9 20.3 7.3 13.6l-5-4.6 6.8-.7z"/></svg>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.8.7-5 4.6 1.4 6.7L12 17.8 5.9 20.3 7.3 13.6l-5-4.6 6.8-.7z"/></svg>
+      </span>
+      <p class="tm-quote">"Como MEI, eu vivia me perdendo no DAS e nas contas misturadas. Agora vejo <span class="hl">tudo separado</span> e nunca mais paguei nada atrasado."</p>
+      <div class="tm-author">
+        <span class="tm-avatar" data-tm="marcos">MA</span>
+        <div>
+          <div class="tm-author-name">Marcos Andrade</div>
+          <div class="tm-author-role">MEI · Belo Horizonte</div>
+        </div>
+      </div>
+    </div>
+    <div class="tm-card reveal">
+      <span class="tm-stars">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.8.7-5 4.6 1.4 6.7L12 17.8 5.9 20.3 7.3 13.6l-5-4.6 6.8-.7z"/></svg>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.8.7-5 4.6 1.4 6.7L12 17.8 5.9 20.3 7.3 13.6l-5-4.6 6.8-.7z"/></svg>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.8.7-5 4.6 1.4 6.7L12 17.8 5.9 20.3 7.3 13.6l-5-4.6 6.8-.7z"/></svg>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.8.7-5 4.6 1.4 6.7L12 17.8 5.9 20.3 7.3 13.6l-5-4.6 6.8-.7z"/></svg>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.8.7-5 4.6 1.4 6.7L12 17.8 5.9 20.3 7.3 13.6l-5-4.6 6.8-.7z"/></svg>
+      </span>
+      <p class="tm-quote">"O Alfredo AI me avisou que eu não podia assumir o financiamento do carro ainda. <span class="hl">Me salvou de uma furada</span> de verdade."</p>
+      <div class="tm-author">
+        <span class="tm-avatar" data-tm="thiago">TF</span>
+        <div>
+          <div class="tm-author-name">Thiago Ferreira</div>
+          <div class="tm-author-role">Engenheiro · Curitiba</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FINAL CTA ──────────────────────────────────────────────────────── -->
+<section class="cta">
+  <div class="cta-inner reveal">
+    <h2>Pronto para saber todo <em class="t-emph">RASTRO</em> do seu dinheiro?</h2>
+    <p>Crie sua conta em menos de um minuto. Sem cartão. Sem pegadinha.</p>
+    <div class="cta-btns">
+      <button class="btn btn-primary" type="button" data-open-login="signup">
+        Entrar no Rastro$
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+      </button>
+      <a class="btn btn-ghost" href="#features">Ver recursos</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="footer-main">
+    <div class="footer-brand-col">
+      <div class="footer-brand">
+        <span class="brand-logo">R</span>
+        <span>Rastro<span class="brand-dollar">$</span></span>
+      </div>
+      <p class="footer-tagline">O detetive do seu bolso. Acompanhe cartões, contas, investimentos e metas &mdash; tudo num só lugar.</p>
+      <div class="footer-social">
+        <a href="#" aria-label="Instagram"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg></a>
+        <a href="#" aria-label="Twitter"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18.2 2h3.3l-7.2 8.3L22.8 22h-6.6l-5.2-6.8L5 22H1.7l7.7-8.8L1.2 2h6.8l4.7 6.2L18.2 2zm-1.2 18h1.8L7.1 3.8H5.2L17 20z"/></svg></a>
+        <a href="#" aria-label="YouTube"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="4"/><path d="M10 9l5 3-5 3z" fill="currentColor" stroke="none"/></svg></a>
+        <a href="#" aria-label="LinkedIn"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M4.98 3.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM3 9h4v12H3zM10 9h3.8v1.7h.05c.53-1 1.83-2.05 3.77-2.05 4.03 0 4.78 2.65 4.78 6.1V21h-4v-5.4c0-1.3 0-2.95-1.8-2.95s-2.08 1.4-2.08 2.85V21h-4z"/></svg></a>
+      </div>
+    </div>
+    <div class="footer-col">
+      <h5>Produto</h5>
+      <ul>
+        <li><a href="#features">Recursos</a></li>
+        <li><a href="#how">Como funciona</a></li>
+        <li><a href="#numbers">Em números</a></li>
+        <li><a href="#depoimentos">Depoimentos</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h5>Empresa</h5>
+      <ul>
+        <li><a href="#">Sobre nós</a></li>
+        <li><a href="#">Blog</a></li>
+        <li><a href="#">Carreiras</a></li>
+        <li><a href="#">Imprensa</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h5>Suporte</h5>
+      <ul>
+        <li><a href="#">Central de ajuda</a></li>
+        <li><a href="#">Contato</a></li>
+        <li><a href="#">Status</a></li>
+        <li><a href="#">Segurança</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© <span th:text="${#dates.format(#dates.createNow(), 'yyyy')}">2026</span> Rastro$ · Seu dinheiro, no seu controle.</span>
+    <div class="footer-bottom-links">
+      <a href="#">Privacidade</a>
+      <a href="#">Termos</a>
+      <a href="#">Cookies</a>
+    </div>
+  </div>
+</footer>
+
+<!-- ─────────────────────────────────────────────────────────────────────
+     LOGIN DRAWER (login, signup, forgot — POSTs reais com CSRF)
+     ───────────────────────────────────────────────────────────────────── -->
+<div class="login-overlay" id="loginOverlay" aria-hidden="true"
+     th:attr="data-initial-view=${openLogin != null ? openLogin : 'login'},
+              data-open-on-load=${openLogin != null ? 'true' : 'false'}">
+  <div class="login-backdrop" data-close-login></div>
+
+  <aside class="login-panel" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
+    <button class="login-close" type="button" data-close-login aria-label="Fechar">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+
+    <div class="login-brand">
+      <span class="brand-logo">R</span>
+      <span>Rastro<span class="brand-dollar">$</span></span>
+    </div>
+
+    <div class="login-views">
+
+      <!-- ============ VIEW: LOGIN ============ -->
+      <div class="login-view is-active" data-view="login">
+        <h2 class="login-title" id="loginTitle">Bem-vindo de volta.</h2>
+        <p class="login-sub">Entre na sua conta pra continuar no controle.</p>
+
+        <form class="login-form" data-form="login"
+              th:action="@{/auth/login}" method="post" novalidate>
+          <input type="hidden"
+                 th:name="${_csrf.parameterName}"
+                 th:value="${_csrf.token}">
+
+          <div class="login-field">
+            <label for="loginEmail">Email</label>
+            <div class="login-input-wrap">
+              <input class="login-input" type="email" id="loginEmail" name="username"
+                     placeholder="voce@exemplo.com" autocomplete="email"
+                     required maxlength="180">
+              <svg class="login-input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="5" width="18" height="14" rx="2"/>
+                <path d="M3 7l9 6 9-6"/>
+              </svg>
+            </div>
+          </div>
+
+          <div class="login-field">
+            <div class="login-field-row">
+              <label for="loginPwd">Senha</label>
+              <button type="button" class="login-forgot" data-go-view="forgot">Esqueci minha senha</button>
+            </div>
+            <div class="login-input-wrap">
+              <input class="login-input" type="password" id="loginPwd" name="password"
+                     placeholder="••••••••" autocomplete="current-password"
+                     required minlength="1" maxlength="128">
+              <svg class="login-input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="4" y="11" width="16" height="10" rx="2"/>
+                <path d="M8 11V8a4 4 0 0 1 8 0v3"/>
+              </svg>
+              <button type="button" class="login-pwd-toggle" data-pwd-toggle="loginPwd" aria-label="Mostrar senha">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-full login-submit" id="loginSubmit">
+            Entrar
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+          </button>
+        </form>
+
+        <p class="login-signup">
+          Não tem conta? <button type="button" class="login-link-btn" data-go-view="signup">Cadastre-se</button>
+        </p>
+      </div>
+
+      <!-- ============ VIEW: FORGOT ============ -->
+      <div class="login-view" data-view="forgot">
+        <button type="button" class="login-back" data-go-view="login">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          Voltar ao login
+        </button>
+
+        <h2 class="login-title">Esqueceu a senha?</h2>
+        <p class="login-sub">
+          Sem stress &mdash; a gente te manda um código no seu email pra você criar uma nova.
+        </p>
+
+        <form class="login-form" data-form="forgot"
+              th:action="@{/auth/forgot}" method="post" novalidate>
+          <input type="hidden"
+                 th:name="${_csrf.parameterName}"
+                 th:value="${_csrf.token}">
+
+          <div class="login-field">
+            <label for="forgotEmail">Seu email</label>
+            <div class="login-input-wrap">
+              <input class="login-input" type="email" id="forgotEmail" name="email"
+                     placeholder="voce@exemplo.com" autocomplete="email"
+                     required maxlength="180">
+              <svg class="login-input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="5" width="18" height="14" rx="2"/>
+                <path d="M3 7l9 6 9-6"/>
+              </svg>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-full login-submit" id="forgotSubmit">
+            Enviar código
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+          </button>
+        </form>
+
+        <p class="login-signup">
+          Lembrou? <button type="button" class="login-link-btn" data-go-view="login">Entrar</button>
+        </p>
+      </div>
+
+      <!-- ============ VIEW: SIGNUP ============ -->
+      <div class="login-view" data-view="signup">
+        <button type="button" class="login-back" data-go-view="login">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          Voltar ao login
+        </button>
+
+        <h2 class="login-title">Crie sua conta.</h2>
+        <p class="login-sub">Comece a seguir o rastro do seu dinheiro em menos de um minuto.</p>
+
+        <form class="login-form" data-form="signup"
+              th:action="@{/auth/signup}" method="post" novalidate>
+          <input type="hidden"
+                 th:name="${_csrf.parameterName}"
+                 th:value="${_csrf.token}">
+
+          <div class="login-field">
+            <label for="signupName">Seu nome</label>
+            <div class="login-input-wrap">
+              <input class="login-input" type="text" id="signupName" name="name"
+                     placeholder="Como podemos te chamar?" autocomplete="name"
+                     required minlength="2" maxlength="120">
+              <svg class="login-input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="8" r="4"/>
+                <path d="M4 21a8 8 0 0 1 16 0"/>
+              </svg>
+            </div>
+          </div>
+
+          <div class="login-field">
+            <label for="signupEmail">Email</label>
+            <div class="login-input-wrap">
+              <input class="login-input" type="email" id="signupEmail" name="email"
+                     placeholder="voce@exemplo.com" autocomplete="email"
+                     required maxlength="180">
+              <svg class="login-input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="5" width="18" height="14" rx="2"/>
+                <path d="M3 7l9 6 9-6"/>
+              </svg>
+            </div>
+          </div>
+
+          <div class="login-field">
+            <label for="signupPwd">Crie uma senha</label>
+            <div class="login-input-wrap">
+              <input class="login-input" type="password" id="signupPwd" name="password"
+                     placeholder="Mínimo 8 caracteres" autocomplete="new-password"
+                     required minlength="8" maxlength="128">
+              <svg class="login-input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="4" y="11" width="16" height="10" rx="2"/>
+                <path d="M8 11V8a4 4 0 0 1 8 0v3"/>
+              </svg>
+              <button type="button" class="login-pwd-toggle" data-pwd-toggle="signupPwd" aria-label="Mostrar senha">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+            <div class="login-strength" id="signupStrength" data-level="0">
+              <div class="login-strength-bars"><span></span><span></span><span></span><span></span></div>
+              <span class="login-strength-lbl">Força</span>
+            </div>
+          </div>
+
+          <div class="login-field">
+            <label for="signupPwd2">Confirme a senha</label>
+            <div class="login-input-wrap">
+              <input class="login-input" type="password" id="signupPwd2" name="passwordConfirm"
+                     placeholder="Repita a senha" autocomplete="new-password"
+                     required minlength="8" maxlength="128">
+              <svg class="login-input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="4" y="11" width="16" height="10" rx="2"/>
+                <path d="M8 11V8a4 4 0 0 1 8 0v3"/>
+              </svg>
+              <button type="button" class="login-pwd-toggle" data-pwd-toggle="signupPwd2" aria-label="Mostrar senha">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+            <span class="login-match" id="signupMatch"></span>
+          </div>
+
+          <label class="login-remember">
+            <input type="checkbox" checked>
+            <span class="login-remember-box">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-11"/></svg>
+            </span>
+            Concordo com os <a href="#" class="login-terms-link">termos</a> e a <a href="#" class="login-terms-link">privacidade</a>
+          </label>
+
+          <button type="submit" class="btn btn-primary btn-full login-submit" id="signupSubmit">
+            Criar conta
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+          </button>
+        </form>
+
+        <p class="login-signup">
+          Já tem conta? <button type="button" class="login-link-btn" data-go-view="login">Entrar</button>
+        </p>
+      </div>
+
+    </div>
+  </aside>
+</div>
+
+</body>
+</html>

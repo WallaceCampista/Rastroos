@@ -1,0 +1,107 @@
+# ─────────────────────────────────────────────────────────────
+# Rastro$ — configuração base (compartilhada por todos os perfis)
+# Sobrescritas em application-{dev|test|prod}.yml.
+# ─────────────────────────────────────────────────────────────
+
+spring:
+  application:
+    name: rastroos
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+
+  # ── JPA / Hibernate ────────────────────────────────────────
+  jpa:
+    open-in-view: false           # nunca: anti-pattern em apps web
+    hibernate:
+      ddl-auto: validate          # schema vem do Liquibase, JPA apenas valida
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+        format_sql: false
+        default_schema: public
+
+  # ── Liquibase ──────────────────────────────────────────────
+  liquibase:
+    change-log: classpath:/db/changelog/db.changelog-master.xml
+    enabled: true
+    # Parâmetros consumidos pelos changelogs via ${...}.
+    # Em PROD, override por env var (NUNCA use os defaults abaixo).
+    parameters:
+      rastroos.admin.email: ${RASTROOS_ADMIN_EMAIL:admin@rastroos.local}
+      rastroos.admin.password.hash: ${RASTROOS_ADMIN_PASSWORD_HASH:$2a$12$8vt9ODctuNYuCFIkcxwg8.4nx/iyBMYItRe5QzNEt5Ch54kZugHwO}
+
+  # ── Thymeleaf ──────────────────────────────────────────────
+  thymeleaf:
+    cache: true                   # override no dev
+    mode: HTML
+    encoding: UTF-8
+    prefix: classpath:/templates/
+    suffix: .html
+
+  # ── i18n ───────────────────────────────────────────────────
+  messages:
+    basename: messages/messages
+    encoding: UTF-8
+    fallback-to-system-locale: false
+
+  # ── Web ────────────────────────────────────────────────────
+  web:
+    locale: pt-BR
+    locale-resolver: accept-header
+
+  # ── Jackson ────────────────────────────────────────────────
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+      indent-output: false
+    deserialization:
+      fail-on-unknown-properties: false
+    time-zone: UTC
+    default-property-inclusion: non_null
+
+# ── Server ──────────────────────────────────────────────────
+server:
+  port: 8080
+  error:
+    include-message: never        # nunca em prod; perfil dev sobrescreve
+    include-stacktrace: never
+    include-binding-errors: never
+  forward-headers-strategy: framework
+  compression:
+    enabled: true
+
+# ── Actuator (mínimo seguro por padrão) ────────────────────
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: never         # never em prod; perfil dev sobrescreve
+      probes:
+        enabled: true
+  info:
+    env:
+      enabled: false              # nunca expor env por padrão
+
+# ── OpenAPI / Swagger ──────────────────────────────────────
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    operations-sorter: alpha
+    tags-sorter: alpha
+
+# ── Logging ────────────────────────────────────────────────
+logging:
+  level:
+    root: ${LOG_LEVEL:INFO}
+    com.rastroos: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%t] %logger{36} - %msg%n"

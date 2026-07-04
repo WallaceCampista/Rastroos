@@ -1,0 +1,207 @@
+/* ─────────────────────────────────────────────────────────────
+   Rastro$ — /app/income
+   Reusa filter-bar/pagination/flash de expenses.css quando ela
+   também estiver carregada (telas separadas). Para income, redefini
+   apenas o que muda.
+   ───────────────────────────────────────────────────────────── */
+
+.screen-income {
+    padding: 28px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    max-width: 1240px;
+}
+
+/* ── Filter bar ─────────────────────────────────────────── */
+.filter-bar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    align-items: end;
+    padding: 14px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+}
+
+.filter-field {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+}
+
+.filter-field-grow {
+    grid-column: span 2;
+}
+
+.filter-field label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+}
+
+.filter-field select,
+.filter-field input {
+    width: 100%;
+    padding: 8px 10px;
+    background: var(--bg-2);
+    color: var(--text);
+    border: 1px solid var(--border-2);
+    border-radius: var(--radius);
+    font-family: inherit;
+    font-size: 13.5px;
+}
+
+.filter-field select:focus,
+.filter-field input:focus {
+    outline: none;
+    border-color: var(--primary-2);
+}
+
+.filter-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* ── Table ───────────────────────────────────────────────── */
+.income-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+.income-table thead th {
+    text-align: left;
+    padding: 12px 14px;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-2);
+}
+
+.income-table th.num,
+.income-table td.num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.income-table th.actions,
+.income-table td.actions {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.income-table tbody tr {
+    transition: background 0.15s;
+}
+
+.income-table tbody tr:hover {
+    background: var(--surface-2);
+}
+
+.income-table tbody tr + tr td {
+    border-top: 1px solid var(--border);
+}
+
+.income-table td {
+    padding: 12px 14px;
+    font-size: 13.5px;
+    vertical-align: middle;
+}
+
+.income-source {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.income-source > span:first-child {
+    font-weight: 700;
+}
+
+.income-note {
+    color: var(--text-dim);
+    font-size: 11.5px;
+}
+
+.income-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
+    border-radius: 99px;
+    font-size: 11.5px;
+    font-weight: 600;
+    border: 1px solid var(--border-2);
+    background: var(--surface);
+    color: var(--text-dim);
+}
+
+.income-amount {
+    color: var(--success);
+    font-weight: 700;
+}
+
+.inline-form {
+    display: inline;
+}
+
+/* ── Pagination ─────────────────────────────────────────── */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 0;
+    color: var(--text-dim);
+    font-size: 13px;
+}
+
+.pagination-info strong {
+    color: var(--text);
+}
+
+/* ── Form ───────────────────────────────────────────────── */
+.income-form {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.income-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.income-form-foot {
+    display: flex;
+    justify-content: flex-end;
+}
+
+@media (max-width: 720px) {
+    .income-form-grid { grid-template-columns: 1fr; }
+}
+
+/* ── Flash ──────────────────────────────────────────────── */
+.flash {
+    padding: 12px 16px;
+    border-radius: var(--radius);
+    font-size: 13.5px;
+    font-weight: 600;
+}
+
+.flash-ok {
+    background: color-mix(in oklch, var(--success) 12%, transparent);
+    border: 1px solid color-mix(in oklch, var(--success) 30%, transparent);
+    color: var(--success);
+}

@@ -1,0 +1,112 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR"
+      th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+<head>
+    <title th:text="${editing ? 'Editar lançamento · Rastro$' : 'Novo lançamento · Rastro$'}">Lançamento · Rastro$</title>
+    <link rel="stylesheet" th:href="@{/css/screens/expenses.css}">
+    <script th:src="@{/js/screens/transaction-form.js}" defer></script>
+</head>
+<body>
+<section class="app-content screen screen-expenses screen-tx-form">
+    <header class="screen-header">
+        <div>
+            <h1 class="screen-title"
+                th:text="${editing ? 'Editar lançamento' : 'Novo lançamento'}">Novo lançamento</h1>
+            <p class="screen-sub">
+                Despesa pontual, recorrente ou parcelada.
+            </p>
+        </div>
+        <div class="screen-actions">
+            <a class="btn" th:href="@{/app/expenses}">Voltar</a>
+        </div>
+    </header>
+
+    <form class="tx-form card"
+          th:action="${editing ? '/app/expenses/' + transactionId + '/edit' : '/app/expenses/new'}"
+          method="post"
+          th:object="${transactionForm}">
+        <input type="hidden"
+               th:if="${_csrf != null}"
+               th:name="${_csrf.parameterName}"
+               th:value="${_csrf.token}">
+
+        <div class="tx-form-grid">
+            <div class="field field-wide">
+                <label for="description">Descrição</label>
+                <input id="description" type="text" th:field="*{description}"
+                       maxlength="200" required autocomplete="off">
+                <p class="field-error" th:if="${#fields.hasErrors('description')}"
+                   th:errors="*{description}">erro</p>
+            </div>
+
+            <div class="field">
+                <label for="amount">Valor (R$)</label>
+                <input id="amount" type="number" step="0.01" min="0.01"
+                       th:field="*{amount}" required>
+                <p class="field-error" th:if="${#fields.hasErrors('amount')}"
+                   th:errors="*{amount}">erro</p>
+            </div>
+
+            <div class="field">
+                <label for="dueDate">Vencimento</label>
+                <input id="dueDate" type="date" th:field="*{dueDate}" required>
+                <p class="field-error" th:if="${#fields.hasErrors('dueDate')}"
+                   th:errors="*{dueDate}">erro</p>
+            </div>
+
+            <div class="field">
+                <label for="accountId">Conta</label>
+                <select id="accountId" th:field="*{accountId}" required>
+                    <option value="" disabled>Selecione…</option>
+                    <option th:each="a : ${accountOptions}"
+                            th:value="${a.id}"
+                            th:text="${a.name}">Conta</option>
+                </select>
+                <p class="field-error" th:if="${#fields.hasErrors('accountId')}"
+                   th:errors="*{accountId}">erro</p>
+            </div>
+
+            <div class="field">
+                <label for="categoryId">Categoria</label>
+                <select id="categoryId" th:field="*{categoryId}" required>
+                    <option value="" disabled>Selecione…</option>
+                    <option th:each="c : ${categoryOptions}"
+                            th:value="${c.id}"
+                            th:text="${c.namePt}">Categoria</option>
+                </select>
+                <p class="field-error" th:if="${#fields.hasErrors('categoryId')}"
+                   th:errors="*{categoryId}">erro</p>
+            </div>
+
+            <div class="field" th:unless="${editing}">
+                <label for="installments">Parcelas</label>
+                <input id="installments" type="number" min="1" max="60"
+                       th:field="*{installments}">
+                <p class="field-help">1 = pagamento único; até 60.</p>
+                <p class="field-error" th:if="${#fields.hasErrors('installments')}"
+                   th:errors="*{installments}">erro</p>
+            </div>
+
+            <div class="field field-checkbox">
+                <label>
+                    <input type="checkbox" th:field="*{fixed}">
+                    Lançamento fixo (recorrente)
+                </label>
+            </div>
+
+            <div class="field field-checkbox">
+                <label>
+                    <input type="checkbox" th:field="*{paid}">
+                    Marcar como pago
+                </label>
+            </div>
+        </div>
+
+        <footer class="tx-form-foot">
+            <button type="submit" class="btn btn-primary"
+                    th:text="${editing ? 'Salvar' : 'Criar lançamento'}">Salvar</button>
+        </footer>
+    </form>
+</section>
+</body>
+</html>

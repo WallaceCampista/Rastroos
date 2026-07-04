@@ -1,0 +1,716 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ─────────────────────────────────────────────────────────────
+  001 — Schema inicial do Rastro$
+  ─────────────────────────────────────────────────────────────
+  Cria todas as tabelas de domínio + índices.
+  Senhas, tokens e códigos são sempre armazenados como HASH.
+  Dinheiro como BIGINT em centavos.
+  Datas/horários sempre TIMESTAMPTZ (UTC).
+-->
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.27.xsd">
+
+    <!-- ════════════════════════════════════════════════════════════
+         users — usuários do sistema
+         ═════════════════════════════════════════════════════════ -->
+    <changeSet id="001-01-create-users" author="rastroos">
+        <createTable tableName="users">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="name" type="VARCHAR(120)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="email" type="VARCHAR(180)">
+                <constraints nullable="false" unique="true" uniqueConstraintName="uk_users_email"/>
+            </column>
+            <column name="email_verified" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="phone" type="VARCHAR(40)"/>
+            <column name="password_hash" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="password_must_change" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="role" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="preferred_locale" type="VARCHAR(5)" defaultValue="pt-BR">
+                <constraints nullable="false"/>
+            </column>
+            <column name="theme" type="VARCHAR(10)" defaultValue="dark">
+                <constraints nullable="false"/>
+            </column>
+            <column name="palette_index" type="SMALLINT" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="density" type="VARCHAR(10)" defaultValue="regular">
+                <constraints nullable="false"/>
+            </column>
+            <column name="values_hidden" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMPTZ" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="last_login_at" type="TIMESTAMPTZ"/>
+        </createTable>
+
+        <sql>
+            ALTER TABLE users ADD CONSTRAINT ck_users_role
+                CHECK (role IN ('USER', 'ADMIN'));
+            ALTER TABLE users ADD CONSTRAINT ck_users_status
+                CHECK (status IN ('PENDING_APPROVAL', 'ACTIVE', 'DISABLED'));
+            ALTER TABLE users ADD CONSTRAINT ck_users_theme
+                CHECK (theme IN ('light', 'dark'));
+            ALTER TABLE users ADD CONSTRAINT ck_users_density
+                CHECK (density IN ('compact', 'regular', 'comfy'));
+        </sql>
+
+        <rollback>
+            <dropTable tableName="users"/>
+        </rollback>
+    </changeSet>
+
+    <!-- ════════════════════════════════════════════════════════════
+         user_sessions — sessões ativas (encerrar / "online agora")
+         ═════════════════════════════════════════════════════════ -->
+    <changeSet id="001-02-create-user-sessions" author="rastroos">
+        <createTable tableName="user_sessions">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="user_id" type="UUID">
+                <constraints nullable="false"
+                             foreignKeyName="fk_sessions_user"
+                             references="users(id)"
+                             deleteCascade="true"/>
+            </column>
+            <column name="token_hash" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="user_agent" type="VARCHAR(255)"/>
+            <column name="ip_address" type="INET"/>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="last_seen_at" type="TIMESTAMPTZ" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="revoked_at" type="TIMESTAMPTZ"/>
+        </createTable>
+
+        <createIndex tableName="user_sessions" indexName="ix_sessions_user_active">
+            <column name="user_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="user_sessions"/>
+        </rollback>
+    </changeSet>
+
+    <!-- ════════════════════════════════════════════════════════════
+         login_attempts — tentativas (anti brute force)
+         ═════════════════════════════════════════════════════════ -->
+    <changeSet id="001-03-create-login-attempts" author="rastroos">
+        <createTable tableName="login_attempts">
+            <column name="id" type="BIGSERIAL">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="email" type="VARCHAR(180)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="ip_address" type="INET"/>
+            <column name="success" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="attempted_at" type="TIMESTAMPTZ" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="login_attempts" indexName="ix_login_attempts_email_time">
+            <column name="email"/>
+            <column name="attempted_at"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="login_attempts"/>
+        </rollback>
+    </changeSet>
+
+    <!-- ════════════════════════════════════════════════════════════
+         verification_codes — códigos de verificação (signup/reset)
+         ═════════════════════════════════════════════════════════ -->
+    <changeSet id="001-04-create-verification-codes" author="rastroos">
+        <createTable tableName="verification_codes">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="user_id" type="UUID">
+                <constraints nullable="false"
+                             foreignKeyName="fk_verifcodes_user"
+                             references="users(id)"
+                             deleteCascade="true"/>
+            </column>
+            <column name="purpose" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="code_hash" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="expires_at" type="TIMESTAMPTZ">
+                <constraints nullable="false"/>
+            </column>
+            <column name="used_at" type="TIMESTAMPTZ"/>
+        </createTable>
+
+        <sql>
+            ALTER TABLE verification_codes ADD CONSTRAINT ck_verifcodes_purpose
+                CHECK (purpose IN ('EMAIL_VERIFY', 'PASSWORD_RESET'));
+        </sql>
+
+        <createIndex tableName="verification_codes" indexName="ix_verifcodes_user_purpose">
+            <column name="user_id"/>
+            <column name="purpose"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="verification_codes"/>
+        </rollback>
+    </changeSet>
+
+    <!-- ════════════════════════════════════════════════════════════
+         categories — categorias globais
+         ═════════════════════════════════════════════════════════ -->
+    <changeSet id="001-05-create-categories" author="rastroos">
+        <createTable tableName="categories">
+            <column name="id" type="VARCHAR(40)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="name_pt" type="VARCHAR(60)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="name_en" type="VARCHAR(60)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="color_hex" type="CHAR(7)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="icon_name" type="VARCHAR(40)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="sort_order" type="SMALLINT" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="categories"/>
+        </rollback>
+    </changeSet>
+
+    <!-- ════════════════════════════════════════════════════════════
+         accounts — cartões / contas / recorrentes
+         ═════════════════════════════════════════════════════════ -->
+    <changeSet id="001-06-create-accounts" author="rastroos">
+        <createTable tableName="accounts">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="user_id" type="UUID">
+                <constraints nullable="false"
+                             foreignKeyName="fk_accounts_user"
+                             references="users(id)"
+                             deleteCascade="true"/>
+            </column>
+            <column name="name" type="VARCHAR(80)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="kind" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="color_hex" type="CHAR(7)"/>
+            <column name="icon_text" type="VARCHAR(8)"/>
+            <column name="close_day" type="SMALLINT"/>
+            <column name="due_day" type="SMALLINT"/>
+            <column name="category_id" type="VARCHAR(40)">
+                <constraints foreignKeyName="fk_accounts_category"
+                             references="categories(id)"/>
+            </column>
+            <column name="is_fixed" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="closed_at" type="DATE"/>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <sql>
+            ALTER TABLE accounts ADD CONSTRAINT ck_accounts_kind
+                CHECK (kind IN ('CARD', 'BILL', 'RECURRENT'));
+            ALTER TABLE accounts ADD CONSTRAINT ck_accounts_close_day
+                CHECK (close_day IS NULL OR (close_day BETWEEN 1 AND 31));
+            ALTER TABLE accounts ADD CONSTRAINT ck_accounts_due_day
+                CHECK (due_day IS NULL OR (due_day BETWEEN 1 AND 31));
+        </sql>
+
+        <createIndex tableName="accounts" indexName="ix_accounts_user">
+            <column name="user_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="accounts"/>
+        </rollback>
+    </changeSet>
+
+    <!-- ════════════════════════════════════════════════════════════
+         transactions — lançamentos / despesas
+         ═════════════════════════════════════════════════════════ -->
+    <changeSet id="001-07-create-transactions" author="rastroos">
+        <createTable tableName="transactions">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="user_id" type="UUID">
+                <constraints nullable="false"
+                             foreignKeyName="fk_tx_user"
+                             references="users(id)"
+                             deleteCascade="true"/>
+            </column>
+            <column name="account_id" type="UUID">
+                <constraints nullable="false"
+                             foreignKeyName="fk_tx_account"
+                             references="accounts(id)"/>
+            </column>
+            <column name="category_id" type="VARCHAR(40)">
+                <constraints nullable="false"
+                             foreignKeyName="fk_tx_category"
+                             references="categories(id)"/>
+            </column>
+            <column name="description" type="VARCHAR(200)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="amount_cents" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="due_date" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="is_fixed" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="is_paid" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="paid_at" type="TIMESTAMPTZ"/>
+            <column name="installment_current" type="SMALLINT"/>
+            <column name="installment_total" type="SMALLINT"/>
+            <column name="ends_at" type="DATE"/>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <sql>
+            ALTER TABLE transactions ADD CONSTRAINT ck_tx_amount_positive
+                CHECK (amount_cents > 0);
+            ALTER TABLE transactions ADD CONSTRAINT ck_tx_installments
+                CHECK (
+                    (installment_current IS NULL AND installment_total IS NULL)
+                    OR (installment_current >= 1 AND installment_total >= installment_current)
+                );
+        </sql>
+
+        <createIndex tableName="transactions" indexName="ix_tx_user_date">
+            <column name="user_id"/>
+            <column name="due_date"/>
+        </createIndex>
+        <createIndex tableName="transactions" indexName="ix_tx_user_account">
+            <column name="user_id"/>
+            <column name="account_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="transactions"/>
+        </rollback>
+    </changeSet>
+
+    <!-- ════════════════════════════════════════════════════════════
+         incomes — receitas
+         ═════════════════════════════════════════════════════════ -->
+    <changeSet id="001-08-create-incomes" author="rastroos">
+        <createTable tableName="incomes">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="user_id" type="UUID">
+                <constraints nullable="false"
+                             foreignKeyName="fk_incomes_user"
+                             references="users(id)"
+                             deleteCascade="true"/>
+            </column>
+            <column name="source" type="VARCHAR(120)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="amount_cents" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="income_date" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="category" type="VARCHAR(40)"/>
+            <column name="note" type="VARCHAR(200)"/>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <sql>
+            ALTER TABLE incomes ADD CONSTRAINT ck_incomes_amount_positive
+                CHECK (amount_cents > 0);
+        </sql>
+
+        <createIndex tableName="incomes" indexName="ix_incomes_user_date">
+            <column name="user_id"/>
+            <column name="income_date"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="incomes"/>
+        </rollback>
+    </changeSet>
+
+    <!-- ════════════════════════════════════════════════════════════
+         investments — investimentos do usuário
+         ═════════════════════════════════════════════════════════ -->
+    <changeSet id="001-09-create-investments" author="rastroos">
+        <createTable tableName="investments">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="user_id" type="UUID">
+                <constraints nullable="false"
+                             foreignKeyName="fk_invest_user"
+                             references="users(id)"
+                             deleteCascade="true"/>
+            </column>
+            <column name="name" type="VARCHAR(120)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="kind" type="VARCHAR(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="amount_cents" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="goal_cents" type="BIGINT"/>
+            <column name="rate_label" type="VARCHAR(60)"/>
+            <column name="monthly_return_cents" type="BIGINT"/>
+            <column name="color_hex" type="VARCHAR(80)"/>
+            <column name="icon_text" type="VARCHAR(8)"/>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <sql>
+            ALTER TABLE investments ADD CONSTRAINT ck_invest_kind
+                CHECK (kind IN ('PIGGY', 'CDI', 'TREASURY', 'LIMITE_GARANTIDO', 'LCI', 'STOCK'));
+            ALTER TABLE investments ADD CONSTRAINT ck_invest_amount_nonneg
+                CHECK (amount_cents >= 0);
+        </sql>
+
+        <createIndex tableName="investments" indexName="ix_invest_user">
+            <column name="user_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="investments"/>
+        </rollback>
+    </changeSet>
+
+    <!-- ════════════════════════════════════════════════════════════
+         investment_history — histórico mensal por investimento
+         ═════════════════════════════════════════════════════════ -->
+    <changeSet id="001-10-create-investment-history" author="rastroos">
+        <createTable tableName="investment_history">
+            <column name="id" type="BIGSERIAL">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="investment_id" type="UUID">
+                <constraints nullable="false"
+                             foreignKeyName="fk_invhist_inv"
+                             references="investments(id)"
+                             deleteCascade="true"/>
+            </column>
+            <column name="year_month" type="CHAR(7)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="amount_cents" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="investment_history"
+                             columnNames="investment_id, year_month"
+                             constraintName="uk_invhist_inv_ym"/>
+
+        <createIndex tableName="investment_history" indexName="ix_invhist_ym">
+            <column name="year_month"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="investment_history"/>
+        </rollback>
+    </changeSet>
+
+    <!-- ════════════════════════════════════════════════════════════
+         support_tickets + comments
+         ═════════════════════════════════════════════════════════ -->
+    <changeSet id="001-11-create-support-tickets" author="rastroos">
+        <createTable tableName="support_tickets">
+            <column name="id" type="VARCHAR(20)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="user_id" type="UUID">
+                <constraints nullable="false"
+                             foreignKeyName="fk_ticket_user"
+                             references="users(id)"
+                             deleteCascade="true"/>
+            </column>
+            <column name="category" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="title" type="VARCHAR(200)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="priority" type="VARCHAR(10)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMPTZ" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <sql>
+            ALTER TABLE support_tickets ADD CONSTRAINT ck_ticket_category
+                CHECK (category IN ('BUG', 'FEATURE', 'COMPLAINT'));
+            ALTER TABLE support_tickets ADD CONSTRAINT ck_ticket_priority
+                CHECK (priority IN ('LOW', 'MEDIUM', 'HIGH'));
+            ALTER TABLE support_tickets ADD CONSTRAINT ck_ticket_status
+                CHECK (status IN ('OPEN', 'IN_PROGRESS', 'DONE', 'CANCELED'));
+        </sql>
+
+        <createIndex tableName="support_tickets" indexName="ix_ticket_user">
+            <column name="user_id"/>
+        </createIndex>
+        <createIndex tableName="support_tickets" indexName="ix_ticket_status">
+            <column name="status"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="support_tickets"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="001-12-create-support-ticket-comments" author="rastroos">
+        <createTable tableName="support_ticket_comments">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="ticket_id" type="VARCHAR(20)">
+                <constraints nullable="false"
+                             foreignKeyName="fk_tcomm_ticket"
+                             references="support_tickets(id)"
+                             deleteCascade="true"/>
+            </column>
+            <column name="author_id" type="UUID">
+                <constraints nullable="false"
+                             foreignKeyName="fk_tcomm_author"
+                             references="users(id)"/>
+            </column>
+            <column name="author_role" type="VARCHAR(10)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="body" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <sql>
+            ALTER TABLE support_ticket_comments ADD CONSTRAINT ck_tcomm_role
+                CHECK (author_role IN ('USER', 'ADMIN'));
+        </sql>
+
+        <createIndex tableName="support_ticket_comments" indexName="ix_tcomm_ticket">
+            <column name="ticket_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="support_ticket_comments"/>
+        </rollback>
+    </changeSet>
+
+    <!-- ════════════════════════════════════════════════════════════
+         chats + chat_messages — Alfredo (Gerente IA)
+         ═════════════════════════════════════════════════════════ -->
+    <changeSet id="001-13-create-chats" author="rastroos">
+        <createTable tableName="chats">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="user_id" type="UUID">
+                <constraints nullable="false"
+                             foreignKeyName="fk_chats_user"
+                             references="users(id)"
+                             deleteCascade="true"/>
+            </column>
+            <column name="title" type="VARCHAR(120)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="chats" indexName="ix_chats_user_created">
+            <column name="user_id"/>
+            <column name="created_at"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="chats"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="001-14-create-chat-messages" author="rastroos">
+        <createTable tableName="chat_messages">
+            <column name="id" type="BIGSERIAL">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="chat_id" type="UUID">
+                <constraints nullable="false"
+                             foreignKeyName="fk_chatmsg_chat"
+                             references="chats(id)"
+                             deleteCascade="true"/>
+            </column>
+            <column name="role" type="VARCHAR(15)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="content" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <sql>
+            ALTER TABLE chat_messages ADD CONSTRAINT ck_chatmsg_role
+                CHECK (role IN ('USER', 'ASSISTANT'));
+        </sql>
+
+        <createIndex tableName="chat_messages" indexName="ix_chatmsg_chat_time">
+            <column name="chat_id"/>
+            <column name="created_at"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="chat_messages"/>
+        </rollback>
+    </changeSet>
+
+    <!-- ════════════════════════════════════════════════════════════
+         audit_log — auditoria (login, mudanças sensíveis)
+         ═════════════════════════════════════════════════════════ -->
+    <changeSet id="001-15-create-audit-log" author="rastroos">
+        <createTable tableName="audit_log">
+            <column name="id" type="BIGSERIAL">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="user_id" type="UUID"/>
+            <column name="action" type="VARCHAR(60)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="resource" type="VARCHAR(60)"/>
+            <column name="resource_id" type="VARCHAR(60)"/>
+            <column name="ip_address" type="INET"/>
+            <column name="user_agent" type="VARCHAR(255)"/>
+            <column name="details" type="JSONB"/>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="audit_log" indexName="ix_audit_user_time">
+            <column name="user_id"/>
+            <column name="created_at"/>
+        </createIndex>
+        <createIndex tableName="audit_log" indexName="ix_audit_action_time">
+            <column name="action"/>
+            <column name="created_at"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="audit_log"/>
+        </rollback>
+    </changeSet>
+
+    <!-- ════════════════════════════════════════════════════════════
+         trigger genérico: updated_at = now() em UPDATE
+         ═════════════════════════════════════════════════════════ -->
+    <changeSet id="001-16-touch-updated-at-trigger" author="rastroos">
+        <sql splitStatements="false">
+            CREATE OR REPLACE FUNCTION touch_updated_at()
+            RETURNS TRIGGER AS $$
+            BEGIN
+                NEW.updated_at = now();
+                RETURN NEW;
+            END;
+            $$ LANGUAGE plpgsql;
+
+            CREATE TRIGGER trg_users_touch_updated
+                BEFORE UPDATE ON users
+                FOR EACH ROW EXECUTE FUNCTION touch_updated_at();
+
+            CREATE TRIGGER trg_tickets_touch_updated
+                BEFORE UPDATE ON support_tickets
+                FOR EACH ROW EXECUTE FUNCTION touch_updated_at();
+        </sql>
+
+        <rollback>
+            <sql>
+                DROP TRIGGER IF EXISTS trg_tickets_touch_updated ON support_tickets;
+                DROP TRIGGER IF EXISTS trg_users_touch_updated ON users;
+                DROP FUNCTION IF EXISTS touch_updated_at();
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

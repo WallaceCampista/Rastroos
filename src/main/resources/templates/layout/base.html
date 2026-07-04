@@ -1,0 +1,42 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR"
+      th:fragment="layout(title, content)">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:replace="${title}">Rastro$</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap">
+
+    <link rel="stylesheet" th:href="@{/css/tokens.css}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/layout.css}">
+    <link rel="stylesheet" th:href="@{/css/components.css}">
+
+    <script th:src="@{/js/app.js}" defer></script>
+    <script th:src="@{/js/theme.js}" defer></script>
+</head>
+<body class="app-body"
+      th:attr="data-theme=${userTheme != null ? userTheme : 'dark'},
+               data-density=${userDensity != null ? userDensity : 'regular'},
+               data-palette=${userPalette != null ? userPalette : 0}">
+
+<div class="app-shell">
+    <aside class="app-sidebar" th:replace="~{fragments/sidebar :: sidebar(active=${activeNav})}"></aside>
+
+    <div class="app-main">
+        <header class="app-topbar" th:replace="~{fragments/topbar :: topbar}"></header>
+
+        <section class="app-content" th:replace="${content}">
+            <p>Conteúdo da tela vai aqui.</p>
+        </section>
+
+        <footer class="app-footer" th:replace="~{fragments/footer :: footer}"></footer>
+    </div>
+</div>
+
+</body>
+</html>

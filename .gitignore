@@ -1,0 +1,146 @@
+# ─────────────────────────────────────────────────────────────
+# Rastro$ — .gitignore
+# ─────────────────────────────────────────────────────────────
+
+# ── Build (Maven / Gradle) ───────────────────────────────────
+target/
+build/
+out/
+bin/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# Maven wrapper local cache (mantemos só o wrapper essencial)
+.mvn/wrapper/maven-wrapper.properties.lck
+
+# ── Java / Kotlin ────────────────────────────────────────────
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+*.tar.gz
+*.rar
+*.log
+hs_err_pid*
+replay_pid*
+
+# ── IntelliJ IDEA ────────────────────────────────────────────
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# ── Eclipse / STS ────────────────────────────────────────────
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings/
+.springBeans
+.sts4-cache
+.metadata
+bin/
+tmp/
+*.tmp
+*.bak
+*.swp
+
+# ── VSCode ───────────────────────────────────────────────────
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# ── NetBeans ─────────────────────────────────────────────────
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+# ── macOS ────────────────────────────────────────────────────
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# ── Windows ──────────────────────────────────────────────────
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ── Linux ────────────────────────────────────────────────────
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ── Logs e relatórios ────────────────────────────────────────
+*.log
+logs/
+*.log.*
+spring.log
+application.log
+jacoco.exec
+.jacoco/
+surefire-reports/
+failsafe-reports/
+*.hprof
+
+# ── Cobertura / análise ──────────────────────────────────────
+*.coverage
+*.lcov
+*.gcov
+sonar-project.properties
+.scannerwork/
+.sonar/
+dependency-check-report.html
+dependency-check-report.json
+
+# ── Segredos / configuração local ────────────────────────────
+.env
+.env.local
+.env.*.local
+.env.production
+application-local.yml
+application-local.properties
+application-secret.yml
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+secrets/
+
+# ── Docker ───────────────────────────────────────────────────
+docker-compose.override.yml
+.docker/
+
+# ── PostgreSQL (volumes locais) ──────────────────────────────
+pgdata/
+postgres-data/
+db-data/
+
+# ── Node (caso usemos para assets) ───────────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.npm/
+.yarn/
+
+# ── Misc ─────────────────────────────────────────────────────
+*.orig
+*.rej
+.cache/
+.tmp/
+tmp/
+.history/

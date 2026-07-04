@@ -1,0 +1,34 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      lang="pt-BR">
+<body>
+
+<aside class="app-sidebar" th:fragment="sidebar(active)">
+    <a class="app-sidebar-brand" th:href="@{/app/dashboard}">
+        <span class="brand-logo">R</span>
+        <span class="app-sidebar-brand-text">Rastro<span class="brand-dollar">$</span></span>
+    </a>
+
+    <nav class="app-sidebar-nav" aria-label="Navegação principal">
+        <a th:href="@{/app/dashboard}"   th:classappend="${active == 'dashboard'}   ? 'is-active' : ''">Visão geral</a>
+        <a th:href="@{/app/cards}"       th:classappend="${active == 'cards'}       ? 'is-active' : ''">Cartões &amp; Contas</a>
+        <a th:href="@{/app/expenses}"    th:classappend="${active == 'expenses'}    ? 'is-active' : ''">Gastos</a>
+        <a th:href="@{/app/income}"      th:classappend="${active == 'income'}      ? 'is-active' : ''">Receitas</a>
+        <a th:href="@{/app/investments}" th:classappend="${active == 'investments'} ? 'is-active' : ''">Investimentos</a>
+        <a th:href="@{/app/reports}"     th:classappend="${active == 'reports'}     ? 'is-active' : ''">Relatórios</a>
+        <a th:href="@{/app/compare}"     th:classappend="${active == 'compare'}     ? 'is-active' : ''">Comparativo</a>
+        <a th:href="@{/app/manager}"     th:classappend="${active == 'manager'}     ? 'is-active' : ''">Alfredo</a>
+
+        <div sec:authorize="hasRole('ADMIN')" class="app-sidebar-group">
+            <span class="app-sidebar-group-lbl">Admin</span>
+            <a th:href="@{/app/users}" th:classappend="${active == 'users'} ? 'is-active' : ''">Usuários</a>
+        </div>
+
+        <a th:href="@{/app/support}" th:classappend="${active == 'support'} ? 'is-active' : ''">Suporte</a>
+        <a th:href="@{/app/profile}" th:classappend="${active == 'profile'} ? 'is-active' : ''">Perfil</a>
+    </nav>
+</aside>
+
+</body>
+</html>

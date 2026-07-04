@@ -1,0 +1,349 @@
+/* ─────────────────────────────────────────────────────────────
+   Rastro$ — layout autenticado (sidebar + topbar + content)
+   ─────────────────────────────────────────────────────────────
+   Esqueleto inicial (Etapa 6). As telas reais entram nas Etapas
+   7+ e podem refinar densidade / breakpoints.
+   ───────────────────────────────────────────────────────────── */
+
+.app-body {
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+}
+
+.app-shell {
+    display: grid;
+    grid-template-columns: 248px 1fr;
+    min-height: 100vh;
+}
+
+/* ── Sidebar ─────────────────────────────────────────────── */
+.app-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding: 22px 18px;
+    border-right: 1px solid var(--border);
+    background: linear-gradient(180deg,
+        rgba(20, 20, 38, 0.5),
+        rgba(10, 10, 22, 0.65));
+}
+
+.app-sidebar-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 800;
+    font-size: 18px;
+    letter-spacing: -0.02em;
+    color: var(--text);
+}
+
+.app-sidebar-brand:hover { text-decoration: none; }
+
+.app-sidebar-brand .brand-logo {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    background: linear-gradient(135deg, var(--primary), var(--pink) 80%, var(--accent));
+    color: white;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+}
+
+.app-sidebar-brand .brand-dollar {
+    color: var(--accent);
+    margin-left: 1px;
+}
+
+.app-sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.app-sidebar-nav a {
+    display: flex;
+    align-items: center;
+    padding: 10px 12px;
+    border-radius: 10px;
+    color: var(--text-dim);
+    font-size: 14px;
+    font-weight: 600;
+    transition: background 0.15s, color 0.15s;
+}
+
+.app-sidebar-nav a:hover {
+    background: var(--surface);
+    color: var(--text);
+    text-decoration: none;
+}
+
+.app-sidebar-nav a.is-active {
+    background: color-mix(in oklch, var(--primary) 18%, transparent);
+    color: var(--text);
+}
+
+.app-sidebar-group {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.app-sidebar-group-lbl {
+    padding: 0 12px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: 6px;
+}
+
+/* ── Main column ─────────────────────────────────────────── */
+.app-main {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+/* ── Topbar ──────────────────────────────────────────────── */
+.app-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 18px 32px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(to bottom,
+        rgba(7, 7, 13, 0.65),
+        rgba(7, 7, 13, 0.4));
+    backdrop-filter: blur(10px) saturate(140%);
+    -webkit-backdrop-filter: blur(10px) saturate(140%);
+}
+
+.app-topbar-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.app-icon-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-dim);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.app-icon-btn:hover {
+    background: var(--surface-2);
+    color: var(--text);
+    border-color: var(--border-2);
+}
+
+/* ── Period selector ─────────────────────────────────────── */
+.period-selector {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+}
+
+.period-nav {
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    border: 0;
+    background: transparent;
+    color: var(--text-dim);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, color 0.15s;
+}
+
+.period-nav:hover {
+    background: var(--surface-2);
+    color: var(--text);
+}
+
+.period-label {
+    min-width: 96px;
+    text-align: center;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+/* ── User menu ───────────────────────────────────────────── */
+.app-user-menu {
+    position: relative;
+}
+
+.app-user-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 10px 4px 4px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.app-user-trigger:hover {
+    background: var(--surface-2);
+    border-color: var(--border-2);
+}
+
+.app-user-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    color: white;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.app-user-name {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text);
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.app-user-dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    min-width: 180px;
+    padding: 6px;
+    border-radius: 12px;
+    background: var(--bg-2);
+    border: 1px solid var(--border-2);
+    box-shadow: 0 18px 40px -16px rgba(0, 0, 0, 0.55);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    z-index: 80;
+}
+
+.app-user-dropdown[hidden] { display: none; }
+
+.app-user-dropdown a,
+.app-user-logout {
+    text-align: left;
+    padding: 9px 10px;
+    border-radius: 8px;
+    font-size: 14px;
+    color: var(--text);
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    font: inherit;
+    transition: background 0.15s, color 0.15s;
+}
+
+.app-user-dropdown a:hover,
+.app-user-logout:hover {
+    background: var(--surface);
+    color: var(--text);
+    text-decoration: none;
+}
+
+.app-user-logout {
+    color: var(--danger);
+    width: 100%;
+}
+
+.app-user-logout-form { margin: 0; }
+
+/* ── Content area ────────────────────────────────────────── */
+.app-content {
+    flex: 1;
+    padding: 28px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.app-page-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.app-page-title {
+    font-family: var(--serif);
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin: 0;
+}
+
+.app-page-subtitle {
+    color: var(--text-dim);
+    margin: 4px 0 0;
+    font-size: 14px;
+}
+
+/* ── App footer ──────────────────────────────────────────── */
+.app-footer {
+    padding: 22px 32px;
+    border-top: 1px solid var(--border);
+    color: var(--text-faint);
+    font-size: 12.5px;
+    text-align: center;
+}
+
+/* ── Densidades ──────────────────────────────────────────── */
+.app-body[data-density="compact"] .app-content   { padding: 18px 22px; gap: 16px; }
+.app-body[data-density="compact"] .app-topbar    { padding: 12px 22px; }
+.app-body[data-density="compact"] .app-page-title { font-size: 24px; }
+
+.app-body[data-density="spacious"] .app-content  { padding: 36px 40px; gap: 32px; }
+.app-body[data-density="spacious"] .app-topbar   { padding: 22px 40px; }
+.app-body[data-density="spacious"] .app-page-title { font-size: 32px; }
+
+/* ── Breakpoints ─────────────────────────────────────────── */
+@media (max-width: 960px) {
+    .app-shell { grid-template-columns: 1fr; }
+    .app-sidebar {
+        flex-direction: row;
+        overflow-x: auto;
+        border-right: 0;
+        border-bottom: 1px solid var(--border);
+    }
+    .app-sidebar-nav {
+        flex-direction: row;
+    }
+    .app-sidebar-group { display: none; }
+    .app-topbar { padding: 14px 18px; }
+    .app-content { padding: 18px; }
+}

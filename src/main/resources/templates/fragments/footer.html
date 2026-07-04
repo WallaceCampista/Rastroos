@@ -1,0 +1,13 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
+<body>
+
+<footer class="app-footer" th:fragment="footer">
+    <small>
+        © <span th:text="${#dates.format(#dates.createNow(), 'yyyy')}">2026</span>
+        Rastro$ · Seu dinheiro, no seu controle.
+    </small>
+</footer>
+
+</body>
+</html>

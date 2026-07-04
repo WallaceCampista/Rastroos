@@ -1,0 +1,44 @@
+# ─────────────────────────────────────────────────────────────
+# Rastro$ — perfil DEV
+# ─────────────────────────────────────────────────────────────
+
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/rastroos}
+    username: ${SPRING_DATASOURCE_USERNAME:rastroos}
+    password: ${SPRING_DATASOURCE_PASSWORD:change-me-in-local-env}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 10000
+
+  jpa:
+    properties:
+      hibernate:
+        format_sql: true
+    show-sql: false              # ligar manualmente quando precisar
+
+  thymeleaf:
+    cache: false                 # auto-reload em dev
+
+server:
+  error:
+    include-message: always
+    include-stacktrace: on_param
+    include-binding-errors: always
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,env,beans,loggers,mappings
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.rastroos: DEBUG
+    org.springframework.web: INFO
+    org.hibernate.SQL: INFO

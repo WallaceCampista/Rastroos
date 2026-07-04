@@ -1,0 +1,33 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Dashboard · Rastro$</title>
+    <link rel="stylesheet" th:href="@{/css/tokens.css}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/auth.css}">
+</head>
+<body>
+<main class="auth-shell">
+    <section class="auth-card">
+        <h1 class="auth-title">Bem-vindo ao Rastro<span class="accent">$</span></h1>
+        <p class="auth-sub">
+            Você está logado como <strong th:text="${userEmail}">você</strong>.
+            <span th:if="${isAdmin}" class="auth-badge">ADMIN</span>
+        </p>
+        <p class="auth-text">
+            Dashboard real chega na Etapa 7. Aqui vão ficar KPIs, gráficos e atalhos.
+        </p>
+        <form th:action="@{/auth/logout}" method="post">
+            <input type="hidden"
+                   th:name="${_csrf.parameterName}"
+                   th:value="${_csrf.token}">
+            <button type="submit" class="btn btn-primary">Sair</button>
+        </form>
+    </section>
+</main>
+</body>
+</html>

@@ -1,0 +1,60 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Entrar · Rastro$</title>
+    <link rel="stylesheet" th:href="@{/css/tokens.css}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/auth.css}">
+</head>
+<body>
+<main class="auth-shell">
+    <a class="auth-brand" th:href="@{/}">
+        <span class="auth-brand-mark">R<span class="accent">$</span></span>
+        <span>Rastro<span class="accent">$</span></span>
+    </a>
+
+    <section class="auth-card">
+        <h1 class="auth-title">Entrar</h1>
+        <p class="auth-sub">Bem-vindo de volta.</p>
+
+        <div th:if="${logout}" class="auth-flash auth-flash-ok"
+             role="status">Sessão encerrada.</div>
+        <div th:if="${param.passwordChanged != null}" class="auth-flash auth-flash-ok"
+             role="status">Senha atualizada — entre com a nova.</div>
+        <div th:if="${param.reset != null}" class="auth-flash auth-flash-ok"
+             role="status">Senha redefinida — entre com a nova.</div>
+
+        <div th:if="${error == 'invalid'}" class="auth-flash auth-flash-err"
+             role="alert">Email ou senha inválidos.</div>
+        <div th:if="${error == 'locked'}" class="auth-flash auth-flash-err"
+             role="alert">Muitas tentativas. Aguarde alguns minutos.</div>
+
+        <form th:action="@{/auth/login}" method="post" class="auth-form" novalidate>
+            <input type="hidden"
+                   th:name="${_csrf.parameterName}"
+                   th:value="${_csrf.token}">
+            <label>
+                <span>Email</span>
+                <input type="email" name="username" autocomplete="username"
+                       required maxlength="180"
+                       th:value="${prefillEmail}">
+            </label>
+            <label>
+                <span>Senha</span>
+                <input type="password" name="password" autocomplete="current-password"
+                       required minlength="1" maxlength="128">
+            </label>
+            <button type="submit" class="btn btn-primary">Entrar</button>
+        </form>
+
+        <p class="auth-links">
+            <a th:href="@{/auth/forgot}">Esqueci minha senha</a>
+            <span>·</span>
+            <a th:href="@{/auth/signup}">Criar conta</a>
+        </p>
+    </section>
+</main>
+</body>
+</html>

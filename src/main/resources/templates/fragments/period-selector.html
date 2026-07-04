@@ -1,0 +1,23 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
+<body>
+
+<div class="period-selector" th:fragment="period">
+    <button type="button" class="period-nav" data-period-prev aria-label="Mês anterior">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M15 18l-6-6 6-6"/>
+        </svg>
+    </button>
+    <span class="period-label"
+          th:text="${periodLabel != null ? periodLabel : '—'}">—</span>
+    <button type="button" class="period-nav" data-period-next aria-label="Próximo mês">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M9 6l6 6-6 6"/>
+        </svg>
+    </button>
+</div>
+
+</body>
+</html>

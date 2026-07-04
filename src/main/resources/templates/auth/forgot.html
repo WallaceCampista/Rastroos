@@ -1,0 +1,45 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Recuperar senha · Rastro$</title>
+    <link rel="stylesheet" th:href="@{/css/tokens.css}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/auth.css}">
+</head>
+<body>
+<main class="auth-shell">
+    <a class="auth-brand" th:href="@{/}">
+        <span class="auth-brand-mark">R<span class="accent">$</span></span>
+        <span>Rastro<span class="accent">$</span></span>
+    </a>
+
+    <section class="auth-card">
+        <h1 class="auth-title">Recuperar senha</h1>
+        <p class="auth-sub">
+            Diga seu email e, se ele estiver cadastrado, mandamos um código.
+        </p>
+
+        <form th:action="@{/auth/forgot}" method="post" th:object="${forgotForm}"
+              class="auth-form" novalidate>
+            <input type="hidden"
+                   th:name="${_csrf.parameterName}"
+                   th:value="${_csrf.token}">
+            <label>
+                <span>Email</span>
+                <input type="email" th:field="*{email}"
+                       autocomplete="email" required maxlength="180">
+                <small th:if="${#fields.hasErrors('email')}"
+                       th:errors="*{email}" class="auth-err"></small>
+            </label>
+            <button type="submit" class="btn btn-primary">Enviar código</button>
+        </form>
+
+        <p class="auth-links">
+            <a th:href="@{/auth/login}">Voltar ao login</a>
+        </p>
+    </section>
+</main>
+</body>
+</html>

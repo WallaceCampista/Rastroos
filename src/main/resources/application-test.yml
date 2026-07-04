@@ -1,0 +1,43 @@
+# ─────────────────────────────────────────────────────────────
+# Rastro$ — perfil TEST
+# ─────────────────────────────────────────────────────────────
+# Aponta para o Postgres do docker-compose local. Cada @DataJpaTest
+# roda dentro de uma transação rolledback ao fim (@Transactional é
+# default de @DataJpaTest), garantindo isolamento entre testes.
+#
+# Para uso em CI, override via env vars ou ative Testcontainers
+# (TestcontainersConfiguration está pronta — só importar no teste).
+# ─────────────────────────────────────────────────────────────
+
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/rastroos}
+    username: ${SPRING_DATASOURCE_USERNAME:rastroos}
+    password: ${SPRING_DATASOURCE_PASSWORD:change-me-in-local-env}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 4
+      minimum-idle: 1
+
+  jpa:
+    show-sql: false
+
+  thymeleaf:
+    cache: false
+
+  liquibase:
+    parameters:
+      rastroos.admin.email: ${RASTROOS_ADMIN_EMAIL:admin@rastroos.local}
+      rastroos.admin.password.hash: ${RASTROOS_ADMIN_PASSWORD_HASH:$2a$12$8vt9ODctuNYuCFIkcxwg8.4nx/iyBMYItRe5QzNEt5Ch54kZugHwO}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+logging:
+  level:
+    com.rastroos: INFO
+    org.testcontainers: INFO
+    com.github.dockerjava: WARN

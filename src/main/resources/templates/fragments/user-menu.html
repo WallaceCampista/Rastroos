@@ -1,0 +1,32 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<body>
+
+<div class="app-user-menu" th:fragment="menu">
+    <button type="button" class="app-user-trigger" data-user-menu-trigger>
+        <span class="app-user-avatar"
+              th:text="${userInitial != null ? userInitial : '·'}">·</span>
+        <span class="app-user-name"
+              sec:authentication="name">user@example.com</span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M6 9l6 6 6-6"/>
+        </svg>
+    </button>
+
+    <div class="app-user-dropdown" hidden data-user-menu-dropdown>
+        <a th:href="@{/app/profile}">Perfil</a>
+        <a th:href="@{/app/profile/password}">Trocar senha</a>
+        <form th:action="@{/auth/logout}" method="post" class="app-user-logout-form">
+            <input type="hidden"
+                   th:if="${_csrf != null}"
+                   th:name="${_csrf.parameterName}"
+                   th:value="${_csrf.token}">
+            <button type="submit" class="app-user-logout">Sair</button>
+        </form>
+    </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,127 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR"
+      th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+<head>
+    <title>Receitas · Rastro$</title>
+    <link rel="stylesheet" th:href="@{/css/screens/income.css}">
+    <script th:src="@{/js/screens/income.js}" defer></script>
+</head>
+<body>
+<section class="app-content screen screen-income"
+         th:data-period="${period}">
+
+    <header class="screen-header">
+        <div>
+            <h1 class="screen-title">Receitas</h1>
+            <p class="screen-sub">
+                <span th:text="${view.totalElements()}">0</span> receitas ·
+                Total
+                <strong th:text="${#numbers.formatDecimal(view.totalAmount(), 1, 'POINT', 2, 'COMMA')}">0,00</strong>
+            </p>
+        </div>
+        <div class="screen-actions">
+            <a class="btn btn-primary" th:href="@{/app/income/new}">+ Nova receita</a>
+        </div>
+    </header>
+
+    <div th:if="${ok}" class="flash flash-ok" th:text="#{${ok}}">Ok</div>
+
+    <form class="filter-bar" method="get" th:action="@{/app/income}">
+        <input type="hidden" name="ym" th:value="${period}">
+
+        <div class="filter-field">
+            <label for="categoryId">Categoria</label>
+            <select id="categoryId" name="categoryId">
+                <option value="">Todas</option>
+                <option th:each="c : ${categories}"
+                        th:value="${c.id}"
+                        th:text="${c.namePt}"
+                        th:selected="${filter.categoryId() != null and filter.categoryId() == c.id}">Categoria</option>
+            </select>
+        </div>
+
+        <div class="filter-field filter-field-grow">
+            <label for="q">Busca</label>
+            <input id="q" type="search" name="q"
+                   th:value="${filter.search()}" placeholder="Fonte…">
+        </div>
+
+        <div class="filter-actions">
+            <button type="submit" class="btn">Filtrar</button>
+            <a class="btn-link" th:href="@{/app/income(ym=${period})}">Limpar</a>
+        </div>
+    </form>
+
+    <div th:if="${view.items().isEmpty()}" class="empty-state">
+        Nenhuma receita encontrada neste período.
+    </div>
+
+    <table class="income-table" th:unless="${view.items().isEmpty()}">
+        <thead>
+            <tr>
+                <th>Data</th>
+                <th>Fonte</th>
+                <th>Categoria</th>
+                <th class="num">Valor</th>
+                <th class="actions">Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr th:each="i : ${view.items()}">
+                <td>
+                    <span th:text="${#temporals.format(i.incomeDate(), 'dd/MM')}">--/--</span>
+                </td>
+                <td>
+                    <div class="income-source">
+                        <span th:text="${i.source()}">Fonte</span>
+                        <small class="income-note" th:if="${i.note() != null}"
+                               th:text="${i.note()}">obs</small>
+                    </div>
+                </td>
+                <td>
+                    <span class="income-chip"
+                          th:if="${i.categoryId() != null}"
+                          th:style="${i.categoryColorHex() != null} ? ('border-color:' + i.categoryColorHex())"
+                          th:text="${i.categoryName() != null ? i.categoryName() : i.categoryId()}">Categoria</span>
+                </td>
+                <td class="num">
+                    <span class="income-amount"
+                          th:data-amount="${i.amount()}"
+                          th:text="${#numbers.formatDecimal(i.amount(), 1, 'POINT', 2, 'COMMA')}">0,00</span>
+                </td>
+                <td class="actions">
+                    <a class="btn-link"
+                       th:href="@{/app/income/{id}/edit(id=${i.id()})}">Editar</a>
+                    <form class="inline-form"
+                          th:action="@{/app/income/{id}/delete(id=${i.id()})}"
+                          method="post"
+                          data-confirm="Remover esta receita?">
+                        <input type="hidden"
+                               th:if="${_csrf != null}"
+                               th:name="${_csrf.parameterName}"
+                               th:value="${_csrf.token}">
+                        <button type="submit" class="btn-link btn-link-danger">Remover</button>
+                    </form>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    <nav class="pagination" th:if="${view.totalPages() > 1}"
+         aria-label="Paginação">
+        <a class="btn-link"
+           th:if="${view.page() > 0}"
+           th:href="@{/app/income(ym=${period}, page=${view.page() - 1}, size=${view.size()},
+                                  categoryId=${filter.categoryId()}, q=${filter.search()})}">← Anterior</a>
+        <span class="pagination-info">
+            Página <strong th:text="${view.page() + 1}">1</strong> de
+            <strong th:text="${view.totalPages()}">1</strong>
+        </span>
+        <a class="btn-link"
+           th:if="${view.page() + 1 < view.totalPages()}"
+           th:href="@{/app/income(ym=${period}, page=${view.page() + 1}, size=${view.size()},
+                                  categoryId=${filter.categoryId()}, q=${filter.search()})}">Próxima →</a>
+    </nav>
+</section>
+</body>
+</html>

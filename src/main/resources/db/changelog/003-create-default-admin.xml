@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ─────────────────────────────────────────────────────────────
+  003 — Cria o administrador inicial
+  ─────────────────────────────────────────────────────────────
+  Email e hash da senha vêm de properties do Liquibase, declaradas
+  em application.yml e overridáveis por env var:
+
+    RASTROOS_ADMIN_EMAIL          (default: admin@rastroos.local)
+    RASTROOS_ADMIN_PASSWORD_HASH  (default: hash BCrypt de "ChangeMe!2026")
+
+  ‼  Senha default é PÚBLICA. Em produção, gere um hash novo
+     (BCryptPasswordEncoder cost 12) e passe via env var antes do
+     primeiro boot. O usuário é criado com password_must_change=true,
+     então o login só vale para abrir a tela de troca de senha.
+
+  ‼  Só executa se a tabela users estiver vazia (precondition).
+-->
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.27.xsd">
+
+    <changeSet id="003-01-create-default-admin" author="rastroos">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="0">SELECT count(*) FROM users</sqlCheck>
+        </preConditions>
+
+        <insert tableName="users">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="name" value="Administrador"/>
+            <column name="email" value="${rastroos.admin.email}"/>
+            <column name="email_verified" valueBoolean="true"/>
+            <column name="password_hash" value="${rastroos.admin.password.hash}"/>
+            <column name="password_must_change" valueBoolean="true"/>
+            <column name="role" value="ADMIN"/>
+            <column name="status" value="ACTIVE"/>
+            <column name="preferred_locale" value="pt-BR"/>
+            <column name="theme" value="dark"/>
+            <column name="palette_index" valueNumeric="0"/>
+            <column name="density" value="regular"/>
+        </insert>
+
+        <rollback>
+            <delete tableName="users">
+                <where>email = '${rastroos.admin.email}' AND role = 'ADMIN'</where>
+            </delete>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

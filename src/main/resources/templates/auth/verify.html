@@ -1,0 +1,51 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Verificar email · Rastro$</title>
+    <link rel="stylesheet" th:href="@{/css/tokens.css}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/auth.css}">
+</head>
+<body>
+<main class="auth-shell">
+    <a class="auth-brand" th:href="@{/}">
+        <span class="auth-brand-mark">R<span class="accent">$</span></span>
+        <span>Rastro<span class="accent">$</span></span>
+    </a>
+
+    <section class="auth-card">
+        <h1 class="auth-title">Confirme seu email</h1>
+        <p class="auth-sub">
+            Enviamos um código de 6 dígitos para
+            <strong th:text="${verifyForm.email != null ? verifyForm.email : 'seu email'}">
+                seu email
+            </strong>.
+        </p>
+
+        <form th:action="@{/auth/verify}" method="post" th:object="${verifyForm}"
+              class="auth-form" novalidate>
+            <input type="hidden"
+                   th:name="${_csrf.parameterName}"
+                   th:value="${_csrf.token}">
+            <input type="hidden" th:field="*{email}">
+            <label>
+                <span>Código</span>
+                <input type="text" th:field="*{code}"
+                       autocomplete="one-time-code"
+                       inputmode="numeric"
+                       pattern="\d{6}" maxlength="6" required>
+                <small th:if="${#fields.hasErrors('code')}"
+                       th:errors="*{code}" class="auth-err"></small>
+            </label>
+            <button type="submit" class="btn btn-primary">Confirmar cadastro</button>
+        </form>
+
+        <p class="auth-links">
+            <a th:href="@{/auth/login}">Voltar para login</a>
+        </p>
+    </section>
+</main>
+</body>
+</html>

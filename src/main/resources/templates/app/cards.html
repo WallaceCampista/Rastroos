@@ -1,0 +1,155 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR"
+      th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+<head>
+    <title>Cartões &amp; Contas · Rastro$</title>
+    <link rel="stylesheet" th:href="@{/css/screens/cards.css}">
+    <script th:src="@{/js/screens/cards.js}" defer></script>
+</head>
+<body>
+<section class="app-content screen screen-cards"
+         th:data-period="${period}">
+
+    <header class="screen-header">
+        <div>
+            <h1 class="screen-title">Cartões &amp; Contas</h1>
+            <p class="screen-sub">Tudo o que sai automaticamente, em um lugar só.</p>
+        </div>
+        <div class="screen-actions">
+            <a class="btn btn-primary" th:href="@{/app/cards/new}">+ Nova conta</a>
+        </div>
+    </header>
+
+    <div th:if="${ok}" class="flash flash-ok" th:text="#{${ok}}">Operação concluída</div>
+    <div th:if="${error}" class="flash flash-error" th:text="#{${error}}">Erro</div>
+
+    <section class="account-section" aria-labelledby="cards-title">
+        <header class="account-section-header">
+            <h2 class="account-section-title" id="cards-title">💳 Cartões de crédito</h2>
+            <span class="account-section-count"
+                  th:text="${#lists.size(view.cards())}">0</span>
+        </header>
+        <div th:if="${view.cards().isEmpty()}" class="empty-state">
+            Nenhum cartão cadastrado.
+        </div>
+        <div class="account-grid" th:unless="${view.cards().isEmpty()}">
+            <article class="account-tile" th:each="a : ${view.cards()}"
+                     th:data-id="${a.id()}">
+                <span class="account-tile-blob"
+                      th:style="${a.colorHex() != null} ? ('background:' + a.colorHex())"></span>
+                <div class="account-tile-head">
+                    <div class="account-avatar account-avatar-lg"
+                         th:style="${a.colorHex() != null} ? ('background:' + a.colorHex())"
+                         th:text="${a.iconText() != null and !a.iconText().isBlank()
+                                   ? a.iconText()
+                                   : #strings.substring(a.name(),0,1)}">·</div>
+                    <span th:if="${a.fullyPaid}" class="pill pill-success">Pago</span>
+                    <span th:if="${!a.fullyPaid and a.total != null and a.total.signum() > 0}"
+                          class="pill pill-warn">Em aberto</span>
+                    <span th:if="${a.total == null or a.total.signum() == 0}"
+                          class="pill">Sem lançamentos</span>
+                </div>
+                <h3 class="account-tile-name" th:text="${a.name()}">Cartão</h3>
+                <p class="account-tile-meta">
+                    fecha dia <span th:text="${a.closeDay() != null ? a.closeDay() : '—'}">—</span>
+                    · vence dia <span th:text="${a.dueDay() != null ? a.dueDay() : '—'}">—</span>
+                </p>
+                <p class="account-tile-amount"
+                   th:data-amount="${a.total()}"
+                   th:text="${#numbers.formatDecimal(a.total(), 1, 'POINT', 2, 'COMMA')}">0,00</p>
+                <div class="account-bar">
+                    <span th:attr="style='width:' + ${a.paidPercent()} + '%'"></span>
+                </div>
+                <div class="account-tile-foot">
+                    <span>Pago: <strong
+                            th:text="${#numbers.formatDecimal(a.paid(), 1, 'POINT', 2, 'COMMA')}">0,00</strong></span>
+                    <span th:if="${a.remaining().signum() > 0}">
+                        <strong th:text="${#numbers.formatDecimal(a.remaining(), 1, 'POINT', 2, 'COMMA')}">0,00</strong> aberto
+                    </span>
+                    <span th:if="${a.remaining().signum() <= 0}">fechado</span>
+                </div>
+                <div class="account-tile-actions">
+                    <a class="btn-link"
+                       th:href="@{/app/cards/{id}/edit(id=${a.id()})}">Editar</a>
+                    <form th:action="@{/app/cards/{id}/delete(id=${a.id()})}" method="post"
+                          data-confirm="Remover este cartão?">
+                        <input type="hidden"
+                               th:if="${_csrf != null}"
+                               th:name="${_csrf.parameterName}"
+                               th:value="${_csrf.token}">
+                        <button type="submit" class="btn-link btn-link-danger">Remover</button>
+                    </form>
+                </div>
+            </article>
+        </div>
+    </section>
+
+    <section class="account-section" aria-labelledby="bills-title">
+        <header class="account-section-header">
+            <h2 class="account-section-title" id="bills-title">🧾 Contas e boletos</h2>
+            <span class="account-section-count"
+                  th:text="${#lists.size(view.bills())}">0</span>
+        </header>
+        <div th:if="${view.bills().isEmpty()}" class="empty-state">
+            Nenhuma conta fixa ainda.
+        </div>
+        <div class="account-grid" th:unless="${view.bills().isEmpty()}">
+            <article class="account-tile" th:each="a : ${view.bills()}"
+                     th:data-id="${a.id()}">
+                <span class="account-tile-blob"
+                      th:style="${a.colorHex() != null} ? ('background:' + a.colorHex())"></span>
+                <div class="account-tile-head">
+                    <div class="account-avatar account-avatar-lg"
+                         th:style="${a.colorHex() != null} ? ('background:' + a.colorHex())"
+                         th:text="${a.iconText() != null and !a.iconText().isBlank()
+                                   ? a.iconText()
+                                   : #strings.substring(a.name(),0,1)}">·</div>
+                    <span th:if="${a.fullyPaid}" class="pill pill-success">Pago</span>
+                    <span th:if="${!a.fullyPaid and a.total.signum() > 0}"
+                          class="pill pill-warn">Em aberto</span>
+                </div>
+                <h3 class="account-tile-name" th:text="${a.name()}">Conta</h3>
+                <p class="account-tile-meta">
+                    <span th:text="${a.entriesCount()}">0</span> lançamentos
+                </p>
+                <p class="account-tile-amount"
+                   th:data-amount="${a.total()}"
+                   th:text="${#numbers.formatDecimal(a.total(), 1, 'POINT', 2, 'COMMA')}">0,00</p>
+                <div class="account-bar">
+                    <span th:attr="style='width:' + ${a.paidPercent()} + '%'"></span>
+                </div>
+                <div class="account-tile-actions">
+                    <a class="btn-link"
+                       th:href="@{/app/cards/{id}/edit(id=${a.id()})}">Editar</a>
+                    <form th:action="@{/app/cards/{id}/delete(id=${a.id()})}" method="post"
+                          data-confirm="Remover esta conta?">
+                        <input type="hidden"
+                               th:if="${_csrf != null}"
+                               th:name="${_csrf.parameterName}"
+                               th:value="${_csrf.token}">
+                        <button type="submit" class="btn-link btn-link-danger">Remover</button>
+                    </form>
+                </div>
+            </article>
+        </div>
+    </section>
+
+    <section class="account-section" th:if="${!view.recurrent().isEmpty()}"
+             aria-labelledby="rec-title">
+        <header class="account-section-header">
+            <h2 class="account-section-title" id="rec-title">🔁 Recorrentes</h2>
+            <span class="account-section-count"
+                  th:text="${#lists.size(view.recurrent())}">0</span>
+        </header>
+        <div class="account-grid">
+            <article class="account-tile" th:each="a : ${view.recurrent()}">
+                <h3 class="account-tile-name" th:text="${a.name()}">Recorrente</h3>
+                <p class="account-tile-amount"
+                   th:data-amount="${a.total()}"
+                   th:text="${#numbers.formatDecimal(a.total(), 1, 'POINT', 2, 'COMMA')}">0,00</p>
+            </article>
+        </div>
+    </section>
+</section>
+</body>
+</html>

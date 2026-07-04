@@ -1,0 +1,29 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Cadastro concluído · Rastro$</title>
+    <link rel="stylesheet" th:href="@{/css/tokens.css}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/auth.css}">
+</head>
+<body>
+<main class="auth-shell">
+    <a class="auth-brand" th:href="@{/}">
+        <span class="auth-brand-mark">R<span class="accent">$</span></span>
+        <span>Rastro<span class="accent">$</span></span>
+    </a>
+
+    <section class="auth-card auth-success">
+        <h1 class="auth-title">Cadastro concluído!</h1>
+        <p class="auth-sub">Sua conta foi criada com sucesso.</p>
+        <p class="auth-text">
+            Agora aguarde a <strong>liberação da administração</strong>.
+            Você receberá um aviso por email assim que seu acesso for aprovado.
+        </p>
+        <a th:href="@{/auth/login}" class="btn btn-primary">Voltar ao login</a>
+    </section>
+</main>
+</body>
+</html>

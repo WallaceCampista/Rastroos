@@ -1,0 +1,99 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR"
+      th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+<head>
+    <title th:text="${editing ? 'Editar conta · Rastro$' : 'Nova conta · Rastro$'}">Conta · Rastro$</title>
+    <link rel="stylesheet" th:href="@{/css/screens/cards.css}">
+    <script th:src="@{/js/screens/account-form.js}" defer></script>
+</head>
+<body>
+<section class="app-content screen screen-cards screen-account-form">
+    <header class="screen-header">
+        <div>
+            <h1 class="screen-title"
+                th:text="${editing ? 'Editar conta' : 'Nova conta'}">Nova conta</h1>
+            <p class="screen-sub">
+                Cartão, boleto fixo ou conta recorrente.
+            </p>
+        </div>
+        <div class="screen-actions">
+            <a class="btn" th:href="@{/app/cards}">Voltar</a>
+        </div>
+    </header>
+
+    <form class="account-form card"
+          th:action="${editing ? '/app/cards/' + accountId + '/edit' : '/app/cards/new'}"
+          method="post"
+          th:object="${accountForm}">
+        <input type="hidden"
+               th:if="${_csrf != null}"
+               th:name="${_csrf.parameterName}"
+               th:value="${_csrf.token}">
+
+        <div class="account-form-grid">
+            <div class="field">
+                <label for="kind">Tipo</label>
+                <select id="kind" th:field="*{kind}" data-account-kind>
+                    <option th:each="k : ${kinds}"
+                            th:value="${k}"
+                            th:text="${k.name() == 'CARD' ? 'Cartão de crédito'
+                                    : (k.name() == 'BILL' ? 'Conta / boleto' : 'Recorrente')}">Tipo</option>
+                </select>
+                <p class="field-error" th:if="${#fields.hasErrors('kind')}"
+                   th:errors="*{kind}">erro</p>
+            </div>
+
+            <div class="field field-wide">
+                <label for="name">Nome</label>
+                <input type="text" id="name" th:field="*{name}"
+                       maxlength="80" autocomplete="off" required>
+                <p class="field-error" th:if="${#fields.hasErrors('name')}"
+                   th:errors="*{name}">erro</p>
+            </div>
+
+            <div class="field">
+                <label for="colorHex">Cor</label>
+                <input type="color" id="colorHex" th:field="*{colorHex}"
+                       value="#6366f1">
+                <p class="field-error" th:if="${#fields.hasErrors('colorHex')}"
+                   th:errors="*{colorHex}">erro</p>
+            </div>
+
+            <div class="field">
+                <label for="iconText">Ícone (texto)</label>
+                <input type="text" id="iconText" th:field="*{iconText}"
+                       maxlength="8" placeholder="ex.: BB">
+            </div>
+
+            <div class="field" data-only-kind="CARD">
+                <label for="closeDay">Dia de fechamento</label>
+                <input type="number" id="closeDay" th:field="*{closeDay}"
+                       min="1" max="31">
+                <p class="field-error" th:if="${#fields.hasErrors('closeDay')}"
+                   th:errors="*{closeDay}">erro</p>
+            </div>
+
+            <div class="field" data-only-kind="CARD">
+                <label for="dueDay">Dia de vencimento</label>
+                <input type="number" id="dueDay" th:field="*{dueDay}"
+                       min="1" max="31">
+                <p class="field-error" th:if="${#fields.hasErrors('dueDay')}"
+                   th:errors="*{dueDay}">erro</p>
+            </div>
+
+            <div class="field field-checkbox" data-only-kind="BILL,RECURRENT">
+                <label>
+                    <input type="checkbox" th:field="*{fixed}">
+                    Conta fixa
+                </label>
+            </div>
+        </div>
+
+        <footer class="account-form-foot">
+            <button type="submit" class="btn btn-primary"
+                    th:text="${editing ? 'Salvar' : 'Criar conta'}">Salvar</button>
+        </footer>
+    </form>
+</section>
+</body>
+</html>

@@ -1,0 +1,15 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
+<body>
+
+<header class="app-page-header" th:fragment="header(title, subtitle)">
+    <div class="app-page-header-text">
+        <h1 class="app-page-title" th:text="${title}">Título</h1>
+        <p class="app-page-subtitle"
+           th:if="${subtitle}"
+           th:text="${subtitle}">Subtítulo</p>
+    </div>
+</header>
+
+</body>
+</html>

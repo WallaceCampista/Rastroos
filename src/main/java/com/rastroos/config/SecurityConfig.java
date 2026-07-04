@@ -1,0 +1,132 @@
+package com.rastroos.config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
+import org.springframework.security.web.header.writers.XXssProtectionHeaderWriter;
+
+import com.rastroos.security.BruteForceFilter;
+import com.rastroos.security.CustomUserDetailsService;
+import com.rastroos.security.LockoutPreAuthFilter;
+import com.rastroos.security.LoginFailureHandler;
+import com.rastroos.security.LoginSuccessHandler;
+
+@Configuration
+@EnableMethodSecurity
+public class SecurityConfig {
+
+    private final CustomUserDetailsService userDetailsService;
+    private final LoginSuccessHandler successHandler;
+    private final LoginFailureHandler failureHandler;
+    private final BruteForceFilter bruteForceFilter;
+    private final LockoutPreAuthFilter lockoutFilter;
+
+    public SecurityConfig(CustomUserDetailsService userDetailsService,
+                          LoginSuccessHandler successHandler,
+                          LoginFailureHandler failureHandler,
+                          BruteForceFilter bruteForceFilter,
+                          LockoutPreAuthFilter lockoutFilter) {
+        this.userDetailsService = userDetailsService;
+        this.successHandler = successHandler;
+        this.failureHandler = failureHandler;
+        this.bruteForceFilter = bruteForceFilter;
+        this.lockoutFilter = lockoutFilter;
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder(12);
+    }
+
+    @Bean
+    public DaoAuthenticationProvider authenticationProvider() {
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
+        provider.setPasswordEncoder(passwordEncoder());
+        return provider;
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(DaoAuthenticationProvider provider) {
+        return new org.springframework.security.authentication.ProviderManager(provider);
+    }
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/", "/landing", "/auth/**",
+                                 "/css/**", "/js/**", "/images/**", "/fonts/**",
+                                 "/webjars/**", "/actuator/health", "/actuator/info",
+                                 "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html")
+                    .permitAll()
+                .requestMatchers("/app/users/**", "/api/admin/**")
+                    .hasRole("ADMIN")
+                .requestMatchers("/app/**", "/api/**")
+                    .authenticated()
+                .anyRequest().authenticated()
+            )
+            .sessionManagement(sm -> sm
+                .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
+                .sessionFixation(sf -> sf.changeSessionId())
+                .maximumSessions(5)
+                .maxSessionsPreventsLogin(false)
+            )
+            .formLogin(form -> form
+                .loginPage("/auth/login")
+                .loginProcessingUrl("/auth/login")
+                .usernameParameter("username")
+                .passwordParameter("password")
+                .successHandler(successHandler)
+                .failureHandler(failureHandler)
+                .permitAll()
+            )
+            .logout(logout -> logout
+                .logoutUrl("/auth/logout")
+                .logoutSuccessUrl("/auth/login?logout")
+                .invalidateHttpSession(true)
+                .deleteCookies("JSESSIONID")
+                .permitAll()
+            )
+            .headers(h -> h
+                .contentTypeOptions(opts -> {})
+                .frameOptions(HeadersConfigurer.FrameOptionsConfig::deny)
+                .httpStrictTransportSecurity(hsts -> hsts
+                        .includeSubDomains(true)
+                        .maxAgeInSeconds(31_536_000)
+                )
+                .referrerPolicy(rp -> rp
+                        .policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
+                .xssProtection(xss -> xss
+                        .headerValue(XXssProtectionHeaderWriter.HeaderValue.ENABLED_MODE_BLOCK))
+                .contentSecurityPolicy(csp -> csp
+                        .policyDirectives(
+                            "default-src 'self'; "
+                          + "script-src 'self'; "
+                          + "style-src 'self' https://fonts.googleapis.com; "
+                          + "font-src 'self' https://fonts.gstatic.com; "
+                          + "img-src 'self' data:; "
+                          + "connect-src 'self'; "
+                          + "object-src 'none'; "
+                          + "frame-ancestors 'none'; "
+                          + "base-uri 'self'; "
+                          + "form-action 'self'"))
+                .permissionsPolicyHeader(pp -> pp
+                        .policy("camera=(), microphone=(), geolocation=()"))
+            )
+            .authenticationProvider(authenticationProvider())
+            .addFilterBefore(bruteForceFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterBefore(lockoutFilter,    UsernamePasswordAuthenticationFilter.class);
+
+        return http.build();
+    }
+}

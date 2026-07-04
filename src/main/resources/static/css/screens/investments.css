@@ -1,0 +1,387 @@
+/* ─────────────────────────────────────────────────────────────
+   Rastro$ — /app/investments
+   ───────────────────────────────────────────────────────────── */
+
+.screen-investments {
+    padding: 28px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    max-width: 1240px;
+}
+
+/* ── KPIs (reusa estilo do dashboard.kpi) ─────────────────── */
+.inv-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 14px;
+}
+
+.inv-summary .kpi {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 18px 20px;
+    position: relative;
+    overflow: hidden;
+}
+
+.inv-summary .kpi::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--kpi-tint, transparent);
+    opacity: 0.16;
+    pointer-events: none;
+}
+
+.inv-summary .kpi-primary { --kpi-tint: var(--primary); }
+.inv-summary .kpi-accent  { --kpi-tint: var(--accent); }
+.inv-summary .kpi-success { --kpi-tint: var(--success); }
+
+.inv-summary .kpi-head {
+    position: relative;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+}
+
+.inv-summary .kpi-value {
+    position: relative;
+    font-family: var(--serif);
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    margin: 10px 0 2px;
+    font-variant-numeric: tabular-nums;
+}
+
+.inv-summary .kpi-value::before {
+    content: "R$ ";
+    font-size: 0.6em;
+    color: var(--text-dim);
+    font-weight: 600;
+    margin-right: 2px;
+}
+
+.inv-summary .kpi-foot {
+    position: relative;
+    margin: 0;
+    color: var(--text-dim);
+    font-size: 11.5px;
+}
+
+/* ── Section header ─────────────────────────────────────── */
+.account-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.account-section-header {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+}
+
+.account-section-title {
+    margin: 0;
+    font-size: 13.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-dim);
+}
+
+.account-section-count {
+    color: var(--text-faint);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* ── Piggies grid ───────────────────────────────────────── */
+.inv-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 14px;
+}
+
+.inv-tile {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 18px 20px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.inv-tile-blob {
+    position: absolute;
+    right: -36px;
+    top: -36px;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    opacity: 0.10;
+    pointer-events: none;
+}
+
+.inv-tile-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    position: relative;
+}
+
+.inv-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: var(--primary);
+    color: white;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 18px;
+}
+
+.inv-tile-name {
+    margin: 6px 0 0;
+    font-size: 15px;
+    font-weight: 700;
+    position: relative;
+}
+
+.inv-tile-amount {
+    margin: 6px 0 0;
+    font-family: var(--serif);
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    position: relative;
+}
+
+.inv-tile-amount::before {
+    content: "R$ ";
+    font-size: 0.6em;
+    color: var(--text-dim);
+    font-weight: 600;
+    margin-right: 2px;
+}
+
+.inv-tile-meta {
+    margin: 0;
+    color: var(--text-dim);
+    font-size: 12px;
+    position: relative;
+}
+
+.account-bar {
+    margin-top: 6px;
+    height: 4px;
+    border-radius: 99px;
+    background: var(--border);
+    overflow: hidden;
+}
+
+.account-bar > span {
+    display: block;
+    height: 100%;
+    background: var(--primary);
+    transition: width 0.3s ease;
+}
+
+.inv-tile-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+    position: relative;
+    flex-wrap: wrap;
+}
+
+.hist-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--border-2);
+    position: relative;
+}
+
+.hist-form[hidden] {
+    display: none;
+}
+
+.hist-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1 1 110px;
+    min-width: 0;
+}
+
+.hist-field span {
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-dim);
+}
+
+.hist-field input {
+    width: 100%;
+    padding: 6px 8px;
+    background: var(--bg-2);
+    color: var(--text);
+    border: 1px solid var(--border-2);
+    border-radius: var(--radius);
+    font-family: inherit;
+    font-size: 12.5px;
+}
+
+.hist-field input:focus {
+    outline: none;
+    border-color: var(--primary-2);
+}
+
+/* ── Portfolio table ─────────────────────────────────────── */
+.inv-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+.inv-table thead th {
+    text-align: left;
+    padding: 12px 14px;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-2);
+}
+
+.inv-table th.num,
+.inv-table td.num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.inv-table th.actions,
+.inv-table td.actions {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.inv-table tbody tr + tr td {
+    border-top: 1px solid var(--border);
+}
+
+.inv-table td {
+    padding: 12px 14px;
+    font-size: 13.5px;
+    vertical-align: middle;
+}
+
+.inv-name {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+}
+
+.inv-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 99px;
+    background: var(--primary);
+}
+
+.inv-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
+    border-radius: 99px;
+    font-size: 11.5px;
+    font-weight: 600;
+    border: 1px solid var(--border-2);
+    background: var(--surface);
+    color: var(--text-dim);
+}
+
+.inv-return {
+    color: var(--success);
+    font-weight: 700;
+}
+
+/* ── Form ───────────────────────────────────────────────── */
+.inv-form {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.inv-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.field-wide { grid-column: 1 / -1; }
+
+.inv-form-foot {
+    display: flex;
+    justify-content: flex-end;
+}
+
+@media (max-width: 720px) {
+    .inv-form-grid { grid-template-columns: 1fr; }
+}
+
+/* ── Flash ──────────────────────────────────────────────── */
+.flash {
+    padding: 12px 16px;
+    border-radius: var(--radius);
+    font-size: 13.5px;
+    font-weight: 600;
+}
+
+.flash-ok {
+    background: color-mix(in oklch, var(--success) 12%, transparent);
+    border: 1px solid color-mix(in oklch, var(--success) 30%, transparent);
+    color: var(--success);
+}
+
+.flash-error {
+    background: color-mix(in oklch, var(--danger) 12%, transparent);
+    border: 1px solid color-mix(in oklch, var(--danger) 30%, transparent);
+    color: var(--danger);
+}
+
+/* ── Estado vazio ────────────────────────────────────────── */
+.empty-state {
+    padding: 18px;
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 13.5px;
+    border: 1px dashed var(--border-2);
+    border-radius: var(--radius);
+}
+
+.inline-form {
+    display: inline;
+}

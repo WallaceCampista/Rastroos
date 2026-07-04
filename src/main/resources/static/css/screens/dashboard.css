@@ -1,0 +1,328 @@
+/* ─────────────────────────────────────────────────────────────
+   Rastro$ — tela /app/dashboard
+   ───────────────────────────────────────────────────────────── */
+
+.screen {
+    padding: 28px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    max-width: 1240px;
+}
+
+.screen-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.screen-title {
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin: 0;
+}
+
+.screen-sub {
+    margin: 6px 0 0;
+    color: var(--text-dim);
+    font-size: 13.5px;
+}
+
+.screen-actions {
+    display: flex;
+    gap: 10px;
+}
+
+/* ── KPIs ────────────────────────────────────────────────── */
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 14px;
+}
+
+.kpi {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 18px 20px;
+    position: relative;
+    overflow: hidden;
+}
+
+.kpi::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--kpi-tint, transparent);
+    opacity: 0.18;
+    pointer-events: none;
+}
+
+.kpi-head {
+    position: relative;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+}
+
+.kpi-value {
+    position: relative;
+    font-family: var(--serif);
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    margin: 10px 0 2px;
+    font-variant-numeric: tabular-nums;
+}
+
+.kpi-value::before {
+    content: "R$ ";
+    font-size: 0.6em;
+    color: var(--text-dim);
+    font-weight: 600;
+    margin-right: 2px;
+}
+
+.kpi-foot {
+    position: relative;
+    margin: 0;
+    color: var(--text-dim);
+    font-size: 11.5px;
+}
+
+.kpi-success { --kpi-tint: var(--success); }
+.kpi-danger  { --kpi-tint: var(--danger); }
+.kpi-primary { --kpi-tint: var(--primary); }
+.kpi-accent  { --kpi-tint: var(--accent); }
+.kpi-balance::before {
+    background: linear-gradient(135deg,
+                rgba(99, 102, 241, 0.20),
+                rgba(251, 191, 36, 0.14));
+    opacity: 1;
+}
+
+/* ── Charts grid ─────────────────────────────────────────── */
+.charts-grid {
+    display: grid;
+    grid-template-columns: 7fr 5fr;
+    gap: 16px;
+}
+
+@media (max-width: 980px) {
+    .charts-grid { grid-template-columns: 1fr; }
+}
+
+.chart-card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.chart-wrap {
+    height: 240px;
+    width: 100%;
+}
+
+#balanceChart {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.donut-wrap {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    flex-wrap: wrap;
+}
+
+.donut-canvas-wrap {
+    width: 170px;
+    height: 170px;
+    flex: 0 0 auto;
+}
+
+#categoryDonut {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.donut-legend {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    flex: 1 1 200px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.donut-legend li {
+    display: grid;
+    grid-template-columns: 14px 1fr auto;
+    align-items: center;
+    gap: 10px;
+    font-size: 12.5px;
+}
+
+.donut-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 99px;
+    display: inline-block;
+}
+
+.donut-name {
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.donut-amount {
+    color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+}
+
+.donut-empty {
+    color: var(--text-dim);
+    font-size: 13px;
+    grid-column: 1 / -1;
+}
+
+/* ── Grid das listas ─────────────────────────────────────── */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+@media (max-width: 980px) {
+    .dashboard-grid { grid-template-columns: 1fr; }
+}
+
+.card-link {
+    color: var(--primary-2);
+    font-size: 12.5px;
+    font-weight: 600;
+}
+
+/* ── Entry list (próximos vencimentos) ───────────────────── */
+.entry-list,
+.account-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.entry-row,
+.account-row {
+    display: grid;
+    grid-template-columns: 44px 1fr auto;
+    gap: 12px;
+    align-items: center;
+    padding: 10px 12px;
+    border-radius: var(--radius);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    transition: background 0.15s, transform 0.15s;
+}
+
+.entry-row:hover,
+.account-row:hover {
+    background: var(--surface-2);
+}
+
+.entry-avatar,
+.account-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: var(--primary);
+    color: white;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 16px;
+}
+
+.entry-title,
+.account-name {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.entry-sub,
+.account-sub {
+    margin: 2px 0 0;
+    font-size: 12px;
+    color: var(--text-dim);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.entry-amount,
+.account-total {
+    margin: 0;
+    font-family: var(--serif);
+    font-weight: 700;
+    font-size: 15px;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+.entry-date,
+.account-kind {
+    margin: 2px 0 0;
+    font-size: 11px;
+    color: var(--text-dim);
+    text-transform: lowercase;
+    text-align: right;
+}
+
+.account-bar {
+    margin-top: 6px;
+    height: 4px;
+    border-radius: 99px;
+    background: var(--border);
+    overflow: hidden;
+}
+
+.account-bar > span {
+    display: block;
+    height: 100%;
+    background: var(--primary);
+    transition: width 0.3s ease;
+}
+
+/* ── Estado vazio ────────────────────────────────────────── */
+.empty-state {
+    padding: 18px;
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 13.5px;
+    border: 1px dashed var(--border-2);
+    border-radius: var(--radius);
+}
+
+/* ── Valores ocultos (toggle privacidade) ───────────────── */
+.app-body[data-hide-values="1"] .kpi-value,
+.app-body[data-hide-values="1"] .entry-amount,
+.app-body[data-hide-values="1"] .account-total {
+    filter: blur(7px);
+    user-select: none;
+}
