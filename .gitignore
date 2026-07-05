@@ -144,3 +144,11 @@ yarn-error.log*
 .tmp/
 tmp/
 .history/
+
+# ── Claude Code (config/estado local e pessoal) ──────────────
+.claude/
+CLAUDE.md
+CLAUDE.local.md
+.claude.json
+.claude.json.backup
+.mcp.json.local
