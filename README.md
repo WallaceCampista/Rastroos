@@ -212,19 +212,51 @@ Toda feature inclui, por padrão, teste de **isolamento por usuário** (usuário
 ## 🚀 Como rodar
 
 ### Pré-requisitos
-- **Java 25**, **Docker** + **Docker Compose**, **Maven** (ou o wrapper `./mvnw`).
+- **Java 25**, **Docker** + **Docker Compose**. O **Maven** vem no wrapper `./mvnw` (não precisa instalar).
+- No **Linux** e no **WSL2** o setup roda direto; no **Windows nativo**, use o **WSL2** — o script detecta e orienta.
 
-### 1️⃣ Variáveis de ambiente
+### ⚡ Setup automático (recomendado)
+
+O script [`setup.sh`](./setup.sh) prepara o ambiente com **um único comando**: valida o **JDK 25** e o **Maven Wrapper**, gera um **`.env` de DEV funcional** (com as credenciais que a app espera por padrão), **baixa as dependências e compila**, e sobe o **PostgreSQL** (via [`scripts/db-up.sh`](./scripts/db-up.sh)).
+
+```bash
+./setup.sh
+```
+
+Acompanhe cada etapa com **barra de progresso e porcentagem**:
+
+```
+[5/5] Banco de dados (PostgreSQL)
+  ██████████████████████████████ 100%
+```
+
+**Opções:**
+
+| Comando | O que faz |
+|---------|-----------|
+| `./setup.sh` | Setup completo |
+| `./setup.sh -y` | Não-interativo |
+| `./setup.sh --no-docker` | Não sobe o Postgres |
+| `./setup.sh -h` | Ajuda |
+
+> **Idempotente**: pode rodar de novo com segurança — um `.env` já existente é **preservado**. Ao final, basta rodar a aplicação (passo 3️⃣).
+
+<details>
+<summary>🔧 <strong>Setup manual (passo a passo)</strong> — alternativa ao <code>setup.sh</code></summary>
+
+#### 1️⃣ Variáveis de ambiente
 ```bash
 cp .env.example .env
 # preencha POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_DB
 # e RASTROOS_APP_SECRET  (ex.: openssl rand -base64 48)
 ```
 
-### 2️⃣ Banco
+#### 2️⃣ Banco
 ```bash
-docker compose up -d postgres
+./scripts/db-up.sh          # ou: docker compose up -d postgres
 ```
+
+</details>
 
 ### 3️⃣ Aplicação (perfil dev)
 ```bash
