@@ -566,24 +566,29 @@ Content-Security-Policy: <conforme 5.5>
 
 ### Etapa 11 — Relatórios + Comparativo (2 dias)
 
-- [ ] Services agregadores: gastos por categoria, fixo vs pontual, evolução
-- [ ] Templates `reports.html`, `compare.html`
-- [ ] Testes
+- [x] `MonthlyFinanceAggregator` compartilhado (resumo mensal: recebido/gasto/pago/a-pagar/fixo/pontual/saldo/taxa de poupança) + eixo de 6 meses reutilizável pelos dois services
+- [x] `ReportService` (`/app/reports`): gastos por categoria e por conta (donut + legenda com %), pago vs a pagar, fixo vs pontual, peso de cada gasto (barras ponderadas) e linha fixo vs variável dos últimos 6 meses
+- [x] `CompareService` (`/app/compare`): receita × gasto × saldo × aporte (6 meses), taxa de poupança por mês com linha-alvo + indicadores (média, meses acima da meta, melhor mês). Aporte estimado via delta do histórico de investimentos − rendimento (subquery isolada por `userId`)
+- [x] `ReportController` e `CompareController` finos, com `ym` (default mês corrente). Motor de gráficos vanilla reutilizável `static/js/charts.js` (donut + multilinha) — zero dependência externa, respeita CSP `script-src 'self'`
+- [x] Templates `reports.html` e `compare.html` sem inline (barras/tabelas em CSS via atributos Thymeleaf `th:attr/th:style`; JSON dos gráficos via `<script type="application/json">` + `th:text`, sem `th:utext`)
+- [x] Testes: 10 unit (5 aggregator + 3 ReportService + 2 CompareService) + 8 Web MockMvc (inclui renderização real dos templates) + 2 `@DataJpaTest` com Postgres real (agregado total/pago/fixo e histórico por usuário, isolamento comprovado) — **157/157 verdes**
 
 ### Etapa 12 — Suporte (tickets) (2 dias)
 
-- [ ] `SupportService` + CRUD de ticket + comentários
-- [ ] Regras: usuário vê só os próprios; admin vê todos
-- [ ] Templates `support.html` + modal
-- [ ] Testes
+- [x] `SupportService`: abrir chamado (id gerado `T-XXXXXX`, alfabeto sem ambíguos + retry anti-colisão), listar, detalhar, comentar, cancelar (dono) e trocar status (admin). Resposta do admin em chamado aberto move para `EM_ANDAMENTO`
+- [x] Regras de isolamento: usuário comum só vê/age nos próprios chamados; admin vê todos. Acesso a chamado alheio (não-admin) → 404. Troca de status é admin-only (rota `@PreAuthorize("hasRole('ADMIN')")` + verificação no Service → `AccessDeniedException`)
+- [x] `SupportController` (`/app/support`) fino: list (filtros status/busca + KPIs por status + paginação), form de abertura, detalhe com thread, comentar, cancelar, mudar status. Flash i18n (PT/EN)
+- [x] Templates sem inline: `support.html` (tabela + KPIs + filtros), `support-form.html` (abertura) e `support-detail.html` (thread + resposta + status admin). Fragmento `fragments/support-labels.html` para rótulos PT dos enums. **Nota:** optei por páginas de formulário dedicadas (padrão consolidado das Etapas 8–11) em vez de modal, para manter consistência e evitar JS inline (§11.5)
+- [x] **Bug latente corrigido:** a query `adminSearch` quebrava com título nulo (`LOWER(CONCAT('%', NULL, '%'))` → `lower(bytea)` no Postgres); trocado para o sentinela tipado `:q = ''` (padrão já usado em `IncomeRepository`), pego por teste `@DataJpaTest`
+- [x] Testes: 11 unit (`SupportService`: id/status inicial, isolamento por usuário, admin×usuário, comentário em fechado, status admin-only, cancelar) + 10 Web MockMvc (inclui renderização real dos 3 templates) + 4 `@DataJpaTest` com Postgres real (contadores por usuário, `adminSearch` com filtros nulos/não-nulos, isolamento, thread) — **182/182 verdes**
 
 ### Etapa 13 — Alfredo (Gerente IA) — interface (1-2 dias)
 
-- [ ] Tela de chat (`manager.html`) com histórico e canvas
-- [ ] Persistência de conversas (`chats`, `chat_messages`)
-- [ ] Integração com API de IA via `RestClient` (stubada por padrão — chave configurável)
-- [ ] Resilience4j: circuit breaker e timeout
-- [ ] Testes (com IA mockada)
+- [x] Tela `manager.html` (`/app/manager`): histórico de conversas na lateral, tela de boas-vindas com sugestões (mini-forms POST, sem JS), thread de mensagens (bolhas usuário/assistente) e composer. `manager.js` faz auto-scroll, Enter-envia e confirmação de exclusão; `manager.css` sem inline
+- [x] Persistência de conversas via `ChatService` (`chats` + `chat_messages`): abrir conversa (título derivado da 1ª mensagem), enviar mensagem (persiste par usuário/assistente com histórico como contexto), listar, apagar. Isolamento por usuário — conversa de outro usuário → 404 (mensagens acessadas só via `chat` verificado)
+- [x] Integração de IA via `AlfredoAiClient` + `RestClient`: **stub por padrão** (`alfredo.base-url` vazio → resposta de demonstração, sem tráfego externo); configurando o endpoint faz a chamada real (estilo OpenAI chat-completions) com Bearer + timeouts de conexão/leitura. Chave/URL fora do código (`.env` → `AlfredoProperties`), nunca logadas
+- [x] Resilience4j: circuit breaker `alfredo` (`@CircuitBreaker` com `fallbackMethod`) — falha/timeout do provedor cai numa resposta de contingência amigável; timeout via `RestClient` (connect/read). Deps adicionadas ao `pom.xml` (`resilience4j-spring-boot3` + `spring-boot-starter-aop`) e instância configurada no `application.yml`
+- [x] Testes (IA mockada): 3 unit `AlfredoAiClient` (modo stub determinístico, truncagem, entradas nula/vazia) + 8 unit `ChatService` (abertura/título, par de mensagens, isolamento 404, contexto, delete) + 7 Web MockMvc (inclui renderização real do template welcome/ativo) + 3 `@DataJpaTest` (histórico desc, isolamento, ordem do thread). Smoke test confirma o contexto subindo com resilience4j/AOP — **203/203 verdes**
 
 ### Etapa 14 — Admin: gestão de usuários (2 dias)
 
