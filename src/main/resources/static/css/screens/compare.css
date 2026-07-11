@@ -1,0 +1,264 @@
+/* ─────────────────────────────────────────────────────────────
+   Rastro$ — tela /app/compare
+   ───────────────────────────────────────────────────────────── */
+
+.screen-compare {
+    padding: 28px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    max-width: 1240px;
+}
+
+.screen-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.screen-title {
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin: 0;
+}
+
+.screen-sub {
+    margin: 6px 0 0;
+    color: var(--text-dim);
+    font-size: 13.5px;
+}
+
+.screen-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.card-sub {
+    color: var(--text-dim);
+    font-size: 12px;
+}
+
+/* ── Grid ────────────────────────────────────────────────── */
+.compare-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+}
+
+.panel {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+/* ── Linha (canvas) ──────────────────────────────────────── */
+.line-wrap {
+    height: 220px;
+    width: 100%;
+}
+
+.line-wrap-tall {
+    height: 260px;
+}
+
+.line-wrap > canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.legend-inline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    font-size: 12.5px;
+    color: var(--text-dim);
+}
+
+.legend-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 99px;
+    margin-right: 6px;
+    vertical-align: middle;
+}
+
+.legend-received { background: #22c55e; }
+.legend-spent    { background: #ef4444; }
+.legend-net      { background: #6366f1; }
+.legend-invested { background: #22d3ee; }
+
+/* ── Taxa de poupança: stats ─────────────────────────────── */
+.sr-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 26px;
+}
+
+.sr-stats > div {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.sr-stat-lbl {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+}
+
+.sr-stat-val {
+    font-size: 18px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ── Taxa de poupança: gráfico de barras ─────────────────── */
+.sr-chart {
+    position: relative;
+    height: 150px;
+    margin: 12px 4px 36px;
+}
+
+.sr-target {
+    position: absolute;
+    left: 0;
+    right: 0;
+    border-top: 1px dashed var(--border-2);
+    pointer-events: none;
+}
+
+.sr-target-tag {
+    position: absolute;
+    right: 0;
+    top: -8px;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-dim);
+    background: var(--bg);
+    padding: 0 6px;
+}
+
+.sr-cols {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    gap: 12px;
+    align-items: end;
+}
+
+.sr-col {
+    position: relative;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.sr-bar {
+    width: 58%;
+    max-width: 30px;
+    min-height: 3px;
+    border-radius: 4px 4px 0 0;
+    transition: height 0.3s ease;
+}
+
+.sr-val {
+    font-size: 11px;
+    font-weight: 700;
+    margin-bottom: 4px;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+
+.sr-lbl {
+    position: absolute;
+    top: 100%;
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--text-dim);
+    white-space: nowrap;
+}
+
+.sr-ok    { background: #34d399; }
+.sr-warn  { background: #fbbf24; }
+.sr-bad   { background: #fb7185; }
+.sr-muted { background: var(--surface-2); }
+
+.sr-txt-ok    { color: #34d399; }
+.sr-txt-warn  { color: #fbbf24; }
+.sr-txt-bad   { color: #fb7185; }
+.sr-txt-muted { color: var(--text-faint); }
+
+/* ── Quadro do mês (tabela) ──────────────────────────────── */
+.compare-table-wrap {
+    overflow-x: auto;
+}
+
+.compare-table {
+    min-width: 560px;
+    display: flex;
+    flex-direction: column;
+}
+
+.ct-head,
+.ct-row {
+    display: grid;
+    grid-template-columns: 1.1fr 1fr 1fr 1fr 1fr 1fr;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+}
+
+.ct-head {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    border-bottom: 1px solid var(--border);
+}
+
+.ct-head span:not(:first-child),
+.ct-row span:not(:first-child) {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.ct-row {
+    border-radius: var(--radius);
+    font-size: 13px;
+}
+
+.ct-row:nth-child(even) {
+    background: var(--surface);
+}
+
+.ct-row.current {
+    background: color-mix(in oklch, var(--primary) 14%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--primary) 34%, transparent);
+}
+
+.ct-month {
+    font-weight: 700;
+}
+
+.ct-recv  { color: #34d399; }
+.ct-spent { color: #fb7185; }
+.ct-net   { color: var(--primary-2); font-weight: 700; }
+.ct-net.is-neg { color: #fb7185; }
+
+/* ── Ocultar valores (toggle privacidade) ────────────────── */
+.app-body.values-hidden [data-amount] {
+    filter: blur(7px);
+    user-select: none;
+}

@@ -1,0 +1,131 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      lang="pt-BR"
+      th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+<head>
+    <title>Comparativo · Rastro$</title>
+    <link rel="stylesheet" th:href="@{/css/screens/compare.css}">
+    <script th:src="@{/js/charts.js}" defer></script>
+    <script th:src="@{/js/screens/compare.js}" defer></script>
+</head>
+<body>
+<section class="app-content screen screen-compare" th:data-period="${period}">
+
+    <header class="screen-header">
+        <div>
+            <h1 class="screen-title">Comparativo</h1>
+            <p class="screen-sub">Últimos 6 meses até o mês selecionado.</p>
+        </div>
+        <div class="screen-actions">
+            <a class="btn" th:href="@{/app/reports(ym=${period})}">Relatórios →</a>
+        </div>
+    </header>
+
+    <div class="compare-grid">
+
+        <!-- Receita vs Gasto vs Saldo vs Aporte -->
+        <article class="card panel panel-wide">
+            <header class="card-header">
+                <h2 class="card-title">Receita vs Gastos · últimos 6 meses</h2>
+            </header>
+            <div class="line-wrap line-wrap-tall">
+                <canvas id="compareLine" role="img"
+                        aria-label="Receita, gasto, saldo e aporte nos últimos 6 meses"></canvas>
+            </div>
+            <div class="legend-inline">
+                <span><i class="legend-dot legend-received"></i> Total recebido</span>
+                <span><i class="legend-dot legend-spent"></i> Total gasto</span>
+                <span><i class="legend-dot legend-net"></i> Saldo</span>
+                <span><i class="legend-dot legend-invested"></i> Aporte</span>
+            </div>
+        </article>
+
+        <!-- Taxa de poupança por mês -->
+        <article class="card panel panel-wide">
+            <header class="card-header">
+                <h2 class="card-title">Taxa de poupança por mês</h2>
+                <span class="card-sub">% da receita que sobrou · linha-alvo em 20%</span>
+            </header>
+
+            <div class="sr-stats">
+                <div>
+                    <span class="sr-stat-lbl">Taxa média</span>
+                    <span class="sr-stat-val"
+                          th:text="${data.avgSavingsRate() != null ? data.avgSavingsRate() + '%' : '—'}">—</span>
+                </div>
+                <div>
+                    <span class="sr-stat-lbl">Acima da meta</span>
+                    <span class="sr-stat-val"
+                          th:text="${data.monthsAboveTarget()} + '/' + ${data.monthsCounted()}">0/0</span>
+                </div>
+                <div>
+                    <span class="sr-stat-lbl">Melhor mês</span>
+                    <span class="sr-stat-val"
+                          th:text="${data.bestMonthLabel() != null
+                                    ? data.bestMonthLabel() + ' · ' + data.bestMonthRate() + '%' : '—'}">—</span>
+                </div>
+            </div>
+
+            <div class="sr-chart">
+                <div class="sr-target" th:attr="style='bottom:' + ${data.target() * 100 / 40} + '%'">
+                    <span class="sr-target-tag" th:text="'alvo ' + ${data.target()} + '%'">alvo 20%</span>
+                </div>
+                <div class="sr-cols">
+                    <div class="sr-col" th:each="m : ${data.months()}"
+                         th:with="rate=${m.savingsRate()},
+                                  barPct=${rate == null ? 0 : (rate le 0 ? 4 : (rate ge 40 ? 100 : rate * 100 / 40))},
+                                  tone=${rate == null ? 'muted'
+                                        : (rate ge data.target() ? 'ok' : (rate ge 0 ? 'warn' : 'bad'))}">
+                        <span class="sr-val" th:classappend="'sr-txt-' + ${tone}"
+                              th:text="${rate == null ? '—' : rate + '%'}">0%</span>
+                        <span class="sr-bar" th:classappend="'sr-' + ${tone}"
+                              th:attr="style='height:' + ${barPct} + '%'"></span>
+                        <span class="sr-lbl" th:text="${m.label()}">Mês</span>
+                    </div>
+                </div>
+            </div>
+        </article>
+
+        <!-- Quadro do mês -->
+        <article class="card panel panel-wide">
+            <header class="card-header">
+                <h2 class="card-title">Quadro do mês</h2>
+            </header>
+            <div class="compare-table-wrap">
+                <div class="compare-table">
+                    <div class="ct-head">
+                        <span>Mês</span>
+                        <span>Recebido</span>
+                        <span>Gasto</span>
+                        <span>Fixo</span>
+                        <span>Pontual</span>
+                        <span>Saldo</span>
+                    </div>
+                    <div class="ct-row" th:each="m : ${data.months()}"
+                         th:classappend="${m.current()} ? 'current' : ''">
+                        <span class="ct-month" th:text="${m.label()}">Mês</span>
+                        <span class="ct-recv" th:data-amount="${m.received()}"
+                              th:text="${#numbers.formatDecimal(m.received(), 1, 'POINT', 2, 'COMMA')}">0,00</span>
+                        <span class="ct-spent" th:data-amount="${m.spent()}"
+                              th:text="${#numbers.formatDecimal(m.spent(), 1, 'POINT', 2, 'COMMA')}">0,00</span>
+                        <span th:data-amount="${m.fixed()}"
+                              th:text="${#numbers.formatDecimal(m.fixed(), 1, 'POINT', 2, 'COMMA')}">0,00</span>
+                        <span th:data-amount="${m.oneTime()}"
+                              th:text="${#numbers.formatDecimal(m.oneTime(), 1, 'POINT', 2, 'COMMA')}">0,00</span>
+                        <span class="ct-net" th:classappend="${m.net().signum() < 0} ? 'is-neg' : ''"
+                              th:data-amount="${m.net()}"
+                              th:text="${#numbers.formatDecimal(m.net(), 1, 'POINT', 2, 'COMMA')}">0,00</span>
+                    </div>
+                </div>
+            </div>
+        </article>
+
+    </div>
+
+    <script type="application/json" id="compareChartData" th:text="${chartDataJson}">
+        {"labels":[],"series":[]}
+    </script>
+</section>
+</body>
+</html>
