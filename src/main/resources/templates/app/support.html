@@ -1,0 +1,134 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR"
+      th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+<head>
+    <title>Suporte · Rastro$</title>
+    <link rel="stylesheet" th:href="@{/css/screens/support.css}">
+    <script th:src="@{/js/screens/support.js}" defer></script>
+</head>
+<body>
+<section class="app-content screen screen-support">
+
+    <header class="screen-header">
+        <div>
+            <h1 class="screen-title">Suporte</h1>
+            <p class="screen-sub" th:if="${view.admin()}">
+                Todos os chamados — <span th:text="${view.totalElements()}">0</span> no total.
+            </p>
+            <p class="screen-sub" th:unless="${view.admin()}">
+                Seus chamados — <span th:text="${view.totalElements()}">0</span> abertos por você.
+            </p>
+        </div>
+        <div class="screen-actions">
+            <a class="btn btn-primary" th:href="@{/app/support/new}">+ Novo chamado</a>
+        </div>
+    </header>
+
+    <div th:if="${ok}" class="flash flash-ok" th:text="#{${ok}}">Ok</div>
+    <div th:if="${error}" class="flash flash-error" th:text="#{${error}}">Erro</div>
+
+    <section class="support-kpis" aria-label="Resumo por status">
+        <article class="support-kpi">
+            <span class="support-kpi-val" th:text="${view.openCount()}">0</span>
+            <span class="support-kpi-lbl">Abertos</span>
+        </article>
+        <article class="support-kpi">
+            <span class="support-kpi-val" th:text="${view.inProgressCount()}">0</span>
+            <span class="support-kpi-lbl">Em andamento</span>
+        </article>
+        <article class="support-kpi">
+            <span class="support-kpi-val" th:text="${view.doneCount()}">0</span>
+            <span class="support-kpi-lbl">Concluídos</span>
+        </article>
+    </section>
+
+    <form class="filter-bar" method="get" th:action="@{/app/support}">
+        <div class="filter-field">
+            <label for="status">Status</label>
+            <select id="status" name="status">
+                <option value="">Todos</option>
+                <option th:each="s : ${statuses}"
+                        th:value="${s.name()}"
+                        th:selected="${filter.status() != null and filter.status() == s.name()}"
+                        th:text="~{fragments/support-labels :: statusText(${s})}">Status</option>
+            </select>
+        </div>
+        <div class="filter-field filter-field-grow">
+            <label for="q">Busca</label>
+            <input id="q" type="search" name="q"
+                   th:value="${filter.search()}" placeholder="Título do chamado…">
+        </div>
+        <div class="filter-actions">
+            <button type="submit" class="btn">Filtrar</button>
+            <a class="btn-link" th:href="@{/app/support}">Limpar</a>
+        </div>
+    </form>
+
+    <div th:if="${view.items().isEmpty()}" class="empty-state">
+        Nenhum chamado por aqui.
+    </div>
+
+    <table class="support-table" th:unless="${view.items().isEmpty()}">
+        <thead>
+            <tr>
+                <th>Chamado</th>
+                <th th:if="${view.admin()}">Solicitante</th>
+                <th>Status</th>
+                <th>Prioridade</th>
+                <th class="num">Respostas</th>
+                <th>Atualizado</th>
+                <th class="actions">Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr th:each="t : ${view.items()}">
+                <td>
+                    <div class="support-cell">
+                        <span class="support-cat"
+                              th:classappend="'cat-' + ${t.category().name().toLowerCase()}"
+                              th:text="~{fragments/support-labels :: categoryText(${t.category()})}">Cat</span>
+                        <div class="support-cell-main">
+                            <a class="support-title" th:href="@{/app/support/{id}(id=${t.id()})}"
+                               th:text="${t.title()}">Título</a>
+                            <span class="support-id" th:text="${t.id()}">T-XXXXXX</span>
+                        </div>
+                    </div>
+                </td>
+                <td th:if="${view.admin()}">
+                    <span class="support-requester" th:text="${t.requesterEmail()}">user@ex.com</span>
+                </td>
+                <td>
+                    <span class="st-pill" th:classappend="'st-' + ${t.status().name().toLowerCase()}"
+                          th:text="~{fragments/support-labels :: statusText(${t.status()})}">Status</span>
+                </td>
+                <td>
+                    <span class="pr-tag" th:classappend="'pr-' + ${t.priority().name().toLowerCase()}">
+                        <span class="pr-dot"></span>
+                        <span th:text="~{fragments/support-labels :: priorityText(${t.priority()})}">Prio</span>
+                    </span>
+                </td>
+                <td class="num" th:text="${t.commentCount()}">0</td>
+                <td class="support-when"
+                    th:text="${#temporals.format(t.updatedAt().atZone(T(java.time.ZoneOffset).UTC), 'dd/MM/yyyy')}">--/--</td>
+                <td class="actions">
+                    <a class="btn-link" th:href="@{/app/support/{id}(id=${t.id()})}">Ver</a>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    <nav class="pagination" th:if="${view.totalPages() > 1}" aria-label="Paginação">
+        <a class="btn-link" th:if="${view.page() > 0}"
+           th:href="@{/app/support(page=${view.page() - 1}, size=${view.size()},
+                                   status=${filter.status()}, q=${filter.search()})}">← Anterior</a>
+        <span class="pagination-info">
+            Página <strong th:text="${view.page() + 1}">1</strong> de
+            <strong th:text="${view.totalPages()}">1</strong>
+        </span>
+        <a class="btn-link" th:if="${view.page() + 1 < view.totalPages()}"
+           th:href="@{/app/support(page=${view.page() + 1}, size=${view.size()},
+                                   status=${filter.status()}, q=${filter.search()})}">Próxima →</a>
+    </nav>
+</section>
+</body>
+</html>

@@ -1,0 +1,113 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR"
+      th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+<head>
+    <title th:text="'Chamado ' + ${view.id()} + ' · Rastro$'">Chamado · Rastro$</title>
+    <link rel="stylesheet" th:href="@{/css/screens/support.css}">
+    <script th:src="@{/js/screens/support.js}" defer></script>
+</head>
+<body>
+<section class="app-content screen screen-support screen-support-detail">
+
+    <header class="screen-header">
+        <div>
+            <h1 class="screen-title" th:text="${view.title()}">Título do chamado</h1>
+            <p class="screen-sub">
+                <span class="support-id" th:text="${view.id()}">T-XXXXXX</span> ·
+                <span th:text="~{fragments/support-labels :: categoryText(${view.category()})}">Categoria</span> ·
+                aberto em
+                <span th:text="${#temporals.format(view.createdAt().atZone(T(java.time.ZoneOffset).UTC), 'dd/MM/yyyy')}">--/--</span>
+            </p>
+        </div>
+        <div class="screen-actions">
+            <a class="btn" th:href="@{/app/support}">Voltar</a>
+        </div>
+    </header>
+
+    <div th:if="${ok}" class="flash flash-ok" th:text="#{${ok}}">Ok</div>
+    <div th:if="${error}" class="flash flash-error" th:text="#{${error}}">Erro</div>
+
+    <article class="card support-ticket">
+        <div class="support-ticket-meta">
+            <span class="st-pill" th:classappend="'st-' + ${view.status().name().toLowerCase()}"
+                  th:text="~{fragments/support-labels :: statusText(${view.status()})}">Status</span>
+            <span class="pr-tag" th:classappend="'pr-' + ${view.priority().name().toLowerCase()}">
+                <span class="pr-dot"></span>
+                <span th:text="~{fragments/support-labels :: priorityText(${view.priority()})}">Prio</span>
+            </span>
+            <span class="support-requester" th:if="${view.admin()}"
+                  th:text="${view.requesterEmail()}">user@ex.com</span>
+        </div>
+        <p class="support-ticket-body" th:text="${view.description()}">Descrição do chamado.</p>
+    </article>
+
+    <!-- Admin: mudar status -->
+    <form class="card support-status-form" th:if="${view.admin()}"
+          th:action="@{/app/support/{id}/status(id=${view.id()})}" method="post"
+          th:object="${statusForm}">
+        <input type="hidden" th:if="${_csrf != null}"
+               th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+        <label for="status">Alterar status</label>
+        <select id="status" th:field="*{status}">
+            <option th:each="s : ${statuses}" th:value="${s}"
+                    th:text="~{fragments/support-labels :: statusText(${s})}">Status</option>
+        </select>
+        <button type="submit" class="btn">Atualizar</button>
+    </form>
+
+    <!-- Thread de comentários -->
+    <section class="support-thread" aria-label="Respostas">
+        <h2 class="support-thread-title">Respostas</h2>
+        <div th:if="${view.comments().isEmpty()}" class="empty-state">
+            Ainda sem respostas neste chamado.
+        </div>
+        <ul class="comment-list" th:unless="${view.comments().isEmpty()}">
+            <li class="comment" th:each="c : ${view.comments()}"
+                th:classappend="${c.mine()} ? 'comment-mine' : ''">
+                <div class="comment-head">
+                    <span class="comment-author"
+                          th:classappend="${c.authorRole().name() == 'ADMIN'} ? 'is-admin' : ''">
+                        <span th:text="${c.authorRole().name() == 'ADMIN'} ? 'Suporte' : 'Você'"
+                              th:if="${c.mine() or c.authorRole().name() == 'ADMIN'}">Autor</span>
+                        <span th:unless="${c.mine() or c.authorRole().name() == 'ADMIN'}"
+                              th:text="${c.authorEmail()}">autor@ex.com</span>
+                    </span>
+                    <span class="comment-when"
+                          th:text="${#temporals.format(c.createdAt().atZone(T(java.time.ZoneOffset).UTC), 'dd/MM/yyyy HH:mm')}">--</span>
+                </div>
+                <p class="comment-body" th:text="${c.body()}">Corpo da resposta.</p>
+            </li>
+        </ul>
+    </section>
+
+    <!-- Responder -->
+    <form class="card support-reply" th:if="${view.canComment()}"
+          th:action="@{/app/support/{id}/comments(id=${view.id()})}"
+          method="post" th:object="${commentForm}">
+        <input type="hidden" th:if="${_csrf != null}"
+               th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+        <div class="field">
+            <label for="body">Sua resposta</label>
+            <textarea id="body" th:field="*{body}" rows="4" maxlength="4000" required
+                      placeholder="Escreva uma resposta…"></textarea>
+        </div>
+        <footer class="support-reply-foot">
+            <button type="submit" class="btn btn-primary">Enviar resposta</button>
+        </footer>
+    </form>
+
+    <div th:unless="${view.canComment()}" class="empty-state">
+        Este chamado está encerrado. Abra um novo se precisar de mais ajuda.
+    </div>
+
+    <!-- Cancelar (dono, chamado em aberto) — form separado (sem aninhar) -->
+    <form class="support-cancel" th:if="${view.canCancel()}"
+          th:action="@{/app/support/{id}/cancel(id=${view.id()})}" method="post"
+          data-confirm="Cancelar este chamado?">
+        <input type="hidden" th:if="${_csrf != null}"
+               th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+        <button type="submit" class="btn-link btn-link-danger">Cancelar chamado</button>
+    </form>
+</section>
+</body>
+</html>

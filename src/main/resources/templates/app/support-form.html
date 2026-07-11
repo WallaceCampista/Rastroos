@@ -1,0 +1,71 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR"
+      th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+<head>
+    <title>Novo chamado · Rastro$</title>
+    <link rel="stylesheet" th:href="@{/css/screens/support.css}">
+</head>
+<body>
+<section class="app-content screen screen-support screen-support-form">
+    <header class="screen-header">
+        <div>
+            <h1 class="screen-title">Novo chamado</h1>
+            <p class="screen-sub">Relate um bug, sugira uma melhoria ou registre uma reclamação.</p>
+        </div>
+        <div class="screen-actions">
+            <a class="btn" th:href="@{/app/support}">Voltar</a>
+        </div>
+    </header>
+
+    <form class="support-form card" th:action="@{/app/support/new}" method="post"
+          th:object="${ticketForm}">
+        <input type="hidden" th:if="${_csrf != null}"
+               th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
+        <div class="support-form-grid">
+            <div class="field">
+                <label for="category">Tipo</label>
+                <select id="category" th:field="*{category}">
+                    <option th:each="c : ${categories}" th:value="${c}"
+                            th:text="~{fragments/support-labels :: categoryText(${c})}">Tipo</option>
+                </select>
+                <p class="field-error" th:if="${#fields.hasErrors('category')}"
+                   th:errors="*{category}">erro</p>
+            </div>
+
+            <div class="field">
+                <label for="priority">Prioridade</label>
+                <select id="priority" th:field="*{priority}">
+                    <option th:each="p : ${priorities}" th:value="${p}"
+                            th:text="~{fragments/support-labels :: priorityText(${p})}">Prioridade</option>
+                </select>
+                <p class="field-error" th:if="${#fields.hasErrors('priority')}"
+                   th:errors="*{priority}">erro</p>
+            </div>
+
+            <div class="field field-wide">
+                <label for="title">Título</label>
+                <input id="title" type="text" th:field="*{title}"
+                       maxlength="200" required autocomplete="off"
+                       placeholder="Resumo curto do que aconteceu">
+                <p class="field-error" th:if="${#fields.hasErrors('title')}"
+                   th:errors="*{title}">erro</p>
+            </div>
+
+            <div class="field field-wide">
+                <label for="description">Descrição</label>
+                <textarea id="description" th:field="*{description}"
+                          rows="6" maxlength="4000" required
+                          placeholder="Passos para reproduzir, o que esperava e o que aconteceu…"></textarea>
+                <p class="field-error" th:if="${#fields.hasErrors('description')}"
+                   th:errors="*{description}">erro</p>
+            </div>
+        </div>
+
+        <footer class="support-form-foot">
+            <button type="submit" class="btn btn-primary">Abrir chamado</button>
+        </footer>
+    </form>
+</section>
+</body>
+</html>
