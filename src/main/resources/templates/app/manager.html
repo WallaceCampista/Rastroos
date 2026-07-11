@@ -1,0 +1,106 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR"
+      th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+<head>
+    <title>Alfredo · Rastro$</title>
+    <link rel="stylesheet" th:href="@{/css/screens/manager.css}">
+    <script th:src="@{/js/screens/manager.js}" defer></script>
+</head>
+<body>
+<section class="app-content screen screen-manager">
+    <div class="mgr-layout">
+
+        <!-- ── Histórico ─────────────────────────────────────── -->
+        <aside class="mgr-history">
+            <div class="mgr-history-head">
+                <span class="mgr-history-lbl">Conversas</span>
+                <a class="btn-link" th:href="@{/app/manager}">+ Nova</a>
+            </div>
+            <ul class="mgr-history-list" th:unless="${view.history().isEmpty()}">
+                <li class="mgr-history-row" th:each="c : ${view.history()}"
+                    th:classappend="${c.active()} ? 'is-active' : ''">
+                    <a class="mgr-history-item" th:href="@{/app/manager(chat=${c.id()})}">
+                        <span class="mgr-history-title" th:text="${c.title()}">Título</span>
+                        <span class="mgr-history-when"
+                              th:text="${#temporals.format(c.createdAt().atZone(T(java.time.ZoneOffset).UTC), 'dd/MM')}">--</span>
+                    </a>
+                    <form class="inline-form" method="post"
+                          th:action="@{/app/manager/{id}/delete(id=${c.id()})}"
+                          data-confirm="Apagar esta conversa?">
+                        <input type="hidden" th:if="${_csrf != null}"
+                               th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                        <button type="submit" class="mgr-history-del" aria-label="Apagar conversa">×</button>
+                    </form>
+                </li>
+            </ul>
+            <p th:if="${view.history().isEmpty()}" class="mgr-history-empty">
+                Nenhuma conversa ainda.
+            </p>
+        </aside>
+
+        <!-- ── Painel principal ──────────────────────────────── -->
+        <div class="mgr-main">
+            <div th:if="${ok}" class="flash flash-ok" th:text="#{${ok}}">Ok</div>
+            <div th:if="${error}" class="flash flash-error" th:text="#{${error}}">Erro</div>
+
+            <!-- Boas-vindas (sem conversa ativa) -->
+            <div th:unless="${view.hasActiveChat()}" class="mgr-welcome">
+                <div class="mgr-orb" aria-hidden="true">R<span class="brand-dollar">$</span></div>
+                <h1 class="mgr-welcome-title">Oi, eu sou o Alfredo</h1>
+                <p class="mgr-welcome-sub">
+                    Seu gerente financeiro pessoal. Pergunte sobre seus gastos, contas e metas.
+                </p>
+
+                <div class="mgr-suggestions">
+                    <form th:each="s : ${view.suggestions()}" class="mgr-suggestion-form"
+                          method="post" th:action="@{/app/manager/new}">
+                        <input type="hidden" th:if="${_csrf != null}"
+                               th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                        <input type="hidden" name="message" th:value="${s}">
+                        <button type="submit" class="mgr-suggestion" th:text="${s}">Sugestão</button>
+                    </form>
+                </div>
+
+                <form class="mgr-composer" method="post"
+                      th:action="@{/app/manager/new}" th:object="${promptForm}">
+                    <input type="hidden" th:if="${_csrf != null}"
+                           th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                    <textarea th:field="*{message}" class="mgr-input" rows="2" maxlength="2000"
+                              required placeholder="Pergunte ao Alfredo…"></textarea>
+                    <button type="submit" class="btn btn-primary mgr-send">Enviar</button>
+                </form>
+            </div>
+
+            <!-- Conversa ativa -->
+            <div th:if="${view.hasActiveChat()}" class="mgr-chat">
+                <header class="mgr-chat-head">
+                    <div class="mgr-chat-orb" aria-hidden="true">R<span class="brand-dollar">$</span></div>
+                    <div>
+                        <p class="mgr-chat-title">Alfredo</p>
+                        <p class="mgr-chat-sub" th:text="${view.activeChat().title()}">Conversa</p>
+                    </div>
+                </header>
+
+                <div class="mgr-thread" id="mgrThread" aria-live="polite">
+                    <div class="chat-msg" th:each="m : ${view.activeChat().messages()}"
+                         th:classappend="${m.assistant()} ? 'chat-msg-asst' : 'chat-msg-user'">
+                        <div class="chat-avatar" th:if="${m.assistant()}" aria-hidden="true">R<span class="brand-dollar">$</span></div>
+                        <div class="chat-bubble" th:text="${m.content()}">Mensagem</div>
+                    </div>
+                </div>
+
+                <form class="mgr-composer" method="post"
+                      th:action="@{/app/manager/{id}/messages(id=${view.activeChat().id()})}"
+                      th:object="${promptForm}">
+                    <input type="hidden" th:if="${_csrf != null}"
+                           th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                    <textarea th:field="*{message}" class="mgr-input" rows="2" maxlength="2000"
+                              required placeholder="Escreva sua mensagem…"></textarea>
+                    <button type="submit" class="btn btn-primary mgr-send">Enviar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+</body>
+</html>
