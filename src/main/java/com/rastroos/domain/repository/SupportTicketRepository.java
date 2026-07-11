@@ -23,11 +23,20 @@ public interface SupportTicketRepository extends JpaRepository<SupportTicket, St
                                                                     SupportTicketStatus status,
                                                                     Pageable pageable);
 
-    /** Visão do admin: todos os tickets, com filtros. */
+    long countByUserId(UUID userId);
+
+    long countByUserIdAndStatus(UUID userId, SupportTicketStatus status);
+
+    /**
+     * Visão do admin: todos os tickets, com filtros opcionais. {@code status}
+     * nulo = todos. Para o título passe {@code ""} (string vazia) para "sem
+     * filtro" — Postgres não infere o tipo de {@code LOWER(NULL)} dentro do
+     * {@code CONCAT}, então usamos o sentinela vazio como em outras buscas.
+     */
     @Query("""
             SELECT t FROM SupportTicket t
             WHERE (:status IS NULL OR t.status = :status)
-              AND (:q IS NULL OR LOWER(t.title) LIKE LOWER(CONCAT('%', :q, '%')))
+              AND (:q = '' OR LOWER(t.title) LIKE LOWER(CONCAT('%', :q, '%')))
             ORDER BY t.createdAt DESC
             """)
     Page<SupportTicket> adminSearch(@Param("q") String q,
