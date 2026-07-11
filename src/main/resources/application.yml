@@ -87,6 +87,30 @@ management:
     env:
       enabled: false              # nunca expor env por padrão
 
+# ── Alfredo (gerente IA) ───────────────────────────────────
+# base-url vazio = modo demonstração (stub, sem chamada externa).
+# Preencha via env para habilitar a integração real.
+alfredo:
+  base-url: ${ALFREDO_API_BASE_URL:}
+  api-key: ${ALFREDO_API_KEY:}
+  model: ${ALFREDO_MODEL:gpt-4o-mini}
+  connect-timeout-ms: 3000
+  read-timeout-ms: 15000
+  history-window: 12
+
+# ── Resilience4j (circuit breaker do Alfredo) ──────────────
+resilience4j:
+  circuitbreaker:
+    instances:
+      alfredo:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+
 # ── OpenAPI / Swagger ──────────────────────────────────────
 springdoc:
   api-docs:
