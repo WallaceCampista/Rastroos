@@ -95,6 +95,23 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
                                                 @Param("start") LocalDate start,
                                                 @Param("endExclusive") LocalDate endExclusive);
 
+    /**
+     * Totais do período em uma linha só: {@code [total (long), paid (long),
+     * fixed (long)]}. Usado pelos agregadores de relatório/comparativo para
+     * evitar três queries separadas por mês.
+     */
+    @Query("""
+            SELECT COALESCE(SUM(t.amountCents), 0),
+                   COALESCE(SUM(CASE WHEN t.paid = true THEN t.amountCents ELSE 0 END), 0),
+                   COALESCE(SUM(CASE WHEN t.fixed = true THEN t.amountCents ELSE 0 END), 0)
+              FROM Transaction t
+             WHERE t.userId = :userId
+               AND t.dueDate >= :start AND t.dueDate < :endExclusive
+            """)
+    List<Object[]> aggregateTotalsByPeriod(@Param("userId") UUID userId,
+                                           @Param("start") LocalDate start,
+                                           @Param("endExclusive") LocalDate endExclusive);
+
     long countByUserIdAndPaidFalse(UUID userId);
 
     long countByUserIdAndAccountId(UUID userId, UUID accountId);
