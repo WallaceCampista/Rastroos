@@ -1,0 +1,306 @@
+/* ─────────────────────────────────────────────────────────────
+   Rastro$ — tela /app/reports
+   ───────────────────────────────────────────────────────────── */
+
+.screen-reports {
+    padding: 28px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    max-width: 1240px;
+}
+
+.screen-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.screen-title {
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin: 0;
+}
+
+.screen-sub {
+    margin: 6px 0 0;
+    color: var(--text-dim);
+    font-size: 13.5px;
+}
+
+.screen-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.card-link {
+    color: var(--primary-2);
+    font-size: 12.5px;
+    font-weight: 600;
+}
+
+.card-sub {
+    color: var(--text-dim);
+    font-size: 12px;
+}
+
+/* ── Grid ────────────────────────────────────────────────── */
+.reports-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.panel {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.panel-wide {
+    grid-column: 1 / -1;
+}
+
+@media (max-width: 980px) {
+    .reports-grid { grid-template-columns: 1fr; }
+}
+
+/* ── Donut + legenda ─────────────────────────────────────── */
+.donut-wrap {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    flex-wrap: wrap;
+}
+
+.donut-canvas-wrap {
+    width: 170px;
+    height: 170px;
+    flex: 0 0 auto;
+}
+
+.donut-canvas-wrap > canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.donut-legend {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    flex: 1 1 220px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.donut-legend li {
+    display: grid;
+    grid-template-columns: 14px 1fr auto auto;
+    align-items: center;
+    gap: 10px;
+    font-size: 12.5px;
+}
+
+.donut-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 99px;
+    display: inline-block;
+}
+
+.donut-name {
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.donut-amount {
+    color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    text-align: right;
+}
+
+.donut-pct {
+    color: var(--text-faint);
+    font-variant-numeric: tabular-nums;
+    font-size: 11.5px;
+    min-width: 34px;
+    text-align: right;
+}
+
+.donut-empty {
+    color: var(--text-dim);
+    font-size: 13px;
+    grid-column: 1 / -1;
+}
+
+/* ── Barras horizontais (pago/pagar, fixo/pontual) ───────── */
+.hbars {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.hbar {
+    display: grid;
+    grid-template-columns: 72px 1fr auto;
+    align-items: center;
+    gap: 12px;
+}
+
+.hbar-lbl {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text-dim);
+}
+
+.hbar-track {
+    height: 12px;
+    border-radius: 99px;
+    background: var(--surface-2);
+    overflow: hidden;
+}
+
+.hbar-fill {
+    display: block;
+    height: 100%;
+    border-radius: 99px;
+    transition: width 0.3s ease;
+}
+
+.hbar-success { background: var(--success); }
+.hbar-accent  { background: var(--accent); }
+.hbar-primary { background: var(--primary); }
+.hbar-danger  { background: var(--danger); }
+
+.hbar-val {
+    font-family: var(--serif);
+    font-weight: 700;
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+.hbar-val::before,
+.weight-val::before {
+    content: "R$ ";
+    font-size: 0.72em;
+    color: var(--text-dim);
+    font-weight: 600;
+}
+
+.hbar-foot {
+    margin: 2px 0 0;
+    font-size: 12.5px;
+    color: var(--text-dim);
+}
+
+/* ── Peso de cada gasto ──────────────────────────────────── */
+.weight-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.weight-row {
+    display: grid;
+    grid-template-columns: minmax(90px, 160px) 1fr 52px auto;
+    align-items: center;
+    gap: 12px;
+    font-size: 12.5px;
+}
+
+.weight-name {
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.weight-track {
+    height: 10px;
+    border-radius: 99px;
+    background: var(--surface-2);
+    overflow: hidden;
+}
+
+.weight-fill {
+    display: block;
+    height: 100%;
+    border-radius: 99px;
+    transition: width 0.3s ease;
+}
+
+.weight-pct {
+    color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+.weight-val {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    text-align: right;
+}
+
+/* ── Linha (canvas) ──────────────────────────────────────── */
+.line-wrap {
+    height: 220px;
+    width: 100%;
+}
+
+.line-wrap > canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.legend-inline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    font-size: 12.5px;
+    color: var(--text-dim);
+}
+
+.legend-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 99px;
+    margin-right: 6px;
+    vertical-align: middle;
+}
+
+.legend-primary { background: #6366f1; }
+.legend-danger  { background: #fb7185; }
+
+/* ── Estado vazio ────────────────────────────────────────── */
+.empty-state {
+    padding: 18px;
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 13.5px;
+    border: 1px dashed var(--border-2);
+    border-radius: var(--radius);
+}
+
+/* ── Ocultar valores (toggle privacidade) ────────────────── */
+.app-body.values-hidden [data-amount] {
+    filter: blur(7px);
+    user-select: none;
+}

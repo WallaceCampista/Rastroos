@@ -1,0 +1,199 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      lang="pt-BR"
+      th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+<head>
+    <title>Relatórios · Rastro$</title>
+    <link rel="stylesheet" th:href="@{/css/screens/reports.css}">
+    <script th:src="@{/js/charts.js}" defer></script>
+    <script th:src="@{/js/screens/reports.js}" defer></script>
+</head>
+<body>
+<section class="app-content screen screen-reports" th:data-period="${period}">
+
+    <header class="screen-header">
+        <div>
+            <h1 class="screen-title">Relatórios</h1>
+            <p class="screen-sub">Como o dinheiro se distribuiu no mês selecionado.</p>
+        </div>
+        <div class="screen-actions">
+            <a class="btn" th:href="@{/app/compare(ym=${period})}">Comparativo →</a>
+        </div>
+    </header>
+
+    <div class="reports-grid">
+
+        <!-- Gastos por categoria -->
+        <article class="card panel">
+            <header class="card-header">
+                <h2 class="card-title">Gastos por categoria</h2>
+            </header>
+            <div class="donut-wrap">
+                <div class="donut-canvas-wrap">
+                    <canvas id="categoryDonut" role="img"
+                            aria-label="Gastos por categoria"></canvas>
+                </div>
+                <ul class="donut-legend">
+                    <li th:each="c : ${data.byCategory()}"
+                        th:with="pct=${data.current().spent().signum() > 0
+                                 ? c.amount().doubleValue() * 100.0 / data.current().spent().doubleValue() : 0}">
+                        <span class="donut-dot" th:style="'background:' + ${c.colorHex()}"></span>
+                        <span class="donut-name" th:text="${c.name()}">categoria</span>
+                        <span class="donut-amount"
+                              th:data-amount="${c.amount()}"
+                              th:text="${#numbers.formatDecimal(c.amount(), 1, 'POINT', 2, 'COMMA')}">0,00</span>
+                        <span class="donut-pct" th:text="${#numbers.formatDecimal(pct, 1, 0) + '%'}">0%</span>
+                    </li>
+                    <li th:if="${data.byCategory().isEmpty()}" class="donut-empty">
+                        Sem gastos lançados no mês.
+                    </li>
+                </ul>
+            </div>
+        </article>
+
+        <!-- Gastos por conta -->
+        <article class="card panel">
+            <header class="card-header">
+                <h2 class="card-title">Gastos por conta &amp; cartão</h2>
+                <a class="card-link" th:href="@{/app/cards(ym=${period})}">ver contas →</a>
+            </header>
+            <div class="donut-wrap">
+                <div class="donut-canvas-wrap">
+                    <canvas id="accountDonut" role="img"
+                            aria-label="Gastos por conta"></canvas>
+                </div>
+                <ul class="donut-legend">
+                    <li th:each="a : ${data.byAccount()}"
+                        th:with="pct=${data.current().spent().signum() > 0
+                                 ? a.amount().doubleValue() * 100.0 / data.current().spent().doubleValue() : 0}">
+                        <span class="donut-dot" th:style="'background:' + ${a.colorHex()}"></span>
+                        <span class="donut-name" th:text="${a.name()}">conta</span>
+                        <span class="donut-amount"
+                              th:data-amount="${a.amount()}"
+                              th:text="${#numbers.formatDecimal(a.amount(), 1, 'POINT', 2, 'COMMA')}">0,00</span>
+                        <span class="donut-pct" th:text="${#numbers.formatDecimal(pct, 1, 0) + '%'}">0%</span>
+                    </li>
+                    <li th:if="${data.byAccount().isEmpty()}" class="donut-empty">
+                        Sem gastos por conta no mês.
+                    </li>
+                </ul>
+            </div>
+        </article>
+
+        <!-- Pago vs a pagar -->
+        <article class="card panel"
+                 th:with="total=${data.current().spent().signum() > 0 ? data.current().spent().doubleValue() : 1},
+                          paidPct=${data.current().spent().signum() > 0
+                                   ? data.current().paid().doubleValue() * 100.0 / data.current().spent().doubleValue() : 0}">
+            <header class="card-header">
+                <h2 class="card-title">Pago vs a pagar</h2>
+            </header>
+            <ul class="hbars">
+                <li class="hbar">
+                    <span class="hbar-lbl">Pago</span>
+                    <span class="hbar-track">
+                        <span class="hbar-fill hbar-success"
+                              th:attr="style='width:' + ${data.current().paid().doubleValue() * 100.0 / total} + '%'"></span>
+                    </span>
+                    <span class="hbar-val"
+                          th:data-amount="${data.current().paid()}"
+                          th:text="${#numbers.formatDecimal(data.current().paid(), 1, 'POINT', 2, 'COMMA')}">0,00</span>
+                </li>
+                <li class="hbar">
+                    <span class="hbar-lbl">A pagar</span>
+                    <span class="hbar-track">
+                        <span class="hbar-fill hbar-accent"
+                              th:attr="style='width:' + ${data.current().toPay().doubleValue() * 100.0 / total} + '%'"></span>
+                    </span>
+                    <span class="hbar-val"
+                          th:data-amount="${data.current().toPay()}"
+                          th:text="${#numbers.formatDecimal(data.current().toPay(), 1, 'POINT', 2, 'COMMA')}">0,00</span>
+                </li>
+            </ul>
+            <p class="hbar-foot">
+                Você já pagou <b th:text="${#numbers.formatDecimal(paidPct, 1, 0) + '%'}">0%</b>
+                das contas deste mês.
+            </p>
+        </article>
+
+        <!-- Fixo vs pontual -->
+        <article class="card panel"
+                 th:with="total=${data.current().spent().signum() > 0 ? data.current().spent().doubleValue() : 1}">
+            <header class="card-header">
+                <h2 class="card-title">Fixo vs pontual</h2>
+            </header>
+            <ul class="hbars">
+                <li class="hbar">
+                    <span class="hbar-lbl">Fixo</span>
+                    <span class="hbar-track">
+                        <span class="hbar-fill hbar-primary"
+                              th:attr="style='width:' + ${data.current().fixed().doubleValue() * 100.0 / total} + '%'"></span>
+                    </span>
+                    <span class="hbar-val"
+                          th:data-amount="${data.current().fixed()}"
+                          th:text="${#numbers.formatDecimal(data.current().fixed(), 1, 'POINT', 2, 'COMMA')}">0,00</span>
+                </li>
+                <li class="hbar">
+                    <span class="hbar-lbl">Pontual</span>
+                    <span class="hbar-track">
+                        <span class="hbar-fill hbar-danger"
+                              th:attr="style='width:' + ${data.current().oneTime().doubleValue() * 100.0 / total} + '%'"></span>
+                    </span>
+                    <span class="hbar-val"
+                          th:data-amount="${data.current().oneTime()}"
+                          th:text="${#numbers.formatDecimal(data.current().oneTime(), 1, 'POINT', 2, 'COMMA')}">0,00</span>
+                </li>
+            </ul>
+        </article>
+
+        <!-- Peso de cada gasto -->
+        <article class="card panel panel-wide">
+            <header class="card-header">
+                <h2 class="card-title">Peso de cada gasto</h2>
+                <span class="card-sub">participação de cada categoria no total do mês</span>
+            </header>
+            <ul class="weight-list" th:unless="${data.byCategory().isEmpty()}">
+                <li class="weight-row" th:each="c : ${data.byCategory()}"
+                    th:with="pct=${data.current().spent().signum() > 0
+                             ? c.amount().doubleValue() * 100.0 / data.current().spent().doubleValue() : 0}">
+                    <span class="weight-name" th:text="${c.name()}">categoria</span>
+                    <span class="weight-track">
+                        <span class="weight-fill"
+                              th:attr="style='width:' + ${pct} + '%; background:' + ${c.colorHex()}"></span>
+                    </span>
+                    <span class="weight-pct" th:text="${#numbers.formatDecimal(pct, 1, 1) + '%'}">0%</span>
+                    <span class="weight-val"
+                          th:data-amount="${c.amount()}"
+                          th:text="${#numbers.formatDecimal(c.amount(), 1, 'POINT', 2, 'COMMA')}">0,00</span>
+                </li>
+            </ul>
+            <div th:if="${data.byCategory().isEmpty()}" class="empty-state">
+                Sem gastos lançados no mês.
+            </div>
+        </article>
+
+        <!-- Fixo vs variável (6 meses) -->
+        <article class="card panel panel-wide">
+            <header class="card-header">
+                <h2 class="card-title">Gastos fixos vs variáveis</h2>
+                <span class="card-sub">últimos 6 meses</span>
+            </header>
+            <div class="line-wrap">
+                <canvas id="fixedVarLine" role="img"
+                        aria-label="Gastos fixos vs variáveis nos últimos 6 meses"></canvas>
+            </div>
+            <div class="legend-inline">
+                <span><i class="legend-dot legend-primary"></i> Fixo</span>
+                <span><i class="legend-dot legend-danger"></i> Variável</span>
+            </div>
+        </article>
+
+    </div>
+
+    <script type="application/json" id="reportsChartData" th:text="${chartDataJson}">
+        {"byCategory":[],"byAccount":[],"fixedVar":{"labels":[],"series":[]}}
+    </script>
+</section>
+</body>
+</html>
