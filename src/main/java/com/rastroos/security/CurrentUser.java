@@ -32,4 +32,12 @@ public class CurrentUser {
         return id().orElseThrow(() ->
                 new IllegalStateException("No authenticated user in SecurityContext"));
     }
+
+    /** {@code true} se o usuário autenticado tem a authority {@code ROLE_ADMIN}. */
+    public boolean isAdmin() {
+        return get()
+                .map(u -> u.getAuthorities().stream()
+                        .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority())))
+                .orElse(false);
+    }
 }
