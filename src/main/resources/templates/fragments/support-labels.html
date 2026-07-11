@@ -1,0 +1,24 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
+<body>
+
+<!-- Rótulos PT dos enums de suporte. Emitem só texto (th:block, sem tag). -->
+
+<th:block th:fragment="statusText(s)" th:switch="${s.name()}"><th:block
+        th:case="'OPEN'">Aberto</th:block><th:block
+        th:case="'IN_PROGRESS'">Em andamento</th:block><th:block
+        th:case="'DONE'">Concluído</th:block><th:block
+        th:case="'CANCELED'">Cancelado</th:block></th:block>
+
+<th:block th:fragment="categoryText(c)" th:switch="${c.name()}"><th:block
+        th:case="'BUG'">Bug</th:block><th:block
+        th:case="'FEATURE'">Sugestão</th:block><th:block
+        th:case="'COMPLAINT'">Reclamação</th:block></th:block>
+
+<th:block th:fragment="priorityText(p)" th:switch="${p.name()}"><th:block
+        th:case="'LOW'">Baixa</th:block><th:block
+        th:case="'MEDIUM'">Média</th:block><th:block
+        th:case="'HIGH'">Alta</th:block></th:block>
+
+</body>
+</html>
