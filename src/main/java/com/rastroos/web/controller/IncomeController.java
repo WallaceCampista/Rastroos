@@ -61,7 +61,7 @@ public class IncomeController {
                        @RequestParam(value = "size", required = false, defaultValue = "20") int size,
                        Model model) {
         YearMonth period = parseOrCurrent(ym);
-        UUID userId = currentUser.requireId();
+        UUID userId = currentUser.requireEffectiveId();
 
         IncomeFilter filter = new IncomeFilter(categoryId, search);
         IncomesPageView view = service.listForMonth(userId, period, filter, page, size);
@@ -85,7 +85,7 @@ public class IncomeController {
                          BindingResult binding,
                          Model model,
                          RedirectAttributes flash) {
-        UUID userId = currentUser.requireId();
+        UUID userId = currentUser.requireEffectiveId();
         if (binding.hasErrors()) {
             prepareFormModel(model, form, false, null);
             return "app/income-form";
@@ -103,7 +103,7 @@ public class IncomeController {
 
     @GetMapping("/{id}/edit")
     public String editForm(@PathVariable UUID id, Model model) {
-        UUID userId = currentUser.requireId();
+        UUID userId = currentUser.requireEffectiveId();
         Income existing = service.require(userId, id);
 
         IncomeForm form = new IncomeForm();
@@ -123,7 +123,7 @@ public class IncomeController {
                          BindingResult binding,
                          Model model,
                          RedirectAttributes flash) {
-        UUID userId = currentUser.requireId();
+        UUID userId = currentUser.requireEffectiveId();
         if (binding.hasErrors()) {
             prepareFormModel(model, form, true, id);
             return "app/income-form";
@@ -140,8 +140,9 @@ public class IncomeController {
     }
 
     @PostMapping("/{id}/delete")
+    @PreAuthorize("isAuthenticated() and !hasRole('ACESSOR')")
     public String delete(@PathVariable UUID id, RedirectAttributes flash) {
-        service.delete(currentUser.requireId(), id);
+        service.delete(currentUser.requireEffectiveId(), id);
         flash.addFlashAttribute("ok", "income.deleted");
         return "redirect:/app/income";
     }

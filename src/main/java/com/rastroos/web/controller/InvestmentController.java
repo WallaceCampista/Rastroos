@@ -45,7 +45,7 @@ public class InvestmentController {
 
     @GetMapping
     public String list(Model model) {
-        UUID userId = currentUser.requireId();
+        UUID userId = currentUser.requireEffectiveId();
         InvestmentsView view = service.load(userId);
 
         model.addAttribute("activeNav", "investments");
@@ -74,14 +74,14 @@ public class InvestmentController {
             prepareFormModel(model, form, false, null);
             return "app/investment-form";
         }
-        service.create(currentUser.requireId(), form);
+        service.create(currentUser.requireEffectiveId(), form);
         flash.addFlashAttribute("ok", "investment.created");
         return "redirect:/app/investments";
     }
 
     @GetMapping("/{id}/edit")
     public String editForm(@PathVariable UUID id, Model model) {
-        UUID userId = currentUser.requireId();
+        UUID userId = currentUser.requireEffectiveId();
         Investment inv = service.require(userId, id);
 
         InvestmentForm form = new InvestmentForm();
@@ -109,14 +109,15 @@ public class InvestmentController {
             prepareFormModel(model, form, true, id);
             return "app/investment-form";
         }
-        service.update(currentUser.requireId(), id, form);
+        service.update(currentUser.requireEffectiveId(), id, form);
         flash.addFlashAttribute("ok", "investment.updated");
         return "redirect:/app/investments";
     }
 
     @PostMapping("/{id}/delete")
+    @PreAuthorize("isAuthenticated() and !hasRole('ACESSOR')")
     public String delete(@PathVariable UUID id, RedirectAttributes flash) {
-        service.delete(currentUser.requireId(), id);
+        service.delete(currentUser.requireEffectiveId(), id);
         flash.addFlashAttribute("ok", "investment.deleted");
         return "redirect:/app/investments";
     }
@@ -131,7 +132,7 @@ public class InvestmentController {
             return "redirect:/app/investments";
         }
         try {
-            service.upsertHistory(currentUser.requireId(), id, form);
+            service.upsertHistory(currentUser.requireEffectiveId(), id, form);
             flash.addFlashAttribute("ok", "investment.historyUpdated");
         } catch (IllegalArgumentException e) {
             flash.addFlashAttribute("error", e.getMessage());
