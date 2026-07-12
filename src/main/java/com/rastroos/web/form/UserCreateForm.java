@@ -1,0 +1,61 @@
+package com.rastroos.web.form;
+
+import com.rastroos.domain.entity.enums.UserRole;
+import com.rastroos.domain.entity.enums.UserStatus;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+
+/**
+ * Form de criação de usuário pelo admin. A senha inicial é validada pela
+ * {@code PasswordPolicy} no service; o novo usuário nasce com
+ * {@code passwordMustChange = true}, obrigando a troca no primeiro login.
+ */
+@Schema(description = "Dados para o admin criar um usuário")
+public class UserCreateForm {
+
+    @NotBlank
+    @Size(max = 120)
+    @Schema(description = "Nome completo", example = "Maria Silva")
+    private String name;
+
+    @NotBlank
+    @Email
+    @Size(max = 180)
+    @Schema(description = "Email (único, case-insensitive)", example = "maria@example.com")
+    private String email;
+
+    @NotBlank
+    @Schema(description = "Senha inicial (política forte; exigirá troca no 1º login)",
+            example = "Trocar!2026")
+    private String password;
+
+    @NotNull
+    @Schema(description = "Papel do usuário", example = "USER")
+    private UserRole role = UserRole.USER;
+
+    @NotNull
+    @Schema(description = "Status inicial da conta", example = "ACTIVE")
+    private UserStatus status = UserStatus.ACTIVE;
+
+    public UserCreateForm() {
+    }
+
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
+
+    public String getPassword() { return password; }
+    public void setPassword(String password) { this.password = password; }
+
+    public UserRole getRole() { return role; }
+    public void setRole(UserRole role) { this.role = role; }
+
+    public UserStatus getStatus() { return status; }
+    public void setStatus(UserStatus status) { this.status = status; }
+}
