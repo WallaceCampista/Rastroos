@@ -1,0 +1,76 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR"
+      th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+<head>
+    <title th:text="${edit} ? 'Editar usuário · Rastro$' : 'Novo usuário · Rastro$'">Usuário · Rastro$</title>
+    <link rel="stylesheet" th:href="@{/css/screens/users.css}">
+</head>
+<body>
+<section class="app-content screen screen-users screen-user-form">
+    <header class="screen-header">
+        <div>
+            <h1 class="screen-title" th:text="${edit} ? 'Editar usuário' : 'Novo usuário'">Usuário</h1>
+            <p class="screen-sub" th:if="${edit}" th:text="${target.email()}">email@ex.com</p>
+            <p class="screen-sub" th:unless="${edit}">Crie uma conta. A senha inicial exigirá troca no primeiro acesso.</p>
+        </div>
+        <div class="screen-actions">
+            <a class="btn" th:href="${edit} ? @{/app/users/{id}(id=${target.id()})} : @{/app/users}">Voltar</a>
+        </div>
+    </header>
+
+    <form class="user-form card" method="post" th:object="${userForm}"
+          th:action="${edit} ? @{/app/users/{id}/edit(id=${target.id()})} : @{/app/users/new}">
+        <input type="hidden" th:if="${_csrf != null}"
+               th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
+        <div class="user-form-grid">
+            <div class="field field-wide">
+                <label for="name">Nome</label>
+                <input id="name" type="text" th:field="*{name}"
+                       maxlength="120" required autocomplete="off" placeholder="Nome completo">
+                <p class="field-error" th:if="${#fields.hasErrors('name')}" th:errors="*{name}">erro</p>
+            </div>
+
+            <div class="field field-wide">
+                <label for="email">Email</label>
+                <input id="email" type="email" th:field="*{email}"
+                       maxlength="180" required autocomplete="off" placeholder="usuario@dominio.com">
+                <p class="field-error" th:if="${#fields.hasErrors('email')}" th:errors="*{email}">erro</p>
+            </div>
+
+            <div class="field field-wide" th:unless="${edit}">
+                <label for="password">Senha inicial</label>
+                <input id="password" type="password" th:field="*{password}"
+                       autocomplete="new-password"
+                       placeholder="Mín. 8 caracteres, com maiúscula, minúscula, dígito e símbolo">
+                <p class="field-error" th:if="${#fields.hasErrors('password')}" th:errors="*{password}">erro</p>
+            </div>
+
+            <div class="field">
+                <label for="role">Papel</label>
+                <select id="role" th:field="*{role}">
+                    <option th:each="r : ${roles}" th:value="${r}"
+                            th:text="~{fragments/user-labels :: roleText(${r})}">Papel</option>
+                </select>
+                <p class="field-error" th:if="${#fields.hasErrors('role')}" th:errors="*{role}">erro</p>
+            </div>
+
+            <div class="field">
+                <label for="status">Status</label>
+                <select id="status" th:field="*{status}">
+                    <option th:each="s : ${statuses}" th:value="${s}"
+                            th:text="~{fragments/user-labels :: statusText(${s})}">Status</option>
+                </select>
+                <p class="field-error" th:if="${#fields.hasErrors('status')}" th:errors="*{status}">erro</p>
+            </div>
+        </div>
+
+        <footer class="user-form-foot">
+            <a class="btn" th:href="${edit} ? @{/app/users/{id}(id=${target.id()})} : @{/app/users}">Cancelar</a>
+            <button type="submit" class="btn btn-primary"
+                    th:text="${edit} ? 'Salvar alterações' : 'Criar usuário'">Salvar</button>
+        </footer>
+    </form>
+</section>
+</body>
+</html>

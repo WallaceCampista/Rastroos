@@ -1,0 +1,197 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR"
+      th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+<head>
+    <title>Usuário · Rastro$</title>
+    <link rel="stylesheet" th:href="@{/css/screens/users.css}">
+    <script th:src="@{/js/screens/users.js}" defer></script>
+</head>
+<body>
+<section class="app-content screen screen-users screen-user-detail">
+
+    <header class="screen-header">
+        <div>
+            <h1 class="screen-title" th:text="${view.name()}">Nome do usuário</h1>
+            <p class="screen-sub" th:text="${view.email()}">email@ex.com</p>
+        </div>
+        <div class="screen-actions">
+            <a class="btn" th:href="@{/app/users}">Voltar</a>
+            <a class="btn btn-primary" th:href="@{/app/users/{id}/edit(id=${view.id()})}">Editar</a>
+        </div>
+    </header>
+
+    <div th:if="${ok}" class="flash flash-ok" th:text="#{${ok}}">Ok</div>
+    <div th:if="${error}" class="flash flash-error" th:text="#{${error}}">Erro</div>
+
+    <div th:if="${tempPassword}" class="temp-pass" role="status">
+        <span class="temp-pass-lbl">Senha temporária (mostrada uma única vez)</span>
+        <code class="temp-pass-val" th:text="${tempPassword}">Ab1!xxxx</code>
+    </div>
+
+    <div class="user-detail-grid">
+        <!-- ── Dados da conta ─────────────────────────────── -->
+        <article class="card user-info">
+            <h2 class="card-title">Conta</h2>
+            <dl class="info-list">
+                <div class="info-row">
+                    <dt>Papel</dt>
+                    <dd>
+                        <span class="role-tag" th:classappend="'role-' + ${view.role().name().toLowerCase()}"
+                              th:text="~{fragments/user-labels :: roleText(${view.role()})}">Papel</span>
+                    </dd>
+                </div>
+                <div class="info-row">
+                    <dt>Status</dt>
+                    <dd>
+                        <span class="st-pill" th:classappend="'st-' + ${view.status().name().toLowerCase()}"
+                              th:text="~{fragments/user-labels :: statusText(${view.status()})}">Status</span>
+                    </dd>
+                </div>
+                <div class="info-row">
+                    <dt>Email verificado</dt>
+                    <dd th:text="${view.emailVerified()} ? 'Sim' : 'Não'">Sim</dd>
+                </div>
+                <div class="info-row">
+                    <dt>Troca de senha pendente</dt>
+                    <dd th:text="${view.passwordMustChange()} ? 'Sim' : 'Não'">Não</dd>
+                </div>
+                <div class="info-row">
+                    <dt>Idioma</dt>
+                    <dd th:text="${view.preferredLocale()}">pt-BR</dd>
+                </div>
+                <div class="info-row">
+                    <dt>Criado em</dt>
+                    <dd th:text="${#temporals.format(view.createdAt().atZone(T(java.time.ZoneOffset).UTC), 'dd/MM/yyyy HH:mm')}">--</dd>
+                </div>
+                <div class="info-row">
+                    <dt>Último login</dt>
+                    <dd th:if="${view.lastLoginAt() != null}"
+                        th:text="${#temporals.format(view.lastLoginAt().atZone(T(java.time.ZoneOffset).UTC), 'dd/MM/yyyy HH:mm')}">--</dd>
+                    <dd th:unless="${view.lastLoginAt() != null}" class="text-faint">nunca</dd>
+                </div>
+            </dl>
+        </article>
+
+        <!-- ── Ações administrativas ──────────────────────── -->
+        <article class="card user-actions">
+            <h2 class="card-title">Ações</h2>
+            <p class="user-actions-hint" th:if="${view.self()}">
+                Esta é a sua conta — algumas ações estão desativadas por segurança.
+            </p>
+
+            <div class="action-block">
+                <form method="post" th:action="@{/app/users/{id}/status(id=${view.id()})}"
+                      th:if="${view.status().name() != 'ACTIVE'}">
+                    <input type="hidden" th:if="${_csrf != null}"
+                           th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                    <input type="hidden" name="status" value="ACTIVE">
+                    <button type="submit" class="btn btn-success">Ativar conta</button>
+                </form>
+
+                <form method="post" th:action="@{/app/users/{id}/status(id=${view.id()})}"
+                      th:if="${view.status().name() == 'ACTIVE' and !view.self()}"
+                      data-confirm="Desativar esta conta? O usuário não poderá entrar.">
+                    <input type="hidden" th:if="${_csrf != null}"
+                           th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                    <input type="hidden" name="status" value="DISABLED">
+                    <button type="submit" class="btn btn-warn">Desativar conta</button>
+                </form>
+            </div>
+
+            <div class="action-block">
+                <form method="post" th:action="@{/app/users/{id}/reset-password(id=${view.id()})}"
+                      data-confirm="Gerar uma nova senha temporária? As sessões atuais serão encerradas.">
+                    <input type="hidden" th:if="${_csrf != null}"
+                           th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                    <button type="submit" class="btn">Resetar senha</button>
+                </form>
+            </div>
+
+            <div class="action-block" th:unless="${view.self()}">
+                <form method="post" th:action="@{/app/users/{id}/delete(id=${view.id()})}"
+                      data-confirm="Excluir este usuário e TODOS os seus dados? Esta ação é irreversível.">
+                    <input type="hidden" th:if="${_csrf != null}"
+                           th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                    <button type="submit" class="btn btn-danger">Excluir usuário</button>
+                </form>
+            </div>
+        </article>
+    </div>
+
+    <!-- ── Sessões ativas ─────────────────────────────────── -->
+    <section class="card user-sessions">
+        <header class="section-head">
+            <h2 class="card-title">Sessões ativas</h2>
+            <form method="post" th:action="@{/app/users/{id}/sessions/revoke-all(id=${view.id()})}"
+                  th:if="${!view.sessions().isEmpty()}"
+                  data-confirm="Encerrar todas as sessões deste usuário?">
+                <input type="hidden" th:if="${_csrf != null}"
+                       th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <button type="submit" class="btn-link btn-link-danger">Encerrar todas</button>
+            </form>
+        </header>
+
+        <p class="empty-inline" th:if="${view.sessions().isEmpty()}">Nenhuma sessão ativa.</p>
+
+        <div class="table-scroll" th:unless="${view.sessions().isEmpty()}">
+            <table class="mini-table">
+                <thead>
+                    <tr>
+                        <th>Dispositivo</th>
+                        <th>IP</th>
+                        <th>Início</th>
+                        <th>Última atividade</th>
+                        <th class="actions"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="s : ${view.sessions()}">
+                        <td class="ua" th:text="${s.userAgent() != null ? s.userAgent() : '—'}">Navegador</td>
+                        <td th:text="${s.ipAddress() != null ? s.ipAddress() : '—'}">0.0.0.0</td>
+                        <td th:text="${#temporals.format(s.createdAt().atZone(T(java.time.ZoneOffset).UTC), 'dd/MM/yyyy HH:mm')}">--</td>
+                        <td th:text="${#temporals.format(s.lastSeenAt().atZone(T(java.time.ZoneOffset).UTC), 'dd/MM/yyyy HH:mm')}">--</td>
+                        <td class="actions">
+                            <form method="post" class="inline-form"
+                                  th:action="@{/app/users/{id}/sessions/{sid}/revoke(id=${view.id()}, sid=${s.id()})}">
+                                <input type="hidden" th:if="${_csrf != null}"
+                                       th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                <button type="submit" class="btn-link btn-link-danger">Encerrar</button>
+                            </form>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- ── Histórico de login ─────────────────────────────── -->
+    <section class="card user-history">
+        <h2 class="card-title">Histórico de login</h2>
+
+        <p class="empty-inline" th:if="${view.loginHistory().isEmpty()}">Sem registros de login.</p>
+
+        <div class="table-scroll" th:unless="${view.loginHistory().isEmpty()}">
+            <table class="mini-table">
+                <thead>
+                    <tr>
+                        <th>Resultado</th>
+                        <th>IP</th>
+                        <th>Quando</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="a : ${view.loginHistory()}">
+                        <td>
+                            <span class="login-result" th:classappend="${a.success()} ? 'ok' : 'fail'"
+                                  th:text="${a.success()} ? 'Sucesso' : 'Falha'">Resultado</span>
+                        </td>
+                        <td th:text="${a.ipAddress() != null ? a.ipAddress() : '—'}">0.0.0.0</td>
+                        <td th:text="${#temporals.format(a.attemptedAt().atZone(T(java.time.ZoneOffset).UTC), 'dd/MM/yyyy HH:mm')}">--</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</section>
+</body>
+</html>

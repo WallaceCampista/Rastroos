@@ -1,0 +1,17 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
+<body>
+
+<!-- Rótulos PT dos enums de usuário. Emitem só texto (th:block, sem tag). -->
+
+<th:block th:fragment="roleText(r)" th:switch="${r.name()}"><th:block
+        th:case="'ADMIN'">Administrador</th:block><th:block
+        th:case="'USER'">Usuário</th:block></th:block>
+
+<th:block th:fragment="statusText(s)" th:switch="${s.name()}"><th:block
+        th:case="'ACTIVE'">Ativo</th:block><th:block
+        th:case="'PENDING_APPROVAL'">Pendente</th:block><th:block
+        th:case="'DISABLED'">Desativado</th:block></th:block>
+
+</body>
+</html>
