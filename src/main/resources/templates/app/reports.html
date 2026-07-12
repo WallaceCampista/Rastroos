@@ -32,7 +32,9 @@
             <div class="donut-wrap">
                 <div class="donut-canvas-wrap">
                     <canvas id="categoryDonut" role="img"
+                            th:classappend="${maskValues} ? 'is-hidden' : ''"
                             aria-label="Gastos por categoria"></canvas>
+                    <p class="chart-masked" th:if="${maskValues}">🔒 Valores ocultos pelo titular</p>
                 </div>
                 <ul class="donut-legend">
                     <li th:each="c : ${data.byCategory()}"
@@ -41,8 +43,8 @@
                         <span class="donut-dot" th:attr="data-fill=${c.colorHex()}"></span>
                         <span class="donut-name" th:text="${c.name()}">categoria</span>
                         <span class="donut-amount"
-                              th:data-amount="${c.amount()}"
-                              th:text="${#numbers.formatDecimal(c.amount(), 1, 'POINT', 2, 'COMMA')}">0,00</span>
+                              th:data-amount="${maskValues ? '' : c.amount()}"
+                              th:text="${(maskValues ? '*****' : #numbers.formatDecimal(c.amount(), 1, 'POINT', 2, 'COMMA'))}">0,00</span>
                         <span class="donut-pct" th:text="${#numbers.formatDecimal(pct, 1, 0) + '%'}">0%</span>
                     </li>
                     <li th:if="${data.byCategory().isEmpty()}" class="donut-empty">
@@ -61,7 +63,9 @@
             <div class="donut-wrap">
                 <div class="donut-canvas-wrap">
                     <canvas id="accountDonut" role="img"
+                            th:classappend="${maskValues} ? 'is-hidden' : ''"
                             aria-label="Gastos por conta"></canvas>
+                    <p class="chart-masked" th:if="${maskValues}">🔒 Valores ocultos pelo titular</p>
                 </div>
                 <ul class="donut-legend">
                     <li th:each="a : ${data.byAccount()}"
@@ -70,8 +74,8 @@
                         <span class="donut-dot" th:attr="data-fill=${a.colorHex()}"></span>
                         <span class="donut-name" th:text="${a.name()}">conta</span>
                         <span class="donut-amount"
-                              th:data-amount="${a.amount()}"
-                              th:text="${#numbers.formatDecimal(a.amount(), 1, 'POINT', 2, 'COMMA')}">0,00</span>
+                              th:data-amount="${maskValues ? '' : a.amount()}"
+                              th:text="${(maskValues ? '*****' : #numbers.formatDecimal(a.amount(), 1, 'POINT', 2, 'COMMA'))}">0,00</span>
                         <span class="donut-pct" th:text="${#numbers.formatDecimal(pct, 1, 0) + '%'}">0%</span>
                     </li>
                     <li th:if="${data.byAccount().isEmpty()}" class="donut-empty">
@@ -97,8 +101,8 @@
                               th:attr="data-bar-width=${data.current().paid().doubleValue() * 100.0 / total}"></span>
                     </span>
                     <span class="hbar-val"
-                          th:data-amount="${data.current().paid()}"
-                          th:text="${#numbers.formatDecimal(data.current().paid(), 1, 'POINT', 2, 'COMMA')}">0,00</span>
+                          th:data-amount="${maskValues ? '' : data.current().paid()}"
+                          th:text="${(maskValues ? '*****' : #numbers.formatDecimal(data.current().paid(), 1, 'POINT', 2, 'COMMA'))}">0,00</span>
                 </li>
                 <li class="hbar">
                     <span class="hbar-lbl">A pagar</span>
@@ -107,8 +111,8 @@
                               th:attr="data-bar-width=${data.current().toPay().doubleValue() * 100.0 / total}"></span>
                     </span>
                     <span class="hbar-val"
-                          th:data-amount="${data.current().toPay()}"
-                          th:text="${#numbers.formatDecimal(data.current().toPay(), 1, 'POINT', 2, 'COMMA')}">0,00</span>
+                          th:data-amount="${maskValues ? '' : data.current().toPay()}"
+                          th:text="${(maskValues ? '*****' : #numbers.formatDecimal(data.current().toPay(), 1, 'POINT', 2, 'COMMA'))}">0,00</span>
                 </li>
             </ul>
             <p class="hbar-foot">
@@ -131,8 +135,8 @@
                               th:attr="data-bar-width=${data.current().fixed().doubleValue() * 100.0 / total}"></span>
                     </span>
                     <span class="hbar-val"
-                          th:data-amount="${data.current().fixed()}"
-                          th:text="${#numbers.formatDecimal(data.current().fixed(), 1, 'POINT', 2, 'COMMA')}">0,00</span>
+                          th:data-amount="${maskValues ? '' : data.current().fixed()}"
+                          th:text="${(maskValues ? '*****' : #numbers.formatDecimal(data.current().fixed(), 1, 'POINT', 2, 'COMMA'))}">0,00</span>
                 </li>
                 <li class="hbar">
                     <span class="hbar-lbl">Pontual</span>
@@ -141,8 +145,8 @@
                               th:attr="data-bar-width=${data.current().oneTime().doubleValue() * 100.0 / total}"></span>
                     </span>
                     <span class="hbar-val"
-                          th:data-amount="${data.current().oneTime()}"
-                          th:text="${#numbers.formatDecimal(data.current().oneTime(), 1, 'POINT', 2, 'COMMA')}">0,00</span>
+                          th:data-amount="${maskValues ? '' : data.current().oneTime()}"
+                          th:text="${(maskValues ? '*****' : #numbers.formatDecimal(data.current().oneTime(), 1, 'POINT', 2, 'COMMA'))}">0,00</span>
                 </li>
             </ul>
         </article>
@@ -164,8 +168,8 @@
                     </span>
                     <span class="weight-pct" th:text="${#numbers.formatDecimal(pct, 1, 1) + '%'}">0%</span>
                     <span class="weight-val"
-                          th:data-amount="${c.amount()}"
-                          th:text="${#numbers.formatDecimal(c.amount(), 1, 'POINT', 2, 'COMMA')}">0,00</span>
+                          th:data-amount="${maskValues ? '' : c.amount()}"
+                          th:text="${(maskValues ? '*****' : #numbers.formatDecimal(c.amount(), 1, 'POINT', 2, 'COMMA'))}">0,00</span>
                 </li>
             </ul>
             <div th:if="${data.byCategory().isEmpty()}" class="empty-state">
@@ -181,7 +185,9 @@
             </header>
             <div class="line-wrap">
                 <canvas id="fixedVarLine" role="img"
+                        th:classappend="${maskValues} ? 'is-hidden' : ''"
                         aria-label="Gastos fixos vs variáveis nos últimos 6 meses"></canvas>
+                <p class="chart-masked" th:if="${maskValues}">🔒 Valores ocultos pelo titular</p>
             </div>
             <div class="legend-inline">
                 <span><i class="legend-dot legend-primary"></i> Fixo</span>

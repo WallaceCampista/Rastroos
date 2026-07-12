@@ -20,9 +20,14 @@
         <a th:href="@{/app/compare}"     th:classappend="${active == 'compare'}     ? 'is-active' : ''">Comparativo</a>
         <a th:href="@{/app/manager}"     th:classappend="${active == 'manager'}     ? 'is-active' : ''">Alfredo</a>
 
+        <a sec:authorize="!hasRole('ACESSOR')" th:href="@{/app/accessors}"
+           th:classappend="${active == 'accessors'} ? 'is-active' : ''">Acessores</a>
+
         <div sec:authorize="hasRole('ADMIN')" class="app-sidebar-group">
             <span class="app-sidebar-group-lbl">Admin</span>
             <a th:href="@{/app/users}" th:classappend="${active == 'users'} ? 'is-active' : ''">Usuários</a>
+            <a th:href="@{/app/accessor-requests}"
+               th:classappend="${active == 'accessor-requests'} ? 'is-active' : ''">Solicitações de acessor</a>
         </div>
 
         <a th:href="@{/app/support}" th:classappend="${active == 'support'} ? 'is-active' : ''">Suporte</a>

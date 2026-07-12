@@ -5,6 +5,11 @@
 <header class="app-topbar" th:fragment="topbar">
     <div class="app-topbar-period" th:replace="~{fragments/period-selector :: period}"></div>
 
+    <div class="app-access-banner" th:if="${accessorMode}" role="status">
+        <span class="app-access-dot" aria-hidden="true"></span>
+        <span>Acessando os dados de <strong th:text="${accessTargetName} ?: 'titular'">titular</strong></span>
+    </div>
+
     <div class="app-topbar-actions">
         <button type="button" class="app-icon-btn" data-toggle-hide-values aria-label="Ocultar valores">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"

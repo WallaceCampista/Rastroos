@@ -82,7 +82,8 @@
                 <label for="installments">Parcelas</label>
                 <input id="installments" type="number" min="1" max="60"
                        th:field="*{installments}">
-                <p class="field-help">1 = pagamento único; até 60.</p>
+                <p class="field-help">1 = pagamento único. Acima disso, o valor é o
+                    total da compra, dividido nas parcelas a partir do mês seguinte.</p>
                 <p class="field-error" th:if="${#fields.hasErrors('installments')}"
                    th:errors="*{installments}">erro</p>
             </div>
