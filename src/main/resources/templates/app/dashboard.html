@@ -32,29 +32,29 @@
         <article class="kpi kpi-success">
             <header class="kpi-head">Recebido</header>
             <p class="kpi-value"
-               th:data-amount="${data.kpis().received()}"
-               th:text="${#numbers.formatDecimal(data.kpis().received(), 1, 'POINT', 2, 'COMMA')}">0,00</p>
+               th:data-amount="${maskValues ? '' : data.kpis().received()}"
+               th:text="${(maskValues ? '*****' : #numbers.formatDecimal(data.kpis().received(), 1, 'POINT', 2, 'COMMA'))}">0,00</p>
             <p class="kpi-foot">no mês</p>
         </article>
         <article class="kpi kpi-danger">
             <header class="kpi-head">Gasto</header>
             <p class="kpi-value"
-               th:data-amount="${data.kpis().spent()}"
-               th:text="${#numbers.formatDecimal(data.kpis().spent(), 1, 'POINT', 2, 'COMMA')}">0,00</p>
+               th:data-amount="${maskValues ? '' : data.kpis().spent()}"
+               th:text="${(maskValues ? '*****' : #numbers.formatDecimal(data.kpis().spent(), 1, 'POINT', 2, 'COMMA'))}">0,00</p>
             <p class="kpi-foot">total lançado</p>
         </article>
         <article class="kpi kpi-primary">
             <header class="kpi-head">Pago</header>
             <p class="kpi-value"
-               th:data-amount="${data.kpis().paid()}"
-               th:text="${#numbers.formatDecimal(data.kpis().paid(), 1, 'POINT', 2, 'COMMA')}">0,00</p>
+               th:data-amount="${maskValues ? '' : data.kpis().paid()}"
+               th:text="${(maskValues ? '*****' : #numbers.formatDecimal(data.kpis().paid(), 1, 'POINT', 2, 'COMMA'))}">0,00</p>
             <p class="kpi-foot">já quitado</p>
         </article>
         <article class="kpi kpi-accent">
             <header class="kpi-head">A pagar</header>
             <p class="kpi-value"
-               th:data-amount="${data.kpis().toPay()}"
-               th:text="${#numbers.formatDecimal(data.kpis().toPay(), 1, 'POINT', 2, 'COMMA')}">0,00</p>
+               th:data-amount="${maskValues ? '' : data.kpis().toPay()}"
+               th:text="${(maskValues ? '*****' : #numbers.formatDecimal(data.kpis().toPay(), 1, 'POINT', 2, 'COMMA'))}">0,00</p>
             <p class="kpi-foot">
                 <span th:text="${#lists.size(data.upcoming())}">0</span> em aberto
             </p>
@@ -62,8 +62,8 @@
         <article class="kpi kpi-balance">
             <header class="kpi-head">Saldo</header>
             <p class="kpi-value"
-               th:data-amount="${data.kpis().balance()}"
-               th:text="${#numbers.formatDecimal(data.kpis().balance(), 1, 'POINT', 2, 'COMMA')}">0,00</p>
+               th:data-amount="${maskValues ? '' : data.kpis().balance()}"
+               th:text="${(maskValues ? '*****' : #numbers.formatDecimal(data.kpis().balance(), 1, 'POINT', 2, 'COMMA'))}">0,00</p>
             <p class="kpi-foot">recebido − pago</p>
         </article>
     </section>
@@ -78,7 +78,9 @@
             <div class="chart-wrap">
                 <canvas id="balanceChart"
                         role="img"
+                        th:classappend="${maskValues} ? 'is-hidden' : ''"
                         aria-label="Saldo acumulado por dia"></canvas>
+                <p class="chart-masked" th:if="${maskValues}">🔒 Valores ocultos pelo titular</p>
             </div>
         </article>
 
@@ -91,7 +93,9 @@
                 <div class="donut-canvas-wrap">
                     <canvas id="categoryDonut"
                             role="img"
+                            th:classappend="${maskValues} ? 'is-hidden' : ''"
                             aria-label="Distribuição de gastos por categoria"></canvas>
+                    <p class="chart-masked" th:if="${maskValues}">🔒 Valores ocultos pelo titular</p>
                 </div>
                 <ul class="donut-legend">
                     <li th:each="c : ${data.byCategory()}">
@@ -99,7 +103,7 @@
                               th:attr="data-fill=${c.colorHex()}"></span>
                         <span class="donut-name" th:text="${c.name()}">categoria</span>
                         <span class="donut-amount"
-                              th:text="${#numbers.formatDecimal(c.amount(), 1, 'POINT', 2, 'COMMA')}">0,00</span>
+                              th:text="${(maskValues ? '*****' : #numbers.formatDecimal(c.amount(), 1, 'POINT', 2, 'COMMA'))}">0,00</span>
                     </li>
                     <li th:if="${data.byCategory().isEmpty()}" class="donut-empty">
                         Sem gastos lançados no mês.
@@ -132,8 +136,8 @@
                     </div>
                     <div class="entry-meta">
                         <p class="entry-amount"
-                           th:data-amount="${t.amount()}"
-                           th:text="${#numbers.formatDecimal(t.amount(), 1, 'POINT', 2, 'COMMA')}">0,00</p>
+                           th:data-amount="${maskValues ? '' : t.amount()}"
+                           th:text="${(maskValues ? '*****' : #numbers.formatDecimal(t.amount(), 1, 'POINT', 2, 'COMMA'))}">0,00</p>
                         <p class="entry-date"
                            th:text="${#temporals.format(t.dueDate(), 'dd/MM')}">--/--</p>
                     </div>
@@ -168,8 +172,8 @@
                     </div>
                     <div class="account-meta">
                         <p class="account-total"
-                           th:data-amount="${a.total()}"
-                           th:text="${#numbers.formatDecimal(a.total(), 1, 'POINT', 2, 'COMMA')}">0,00</p>
+                           th:data-amount="${maskValues ? '' : a.total()}"
+                           th:text="${(maskValues ? '*****' : #numbers.formatDecimal(a.total(), 1, 'POINT', 2, 'COMMA'))}">0,00</p>
                         <p class="account-kind"
                            th:text="${a.kind().name() == 'CARD' ? 'fatura'
                                    : (a.kind().name() == 'BILL' ? 'conta' : 'recorrente')}">conta</p>

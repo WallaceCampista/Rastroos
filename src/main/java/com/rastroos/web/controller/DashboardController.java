@@ -49,7 +49,7 @@ public class DashboardController {
     public String dashboard(@RequestParam(value = "ym", required = false) String ym,
                             Model model) {
         YearMonth period = parseOrCurrent(ym);
-        DashboardModel data = dashboard.load(currentUser.requireId(), period);
+        DashboardModel data = dashboard.load(currentUser.requireEffectiveId(), period);
 
         currentUser.get().ifPresent(u -> {
             model.addAttribute("userEmail", u.getEmail());
@@ -60,7 +60,9 @@ public class DashboardController {
         model.addAttribute("activeNav", "dashboard");
         model.addAttribute("period", period);
         model.addAttribute("data", data);
-        model.addAttribute("chartDataJson", buildChartJson(data));
+        // Acessor com valores mascarados: não emitir a série real (vazaria no view-source).
+        model.addAttribute("chartDataJson",
+                currentUser.isMaskActive() ? "{\"balance\":[],\"byCategory\":[]}" : buildChartJson(data));
         return "app/dashboard";
     }
 
