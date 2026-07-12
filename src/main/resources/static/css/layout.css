@@ -347,3 +347,43 @@
     .app-topbar { padding: 14px 18px; }
     .app-content { padding: 18px; }
 }
+
+/* ── Banner de modo acessor (topbar) ─────────────────────────── */
+.app-access-banner {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-dim);
+    min-width: 0;
+}
+.app-access-banner strong { color: var(--text); font-weight: 700; }
+.app-access-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--warn);
+    box-shadow: 0 0 0 3px color-mix(in oklch, var(--warn) 22%, transparent);
+    flex: none;
+}
+@media (max-width: 720px) {
+    .app-access-banner span:last-child { display: none; }
+}
+
+/* ── Placeholder de gráfico p/ acessor com valores mascarados ─── */
+.is-hidden { display: none !important; }
+.chart-masked {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    min-height: 140px;
+    height: 100%;
+    padding: 20px;
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 13px;
+}

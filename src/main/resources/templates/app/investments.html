@@ -26,13 +26,13 @@
         <article class="kpi kpi-primary">
             <header class="kpi-head">Total investido</header>
             <p class="kpi-value"
-               th:text="${#numbers.formatDecimal(view.summary().totalInvested(), 1, 'POINT', 2, 'COMMA')}">0,00</p>
+               th:text="${(maskValues ? '*****' : #numbers.formatDecimal(view.summary().totalInvested(), 1, 'POINT', 2, 'COMMA'))}">0,00</p>
             <p class="kpi-foot">acumulado</p>
         </article>
         <article class="kpi kpi-accent">
             <header class="kpi-head">Metas dos cofrinhos</header>
             <p class="kpi-value"
-               th:text="${#numbers.formatDecimal(view.summary().totalGoals(), 1, 'POINT', 2, 'COMMA')}">0,00</p>
+               th:text="${(maskValues ? '*****' : #numbers.formatDecimal(view.summary().totalGoals(), 1, 'POINT', 2, 'COMMA'))}">0,00</p>
             <p class="kpi-foot">
                 <span th:if="${view.summary().piggyProgress() != null}">
                     <strong th:text="${view.summary().piggyProgress()}">0</strong>% alcançado
@@ -43,7 +43,7 @@
         <article class="kpi kpi-success">
             <header class="kpi-head">Rendimento mensal</header>
             <p class="kpi-value"
-               th:text="${#numbers.formatDecimal(view.summary().monthlyReturn(), 1, 'POINT', 2, 'COMMA')}">0,00</p>
+               th:text="${(maskValues ? '*****' : #numbers.formatDecimal(view.summary().monthlyReturn(), 1, 'POINT', 2, 'COMMA'))}">0,00</p>
             <p class="kpi-foot">estimado</p>
         </article>
     </section>
@@ -71,11 +71,11 @@
                 </div>
                 <h3 class="inv-tile-name" th:text="${p.name()}">Cofrinho</h3>
                 <p class="inv-tile-amount"
-                   th:data-amount="${p.amount()}"
-                   th:text="${#numbers.formatDecimal(p.amount(), 1, 'POINT', 2, 'COMMA')}">0,00</p>
+                   th:data-amount="${maskValues ? '' : p.amount()}"
+                   th:text="${(maskValues ? '*****' : #numbers.formatDecimal(p.amount(), 1, 'POINT', 2, 'COMMA'))}">0,00</p>
                 <p class="inv-tile-meta" th:if="${p.goal() != null}">
                     de
-                    <strong th:text="${#numbers.formatDecimal(p.goal(), 1, 'POINT', 2, 'COMMA')}">0,00</strong>
+                    <strong th:text="${(maskValues ? '*****' : #numbers.formatDecimal(p.goal(), 1, 'POINT', 2, 'COMMA'))}">0,00</strong>
                 </p>
                 <div class="account-bar" th:if="${p.progressPercent() != null}">
                     <span th:attr="data-bar-width=${p.progressPercent()}"></span>
@@ -86,7 +86,7 @@
                     <button type="button" class="btn-link"
                             data-history-toggle
                             th:attr="data-target='#hist-' + ${p.id()}">Histórico</button>
-                    <form class="inline-form"
+                    <form class="inline-form" th:if="${!accessorMode}"
                           th:action="@{/app/investments/{id}/delete(id=${p.id()})}"
                           method="post"
                           data-confirm="Remover este cofrinho?">
@@ -159,19 +159,19 @@
                         <span th:text="${p.rateLabel() != null ? p.rateLabel() : '—'}">—</span>
                     </td>
                     <td class="num">
-                        <span th:data-amount="${p.amount()}"
-                              th:text="${#numbers.formatDecimal(p.amount(), 1, 'POINT', 2, 'COMMA')}">0,00</span>
+                        <span th:data-amount="${maskValues ? '' : p.amount()}"
+                              th:text="${(maskValues ? '*****' : #numbers.formatDecimal(p.amount(), 1, 'POINT', 2, 'COMMA'))}">0,00</span>
                     </td>
                     <td class="num">
                         <span th:if="${p.monthlyReturn() != null}"
                               class="inv-return"
-                              th:text="${#numbers.formatDecimal(p.monthlyReturn(), 1, 'POINT', 2, 'COMMA')}">0,00</span>
+                              th:text="${(maskValues ? '*****' : #numbers.formatDecimal(p.monthlyReturn(), 1, 'POINT', 2, 'COMMA'))}">0,00</span>
                         <span th:if="${p.monthlyReturn() == null}">—</span>
                     </td>
                     <td class="actions">
                         <a class="btn-link"
                            th:href="@{/app/investments/{id}/edit(id=${p.id()})}">Editar</a>
-                        <form class="inline-form"
+                        <form class="inline-form" th:if="${!accessorMode}"
                               th:action="@{/app/investments/{id}/delete(id=${p.id()})}"
                               method="post"
                               data-confirm="Remover este investimento?">

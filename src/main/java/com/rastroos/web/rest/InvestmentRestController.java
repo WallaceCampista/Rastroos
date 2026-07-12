@@ -35,7 +35,7 @@ import jakarta.validation.Valid;
  */
 @RestController
 @RequestMapping("/api/v1/investments")
-@PreAuthorize("isAuthenticated()")
+@PreAuthorize("isAuthenticated() and !hasRole('ACESSOR')")
 @Tag(name = "Investments", description = "Cofrinhos e carteira do usuário corrente")
 public class InvestmentRestController {
 
