@@ -1,0 +1,67 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR"
+      th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+<head>
+    <title>Solicitações de acessor · Rastro$</title>
+    <link rel="stylesheet" th:href="@{/css/screens/accessors.css}">
+</head>
+<body>
+<section class="app-content screen screen-accessors">
+
+    <header class="screen-header">
+        <div>
+            <h1 class="screen-title">Solicitações de acessor</h1>
+            <p class="screen-sub"><span th:text="${#lists.size(requests)}">0</span> pendente(s) para aprovação.</p>
+        </div>
+        <div class="screen-actions">
+            <a class="btn" th:href="@{/app/users}">Voltar aos usuários</a>
+        </div>
+    </header>
+
+    <div th:if="${ok}" class="flash flash-ok" th:text="#{${ok}}">Ok</div>
+    <div th:if="${error}" class="flash flash-error" th:text="#{${error}}">Erro</div>
+
+    <div th:if="${#lists.isEmpty(requests)}" class="empty-state">
+        <h3>Nenhuma solicitação pendente</h3>
+        <p>Quando um titular solicitar um acessor, a solicitação aparecerá aqui.</p>
+    </div>
+
+    <section class="acc-section card" th:unless="${#lists.isEmpty(requests)}">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Titular</th>
+                    <th>Acessor solicitado</th>
+                    <th>Observação</th>
+                    <th>Enviada</th>
+                    <th class="actions">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="r : ${requests}">
+                    <td>
+                        <div class="acc-name" th:text="${r.requesterName()}">Titular</div>
+                        <div class="acc-email" th:text="${r.requesterEmail()}">email@ex.com</div>
+                    </td>
+                    <td>
+                        <div class="acc-name" th:text="${r.accessorName()}">Nome</div>
+                        <div class="acc-email" th:text="${r.accessorEmail()}">email@ex.com</div>
+                    </td>
+                    <td th:text="${r.note()} ?: '—'">—</td>
+                    <td th:text="${#temporals.format(r.createdAt().atZone(T(java.time.ZoneOffset).UTC), 'dd/MM/yyyy')}">--/--</td>
+                    <td class="actions">
+                        <a class="btn btn-primary" th:href="@{/app/users/new(requestId=${r.id()})}">Aprovar…</a>
+                        <form class="inline-form" method="post"
+                              th:action="@{/app/accessor-requests/{id}/reject(id=${r.id()})}">
+                            <input type="hidden" th:if="${_csrf != null}"
+                                   th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                            <button type="submit" class="btn">Rejeitar</button>
+                        </form>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+</section>
+</body>
+</html>

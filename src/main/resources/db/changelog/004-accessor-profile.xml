@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ─────────────────────────────────────────────────────────────
+  004 — Perfil Acessor
+  ─────────────────────────────────────────────────────────────
+  Uma conta ACESSOR opera os dados financeiros de um usuário-alvo
+  (users.accesses_user_id), com as mesmas ações do titular exceto
+  excluir. O titular pode mascarar valores para o acessor
+  (users.values_masked → o acessor vê apenas '*').
+
+  accessor_requests: solicitação do titular para o admin criar o
+  acessor (o admin aprova/rejeita).
+-->
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.27.xsd">
+
+    <!-- ════════════════════════════════════════════════════════════
+         users — colunas do acessor
+         ═════════════════════════════════════════════════════════ -->
+    <changeSet id="004-01-users-add-accessor-columns" author="rastroos">
+        <addColumn tableName="users">
+            <column name="accesses_user_id" type="UUID"/>
+            <column name="values_masked" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+
+        <addForeignKeyConstraint
+            baseTableName="users" baseColumnNames="accesses_user_id"
+            referencedTableName="users" referencedColumnNames="id"
+            constraintName="fk_users_accesses_user"
+            onDelete="CASCADE"/>
+
+        <createIndex tableName="users" indexName="ix_users_accesses_user">
+            <column name="accesses_user_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropForeignKeyConstraint baseTableName="users" constraintName="fk_users_accesses_user"/>
+            <dropIndex tableName="users" indexName="ix_users_accesses_user"/>
+            <dropColumn tableName="users" columnName="accesses_user_id"/>
+            <dropColumn tableName="users" columnName="values_masked"/>
+        </rollback>
+    </changeSet>
+
+    <!-- ════════════════════════════════════════════════════════════
+         users — CHECKs: papel ACESSOR + integridade do alvo
+         (novo changeSet: NÃO editar o 001 já aplicado — quebra o checksum)
+         ═════════════════════════════════════════════════════════ -->
+    <changeSet id="004-02-users-accessor-constraints" author="rastroos">
+        <sql><![CDATA[
+            ALTER TABLE users DROP CONSTRAINT ck_users_role;
+            ALTER TABLE users ADD CONSTRAINT ck_users_role
+                CHECK (role IN ('USER', 'ADMIN', 'ACESSOR'));
+            ALTER TABLE users ADD CONSTRAINT ck_users_accessor_target
+                CHECK (
+                    (role = 'ACESSOR' AND accesses_user_id IS NOT NULL)
+                    OR (role <> 'ACESSOR' AND accesses_user_id IS NULL)
+                );
+            ALTER TABLE users ADD CONSTRAINT ck_users_accessor_not_self
+                CHECK (accesses_user_id IS NULL OR accesses_user_id <> id);
+        ]]></sql>
+        <rollback>
+            <sql><![CDATA[
+                ALTER TABLE users DROP CONSTRAINT ck_users_accessor_not_self;
+                ALTER TABLE users DROP CONSTRAINT ck_users_accessor_target;
+                ALTER TABLE users DROP CONSTRAINT ck_users_role;
+                ALTER TABLE users ADD CONSTRAINT ck_users_role
+                    CHECK (role IN ('USER', 'ADMIN'));
+            ]]></sql>
+        </rollback>
+    </changeSet>
+
+    <!-- ════════════════════════════════════════════════════════════
+         accessor_requests — solicitações do titular ao admin
+         ═════════════════════════════════════════════════════════ -->
+    <changeSet id="004-03-create-accessor-requests" author="rastroos">
+        <createTable tableName="accessor_requests">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="requester_user_id" type="UUID">
+                <constraints nullable="false"
+                             foreignKeyName="fk_accreq_requester"
+                             references="users(id)"
+                             deleteCascade="true"/>
+            </column>
+            <column name="accessor_name" type="VARCHAR(120)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="accessor_email" type="VARCHAR(180)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="note" type="VARCHAR(500)"/>
+            <column name="status" type="VARCHAR(20)" defaultValue="PENDING">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="resolved_at" type="TIMESTAMPTZ"/>
+            <column name="resolved_by" type="UUID"/>
+            <column name="created_user_id" type="UUID"/>
+        </createTable>
+
+        <addForeignKeyConstraint
+            baseTableName="accessor_requests" baseColumnNames="resolved_by"
+            referencedTableName="users" referencedColumnNames="id"
+            constraintName="fk_accreq_resolved_by" onDelete="SET NULL"/>
+        <addForeignKeyConstraint
+            baseTableName="accessor_requests" baseColumnNames="created_user_id"
+            referencedTableName="users" referencedColumnNames="id"
+            constraintName="fk_accreq_created_user" onDelete="SET NULL"/>
+
+        <sql>
+            ALTER TABLE accessor_requests ADD CONSTRAINT ck_accreq_status
+                CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED'));
+        </sql>
+
+        <createIndex tableName="accessor_requests" indexName="ix_accreq_requester_status">
+            <column name="requester_user_id"/>
+            <column name="status"/>
+        </createIndex>
+        <createIndex tableName="accessor_requests" indexName="ix_accreq_status_created">
+            <column name="status"/>
+            <column name="created_at"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="accessor_requests"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

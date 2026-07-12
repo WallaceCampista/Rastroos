@@ -1,0 +1,12 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
+<body>
+
+<!-- Rótulos PT do status de solicitação de acessor. Emite só texto (sem tag). -->
+<th:block th:fragment="statusText(s)" th:switch="${s.name()}"><th:block
+        th:case="'PENDING'">Pendente</th:block><th:block
+        th:case="'APPROVED'">Aprovada</th:block><th:block
+        th:case="'REJECTED'">Rejeitada</th:block></th:block>
+
+</body>
+</html>
