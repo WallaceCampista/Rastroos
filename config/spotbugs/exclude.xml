@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SpotBugs — filtro de exclusões do Rastro$.
+  Silencia padrões estruturais intencionais neste código (entidades JPA
+  mutáveis e DTOs que expõem referências por design), mantendo o foco em
+  bugs de verdade.
+-->
+<FindBugsFilter>
+
+    <!-- Entidades JPA e objetos de fronteira Web expõem/recebem referências
+         mutáveis por design (getters/setters simples, sem Lombok). -->
+    <Match>
+        <Or>
+            <Package name="~com\.rastroos\.domain\.entity.*"/>
+            <Package name="~com\.rastroos\.web\.dto.*"/>
+            <Package name="~com\.rastroos\.web\.form.*"/>
+        </Or>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+    </Match>
+
+    <!-- Campos injetados por @Value/config são preenchidos pelo container. -->
+    <Match>
+        <Bug pattern="UWF_UNWRITTEN_FIELD,UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD"/>
+    </Match>
+
+    <!-- Testes não são o alvo da análise de bugs de produção. -->
+    <Match>
+        <Source name="~.*[/\\]test[/\\].*"/>
+    </Match>
+
+</FindBugsFilter>

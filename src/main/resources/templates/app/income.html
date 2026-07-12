@@ -81,7 +81,7 @@
                 <td>
                     <span class="income-chip"
                           th:if="${i.categoryId() != null}"
-                          th:style="${i.categoryColorHex() != null} ? ('border-color:' + i.categoryColorHex())"
+                          th:attr="data-stroke=${i.categoryColorHex()}"
                           th:text="${i.categoryName() != null ? i.categoryName() : i.categoryId()}">Categoria</span>
                 </td>
                 <td class="num">

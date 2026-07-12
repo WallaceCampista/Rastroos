@@ -114,12 +114,12 @@
                 </td>
                 <td>
                     <span class="tx-chip"
-                          th:style="${t.accountColorHex() != null} ? ('border-color:' + t.accountColorHex())"
+                          th:attr="data-stroke=${t.accountColorHex()}"
                           th:text="${t.accountName()}">Conta</span>
                 </td>
                 <td>
                     <span class="tx-chip"
-                          th:style="${t.categoryColorHex() != null} ? ('border-color:' + t.categoryColorHex())"
+                          th:attr="data-stroke=${t.categoryColorHex()}"
                           th:text="${t.categoryName()}">Categoria</span>
                 </td>
                 <td class="num">
