@@ -1,0 +1,145 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR"
+      th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+<head>
+    <title>Usuários · Rastro$</title>
+    <link rel="stylesheet" th:href="@{/css/screens/users.css}">
+    <script th:src="@{/js/screens/users.js}" defer></script>
+</head>
+<body>
+<section class="app-content screen screen-users">
+
+    <header class="screen-header">
+        <div>
+            <h1 class="screen-title">Usuários</h1>
+            <p class="screen-sub">
+                Gestão de contas — <span th:text="${view.totalElements()}">0</span> no total.
+            </p>
+        </div>
+        <div class="screen-actions">
+            <a class="btn btn-primary" th:href="@{/app/users/new}">+ Novo usuário</a>
+        </div>
+    </header>
+
+    <div th:if="${ok}" class="flash flash-ok" th:text="#{${ok}}">Ok</div>
+    <div th:if="${error}" class="flash flash-error" th:text="#{${error}}">Erro</div>
+
+    <section class="user-kpis" aria-label="Resumo de usuários">
+        <article class="user-kpi">
+            <span class="user-kpi-val" th:text="${view.totalCount()}">0</span>
+            <span class="user-kpi-lbl">Total</span>
+        </article>
+        <article class="user-kpi">
+            <span class="user-kpi-val" th:text="${view.activeCount()}">0</span>
+            <span class="user-kpi-lbl">Ativos</span>
+        </article>
+        <article class="user-kpi">
+            <span class="user-kpi-val" th:text="${view.pendingCount()}">0</span>
+            <span class="user-kpi-lbl">Pendentes</span>
+        </article>
+        <article class="user-kpi">
+            <span class="user-kpi-val" th:text="${view.disabledCount()}">0</span>
+            <span class="user-kpi-lbl">Desativados</span>
+        </article>
+        <article class="user-kpi">
+            <span class="user-kpi-val" th:text="${view.adminCount()}">0</span>
+            <span class="user-kpi-lbl">Admins</span>
+        </article>
+    </section>
+
+    <form class="filter-bar" method="get" th:action="@{/app/users}">
+        <div class="filter-field">
+            <label for="status">Status</label>
+            <select id="status" name="status">
+                <option value="">Todos</option>
+                <option th:each="s : ${statuses}"
+                        th:value="${s.name()}"
+                        th:selected="${filter.status() != null and filter.status() == s.name()}"
+                        th:text="~{fragments/user-labels :: statusText(${s})}">Status</option>
+            </select>
+        </div>
+        <div class="filter-field filter-field-grow">
+            <label for="q">Busca</label>
+            <input id="q" type="search" name="q"
+                   th:value="${filter.search()}" placeholder="Nome ou email…">
+        </div>
+        <div class="filter-actions">
+            <button type="submit" class="btn">Filtrar</button>
+            <a class="btn-link" th:href="@{/app/users}">Limpar</a>
+        </div>
+    </form>
+
+    <div th:if="${view.items().isEmpty()}" class="empty-state">
+        Nenhum usuário encontrado.
+    </div>
+
+    <div class="table-scroll" th:unless="${view.items().isEmpty()}">
+        <table class="user-table">
+            <thead>
+                <tr>
+                    <th>Usuário</th>
+                    <th>Papel</th>
+                    <th>Status</th>
+                    <th class="num">Sessões</th>
+                    <th>Criado</th>
+                    <th>Último login</th>
+                    <th class="actions">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="u : ${view.items()}">
+                    <td>
+                        <div class="user-cell">
+                            <span class="user-avatar"
+                                  th:text="${u.name() != null and !u.name().isEmpty()
+                                            ? u.name().substring(0,1).toUpperCase() : '?'}">R</span>
+                            <div class="user-cell-main">
+                                <a class="user-name" th:href="@{/app/users/{id}(id=${u.id()})}"
+                                   th:text="${u.name()}">Nome</a>
+                                <span class="user-email">
+                                    <span th:text="${u.email()}">email@ex.com</span>
+                                    <span class="verify-dot" th:if="${u.emailVerified()}" title="Email verificado">✓</span>
+                                </span>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="role-tag" th:classappend="'role-' + ${u.role().name().toLowerCase()}"
+                              th:text="~{fragments/user-labels :: roleText(${u.role()})}">Papel</span>
+                    </td>
+                    <td>
+                        <span class="st-pill" th:classappend="'st-' + ${u.status().name().toLowerCase()}"
+                              th:text="~{fragments/user-labels :: statusText(${u.status()})}">Status</span>
+                    </td>
+                    <td class="num" th:text="${u.activeSessions()}">0</td>
+                    <td class="user-when"
+                        th:text="${#temporals.format(u.createdAt().atZone(T(java.time.ZoneOffset).UTC), 'dd/MM/yyyy')}">--/--</td>
+                    <td class="user-when">
+                        <span th:if="${u.lastLoginAt() != null}"
+                              th:text="${#temporals.format(u.lastLoginAt().atZone(T(java.time.ZoneOffset).UTC), 'dd/MM/yyyy HH:mm')}">--</span>
+                        <span th:unless="${u.lastLoginAt() != null}" class="text-faint">—</span>
+                    </td>
+                    <td class="actions">
+                        <a class="btn-link" th:href="@{/app/users/{id}(id=${u.id()})}">Ver</a>
+                        <a class="btn-link" th:href="@{/app/users/{id}/edit(id=${u.id()})}">Editar</a>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <nav class="pagination" th:if="${view.totalPages() > 1}" aria-label="Paginação">
+        <a class="btn-link" th:if="${view.page() > 0}"
+           th:href="@{/app/users(page=${view.page() - 1}, size=${view.size()},
+                                 status=${filter.status()}, q=${filter.search()})}">← Anterior</a>
+        <span class="pagination-info">
+            Página <strong th:text="${view.page() + 1}">1</strong> de
+            <strong th:text="${view.totalPages()}">1</strong>
+        </span>
+        <a class="btn-link" th:if="${view.page() + 1 < view.totalPages()}"
+           th:href="@{/app/users(page=${view.page() + 1}, size=${view.size()},
+                                 status=${filter.status()}, q=${filter.search()})}">Próxima →</a>
+    </nav>
+</section>
+</body>
+</html>
