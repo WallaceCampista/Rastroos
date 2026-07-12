@@ -14,10 +14,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import com.rastroos.domain.entity.AccessorRequest;
 import com.rastroos.domain.entity.User;
 import com.rastroos.domain.entity.enums.UserRole;
 import com.rastroos.domain.entity.enums.UserStatus;
 import com.rastroos.domain.exception.BusinessRuleException;
+import com.rastroos.domain.service.AccessorService;
 import com.rastroos.domain.service.UserAdminService;
 import com.rastroos.domain.service.UserAdminService.CreateResult;
 import com.rastroos.security.AuditLogger;
@@ -43,13 +45,16 @@ public class UserAdminController {
 
     private final CurrentUser currentUser;
     private final UserAdminService service;
+    private final AccessorService accessorService;
     private final AuditLogger audit;
 
     public UserAdminController(CurrentUser currentUser,
                                UserAdminService service,
+                               AccessorService accessorService,
                                AuditLogger audit) {
         this.currentUser = currentUser;
         this.service = service;
+        this.accessorService = accessorService;
         this.audit = audit;
     }
 
@@ -68,10 +73,20 @@ public class UserAdminController {
     }
 
     @GetMapping("/new")
-    public String newForm(Model model) {
+    public String newForm(@RequestParam(value = "requestId", required = false) UUID requestId,
+                          Model model) {
         if (!model.containsAttribute("userForm")) {
-            model.addAttribute("userForm", new UserCreateForm());
+            UserCreateForm form = new UserCreateForm();
+            if (requestId != null) {          // veio de uma solicitação do titular
+                AccessorRequest r = accessorService.requireRequest(requestId);
+                form.setName(r.getAccessorName());
+                form.setEmail(r.getAccessorEmail());
+                form.setRole(UserRole.ACESSOR);
+                form.setAccessesUserId(r.getRequesterUserId());
+            }
+            model.addAttribute("userForm", form);
         }
+        model.addAttribute("requestId", requestId);
         prepareFormModel(model, false, null);
         return "app/user-form";
     }
@@ -79,9 +94,11 @@ public class UserAdminController {
     @PostMapping("/new")
     public String create(@Valid @ModelAttribute("userForm") UserCreateForm form,
                          BindingResult binding,
+                         @RequestParam(value = "requestId", required = false) UUID requestId,
                          Model model,
                          HttpServletRequest request,
                          RedirectAttributes flash) {
+        model.addAttribute("requestId", requestId);
         if (!binding.hasFieldErrors("email") && service.isEmailTaken(form.getEmail(), null)) {
             binding.rejectValue("email", "users.emailTaken");
         }
@@ -90,7 +107,14 @@ public class UserAdminController {
             return "app/user-form";
         }
 
-        CreateResult result = service.create(form);
+        CreateResult result;
+        try {
+            result = service.create(form);
+        } catch (BusinessRuleException e) {
+            binding.rejectValue("accessesUserId", e.getMessage());
+            prepareFormModel(model, false, null);
+            return "app/user-form";
+        }
         if (!result.ok()) {
             result.passwordErrors().forEach(err -> binding.rejectValue("password", err));
             prepareFormModel(model, false, null);
@@ -99,6 +123,9 @@ public class UserAdminController {
 
         audit.record(currentUser.requireId(), "USER_CREATE", "user",
                 result.user().getId().toString(), request, null);
+        if (requestId != null) {              // aprova e vincula a solicitação de origem
+            accessorService.markApproved(requestId, currentUser.requireId(), result.user().getId());
+        }
         flash.addFlashAttribute("ok", "users.created");
         return "redirect:/app/users/" + result.user().getId();
     }
@@ -109,6 +136,7 @@ public class UserAdminController {
         model.addAttribute("activeNav", "users");
         model.addAttribute("view", view);
         model.addAttribute("statuses", UserStatus.values());
+        model.addAttribute("accessors", service.accessorsOf(id));
         return "app/user-detail";
     }
 
@@ -121,6 +149,7 @@ public class UserAdminController {
             form.setEmail(view.email());
             form.setRole(view.role());
             form.setStatus(view.status());
+            form.setAccessesUserId(view.accessesUserId());
             model.addAttribute("userForm", form);
         }
         prepareFormModel(model, true, view);
@@ -227,5 +256,6 @@ public class UserAdminController {
         model.addAttribute("roles", UserRole.values());
         model.addAttribute("statuses", UserStatus.values());
         model.addAttribute("target", target);
+        model.addAttribute("accessorTargets", service.eligibleTargets());
     }
 }

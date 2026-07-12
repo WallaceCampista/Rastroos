@@ -22,6 +22,7 @@
           th:action="${edit} ? @{/app/users/{id}/edit(id=${target.id()})} : @{/app/users/new}">
         <input type="hidden" th:if="${_csrf != null}"
                th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+        <input type="hidden" name="requestId" th:if="${requestId != null}" th:value="${requestId}">
 
         <div class="user-form-grid">
             <div class="field field-wide">
@@ -48,7 +49,7 @@
 
             <div class="field">
                 <label for="role">Papel</label>
-                <select id="role" th:field="*{role}">
+                <select id="role" th:field="*{role}" data-role-select>
                     <option th:each="r : ${roles}" th:value="${r}"
                             th:text="~{fragments/user-labels :: roleText(${r})}">Papel</option>
                 </select>
@@ -62,6 +63,20 @@
                             th:text="~{fragments/user-labels :: statusText(${s})}">Status</option>
                 </select>
                 <p class="field-error" th:if="${#fields.hasErrors('status')}" th:errors="*{status}">erro</p>
+            </div>
+
+            <div class="field field-wide" data-accessor-target-field
+                 th:hidden="${userForm.role == null or userForm.role.name() != 'ACESSOR'}">
+                <label for="accessesUserId">Usuário-alvo do acessor</label>
+                <select id="accessesUserId" th:field="*{accessesUserId}">
+                    <option value="">— selecione o titular —</option>
+                    <option th:each="t : ${accessorTargets}" th:value="${t.id()}"
+                            th:text="${t.name() + ' · ' + t.email()}">Titular</option>
+                </select>
+                <p class="field-hint">O acessor verá e operará os dados deste usuário — pode cadastrar,
+                    pagar e editar, mas não excluir.</p>
+                <p class="field-error" th:if="${#fields.hasErrors('accessesUserId')}"
+                   th:errors="*{accessesUserId}">erro</p>
             </div>
         </div>
 

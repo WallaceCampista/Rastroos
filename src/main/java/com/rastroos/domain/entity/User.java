@@ -48,6 +48,10 @@ public class User {
     @Column(name = "role", nullable = false, length = 20)
     private UserRole role;
 
+    /** Preenchido apenas em contas ACESSOR: id do usuário-alvo cujos dados o acessor opera. */
+    @Column(name = "accesses_user_id")
+    private UUID accessesUserId;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     private UserStatus status;
@@ -68,6 +72,10 @@ public class User {
 
     @Column(name = "values_hidden", nullable = false)
     private boolean valuesHidden;
+
+    /** Em contas ACESSOR: se true, o titular ocultou os valores — o acessor vê apenas '*'. */
+    @Column(name = "values_masked", nullable = false)
+    private boolean valuesMasked;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -121,6 +129,9 @@ public class User {
     public UserRole getRole() { return role; }
     public void setRole(UserRole role) { this.role = role; }
 
+    public UUID getAccessesUserId() { return accessesUserId; }
+    public void setAccessesUserId(UUID accessesUserId) { this.accessesUserId = accessesUserId; }
+
     public UserStatus getStatus() { return status; }
     public void setStatus(UserStatus status) { this.status = status; }
 
@@ -138,6 +149,9 @@ public class User {
 
     public boolean isValuesHidden() { return valuesHidden; }
     public void setValuesHidden(boolean valuesHidden) { this.valuesHidden = valuesHidden; }
+
+    public boolean isValuesMasked() { return valuesMasked; }
+    public void setValuesMasked(boolean valuesMasked) { this.valuesMasked = valuesMasked; }
 
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }

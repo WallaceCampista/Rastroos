@@ -41,9 +41,12 @@ import com.rastroos.web.form.TransactionForm;
  *
  * <p>Suporta:
  * <ul>
- *   <li><b>Parcelas</b> — ao criar, gera N transações com
- *       {@code installmentCurrent} 1..N, {@code installmentTotal=N} e
- *       {@code dueDate} deslocada de {@code i} meses.</li>
+ *   <li><b>Parcelas</b> — ao criar com {@code installments > 1}, o valor
+ *       informado é o <b>total da compra</b>, dividido igualmente entre as N
+ *       parcelas (os centavos de resto vão para as primeiras). Gera N
+ *       transações com {@code installmentCurrent} 1..N, {@code installmentTotal=N}
+ *       e {@code dueDate} a partir do <b>mês seguinte</b> ao vencimento
+ *       informado (1ª parcela = mês seguinte, 2ª = dois meses depois, ...).</li>
  *   <li><b>Recorrência</b> — flag {@code fixed=true} marca o lançamento como
  *       recorrente. A expansão para meses futuros entra em iteração posterior;
  *       por enquanto, apenas o primeiro lançamento é persistido (assim como
@@ -141,10 +144,18 @@ public class TransactionService {
         ensureCategoryExists(form.getCategoryId());
 
         int n = Math.max(1, Math.min(60, form.getInstallments()));
-        long amountCents = form.getAmount().movePointRight(2).longValueExact();
-        if (amountCents <= 0) {
+        long totalCents = form.getAmount().movePointRight(2).longValueExact();
+        if (totalCents <= 0) {
             throw new IllegalArgumentException("transaction.amountPositive");
         }
+        // Cada parcela precisa ser > 0 (CHECK ck_tx_amount_positive no banco).
+        if (n > 1 && totalCents < n) {
+            throw new IllegalArgumentException("transaction.installmentTooSmall");
+        }
+
+        long[] installmentCents = splitCents(totalCents, n);
+        // Compra parcelada: 1ª parcela cai no mês seguinte ao vencimento informado.
+        LocalDate firstDueDate = (n > 1) ? form.getDueDate().plusMonths(1) : form.getDueDate();
 
         List<Transaction> created = new ArrayList<>(n);
         for (int i = 0; i < n; i++) {
@@ -153,8 +164,8 @@ public class TransactionService {
             t.setAccountId(form.getAccountId());
             t.setCategoryId(form.getCategoryId());
             t.setDescription(form.getDescription().trim());
-            t.setAmountCents(amountCents);
-            t.setDueDate(form.getDueDate().plusMonths(i));
+            t.setAmountCents(installmentCents[i]);
+            t.setDueDate(firstDueDate.plusMonths(i));
             t.setFixed(form.isFixed());
             t.setPaid(n == 1 && form.isPaid());
             if (t.isPaid()) t.setPaidAt(Instant.now());
@@ -165,6 +176,24 @@ public class TransactionService {
             created.add(transactions.save(t));
         }
         return created;
+    }
+
+    /**
+     * Divide {@code totalCents} em {@code n} parcelas inteiras de centavos cuja
+     * soma é exatamente {@code totalCents}. O resto (0..n-1 centavos) é
+     * distribuído uma unidade por vez nas primeiras parcelas, de forma que a
+     * soma feche e nenhuma parcela fique menor que a base.
+     *
+     * <p>Ex.: 100,00 em 3x → {@code [3334, 3333, 3333]} centavos.
+     */
+    private static long[] splitCents(long totalCents, int n) {
+        long base = totalCents / n;
+        long remainder = totalCents % n;
+        long[] parts = new long[n];
+        for (int i = 0; i < n; i++) {
+            parts[i] = base + (i < remainder ? 1 : 0);
+        }
+        return parts;
     }
 
     @Transactional
