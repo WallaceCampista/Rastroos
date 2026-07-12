@@ -38,7 +38,7 @@
                     <li th:each="c : ${data.byCategory()}"
                         th:with="pct=${data.current().spent().signum() > 0
                                  ? c.amount().doubleValue() * 100.0 / data.current().spent().doubleValue() : 0}">
-                        <span class="donut-dot" th:style="'background:' + ${c.colorHex()}"></span>
+                        <span class="donut-dot" th:attr="data-fill=${c.colorHex()}"></span>
                         <span class="donut-name" th:text="${c.name()}">categoria</span>
                         <span class="donut-amount"
                               th:data-amount="${c.amount()}"
@@ -67,7 +67,7 @@
                     <li th:each="a : ${data.byAccount()}"
                         th:with="pct=${data.current().spent().signum() > 0
                                  ? a.amount().doubleValue() * 100.0 / data.current().spent().doubleValue() : 0}">
-                        <span class="donut-dot" th:style="'background:' + ${a.colorHex()}"></span>
+                        <span class="donut-dot" th:attr="data-fill=${a.colorHex()}"></span>
                         <span class="donut-name" th:text="${a.name()}">conta</span>
                         <span class="donut-amount"
                               th:data-amount="${a.amount()}"
@@ -94,7 +94,7 @@
                     <span class="hbar-lbl">Pago</span>
                     <span class="hbar-track">
                         <span class="hbar-fill hbar-success"
-                              th:attr="style='width:' + ${data.current().paid().doubleValue() * 100.0 / total} + '%'"></span>
+                              th:attr="data-bar-width=${data.current().paid().doubleValue() * 100.0 / total}"></span>
                     </span>
                     <span class="hbar-val"
                           th:data-amount="${data.current().paid()}"
@@ -104,7 +104,7 @@
                     <span class="hbar-lbl">A pagar</span>
                     <span class="hbar-track">
                         <span class="hbar-fill hbar-accent"
-                              th:attr="style='width:' + ${data.current().toPay().doubleValue() * 100.0 / total} + '%'"></span>
+                              th:attr="data-bar-width=${data.current().toPay().doubleValue() * 100.0 / total}"></span>
                     </span>
                     <span class="hbar-val"
                           th:data-amount="${data.current().toPay()}"
@@ -128,7 +128,7 @@
                     <span class="hbar-lbl">Fixo</span>
                     <span class="hbar-track">
                         <span class="hbar-fill hbar-primary"
-                              th:attr="style='width:' + ${data.current().fixed().doubleValue() * 100.0 / total} + '%'"></span>
+                              th:attr="data-bar-width=${data.current().fixed().doubleValue() * 100.0 / total}"></span>
                     </span>
                     <span class="hbar-val"
                           th:data-amount="${data.current().fixed()}"
@@ -138,7 +138,7 @@
                     <span class="hbar-lbl">Pontual</span>
                     <span class="hbar-track">
                         <span class="hbar-fill hbar-danger"
-                              th:attr="style='width:' + ${data.current().oneTime().doubleValue() * 100.0 / total} + '%'"></span>
+                              th:attr="data-bar-width=${data.current().oneTime().doubleValue() * 100.0 / total}"></span>
                     </span>
                     <span class="hbar-val"
                           th:data-amount="${data.current().oneTime()}"
@@ -160,7 +160,7 @@
                     <span class="weight-name" th:text="${c.name()}">categoria</span>
                     <span class="weight-track">
                         <span class="weight-fill"
-                              th:attr="style='width:' + ${pct} + '%; background:' + ${c.colorHex()}"></span>
+                              th:attr="data-bar-width=${pct},data-fill=${c.colorHex()}"></span>
                     </span>
                     <span class="weight-pct" th:text="${#numbers.formatDecimal(pct, 1, 1) + '%'}">0%</span>
                     <span class="weight-val"

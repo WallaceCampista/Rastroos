@@ -66,7 +66,10 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/", "/landing", "/auth/**",
                                  "/css/**", "/js/**", "/images/**", "/fonts/**",
-                                 "/webjars/**", "/actuator/health", "/actuator/info",
+                                 "/webjars/**",
+                                 // health + probes (liveness/readiness) públicos p/ orquestrador;
+                                 // demais actuator (prometheus, env, ...) exigem auth (§3.2)
+                                 "/actuator/health/**", "/actuator/info",
                                  "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html")
                     .permitAll()
                 .requestMatchers("/app/users/**", "/api/admin/**")
