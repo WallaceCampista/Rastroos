@@ -266,6 +266,37 @@ As migrations do Liquibase rodam no boot. Acesse **http://localhost:8080** · Sw
 
 > O admin inicial é criado uma vez pelo changelog `003-create-default-admin.xml` com `password_must_change=true` — o primeiro login serve só para trocar a senha.
 
+### 🐳 Produção (Docker)
+
+Imagem **multi-stage** ([`Dockerfile`](./Dockerfile)): compila com JDK 25, monta um **JRE mínimo via `jlink`** e roda num runtime **distroless, non-root** (sem shell nem gerenciador de pacotes). O [`docker-compose.prod.yml`](./docker-compose.prod.yml) sobe **app + PostgreSQL**, com o banco acessível **apenas pela rede interna** (sem porta no host).
+
+**1) Configure os segredos** (variáveis de ambiente do host ou um `.env` **não versionado**):
+
+```bash
+POSTGRES_USER=rastroos
+POSTGRES_PASSWORD=<forte>
+POSTGRES_DB=rastroos
+
+# Admin inicial — gere um hash BCrypt(12) próprio:
+#   htpasswd -nbB -C 12 admin "SuaSenhaForte" | cut -d: -f2 | sed 's/^\$2y\$/$2a$/'
+RASTROOS_ADMIN_EMAIL=admin@seu-dominio.com
+RASTROOS_ADMIN_PASSWORD_HASH='$2a$12$...'      # aspas SIMPLES
+
+RASTROOS_APP_SECRET=$(openssl rand -base64 48)  # 32+ chars
+APP_PORT=8080
+```
+
+**2) Suba app + banco:**
+
+```bash
+docker compose -f docker-compose.prod.yml up -d --build
+docker compose -f docker-compose.prod.yml logs -f app
+```
+
+A app responde em **http://localhost:${APP_PORT}**. Liveness/readiness em **`/actuator/health/liveness`** e **`/actuator/health/readiness`**; métricas Prometheus (autenticadas) em **`/actuator/prometheus`**. Em prod os logs saem em **JSON estruturado** (com `traceId`/`userId`) e o **Swagger fica desligado** por padrão (`SPRINGDOC_ENABLED=true` para ligar).
+
+> **Distroless & Java 25:** como ainda não há imagem *distroless* oficial para o Java 25, o runtime usa `gcr.io/distroless/java-base-debian12` + JRE do `jlink` — mesmo resultado (imagem mínima, non-root, `read_only`), portável para qualquer versão do Java.
+
 ---
 
 ## 🗺️ Roadmap
@@ -280,12 +311,12 @@ Implementação **incremental por etapas** (detalhe em [`Projeto.md`](./Projeto.
 | 7 | Dashboard + Cartões/Contas | ✅ |
 | 8–9 | Despesas · Receitas | ✅ |
 | 10 | Investimentos | ✅ |
-| 11 | Relatórios + Comparativo | ⏳ |
-| 12 | Suporte (tickets) | ⏳ |
-| 13 | **Alfredo** — assistente financeiro com IA | ⏳ |
-| 14 | Admin: gestão de usuários | ⏳ |
-| 15–16 | Swagger completo · Hardening final | ⏳ |
-| 17–19 | Observabilidade · Cobertura · Deploy | ⏳ |
+| 11 | Relatórios + Comparativo | ✅ |
+| 12 | Suporte (tickets) | ✅ |
+| 13 | **Alfredo** — assistente financeiro com IA | ✅ |
+| 14 | Admin: gestão de usuários | ✅ |
+| 15–16 | Swagger completo · Hardening final | ✅ |
+| 17–19 | Observabilidade · Cobertura · Deploy | ✅ |
 
 > **Legenda:** ✅ concluída · ⏳ planejada
 

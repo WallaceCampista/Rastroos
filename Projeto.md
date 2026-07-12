@@ -592,42 +592,50 @@ Content-Security-Policy: <conforme 5.5>
 
 ### Etapa 14 — Admin: gestão de usuários (2 dias)
 
-- [ ] `UserAdminService`: listar, criar, editar, desativar, deletar, resetar senha, encerrar sessão, ver histórico de login
-- [ ] Templates `users.html` + modais (admin-only)
-- [ ] Endpoints REST `/api/admin/users/**` documentados no Swagger
-- [ ] Testes de autorização (usuário comum bloqueado)
+- [x] `UserAdminService`: listar (busca+status+KPIs), detalhar (sessões ativas + histórico de login), criar, editar, trocar status, resetar senha (gera senha temporária forte, marca `passwordMustChange` e revoga sessões), excluir, encerrar sessão (uma ou todas). Salvaguardas de "tiro no pé": admin não se auto-desativa/exclui/rebaixa e não é possível remover o **último admin ativo**; email único (case-insensitive)
+- [x] `UserAdminController` (`/app/users`, `@PreAuthorize("hasRole('ADMIN')")`) fino, com auditoria (`AuditLogger`) das ações sensíveis (criar/editar/status/reset/excluir/revogar sessão). **Nota:** optei por páginas dedicadas (`users.html` lista, `user-form.html` criar/editar, `user-detail.html` detalhe) em vez de modais, mantendo o padrão consolidado das Etapas 8–12 e evitando JS inline (§11.5)
+- [x] Templates sem inline + `fragments/user-labels.html` (rótulos PT dos enums role/status), `screens/users.css` autocontido e `screens/users.js` (confirmação de ações destrutivas via `data-confirm`, sem `onclick`). Senha temporária exibida uma única vez via flash
+- [x] Endpoints REST `/api/admin/users/**` (`UserAdminRestController`) documentados no Swagger (`@Operation`, `@ApiResponses`, `@Tag`): listar, detalhar, criar (200/409/422), atualizar, trocar status (PATCH), resetar senha, excluir (204). Só DTOs — a entidade `User` nunca cruza a fronteira Web. Nova `BusinessRuleException` → 409
+- [x] **Bug latente evitado:** a query `UserRepository.search` usava `:q IS NULL` com `CONCAT` (mesmo padrão que quebrou no Postgres na Etapa 12); trocado pelo sentinela tipado `:q = ''`, coberto por `@DataJpaTest`
+- [x] Testes: 18 unit (`UserAdminService`: guards de último-admin/auto-ação, email único, força da senha temporária, isolamento 404, KPIs) + 12 Web MockMvc (renderização real dos 3 templates) + 9 REST + 6 `@DataJpaTest` Postgres real (search com sentinela/status/texto, `countByRole`/`countByRoleAndStatus`, histórico de login) + 4 de autorização (`@SpringBootTest`: usuário comum → 403 em `/app/users` e `/api/admin/users`; anônimo → login; admin passa a barreira) — **249/249 verdes**
 
 ### Etapa 15 — Swagger + documentação da API (½ dia)
 
-- [ ] springdoc-openapi configurado em `/swagger-ui.html`
-- [ ] `@Operation`, `@ApiResponses`, `@Schema` em todos os endpoints REST
-- [ ] Autenticação no Swagger (cookie de sessão ou bearer)
+- [x] springdoc-openapi servindo `/swagger-ui.html` + `/v3/api-docs` (habilitado em dev/test, desligado em prod via `SPRINGDOC_ENABLED`; rotas liberadas no `SecurityConfig`)
+- [x] `@Operation` + `@ApiResponses` em **todos** os endpoints dos 4 controllers REST (Incomes, Transactions, Investments, Admin·Users) e `@Tag` por controller. `@Schema` (descrição + exemplo) nos 6 forms de request e descrição nos DTOs de response desta trilha; springdoc deriva o schema dos demais records automaticamente
+- [x] **Autenticação no Swagger (cookie de sessão):** `OpenApiConfig` declara um `SecurityScheme` `apiKey`/cookie sobre `JSESSIONID` + requisito global de segurança (cadeado em todas as operações); `springdoc.swagger-ui.with-credentials=true` faz o Swagger UI reaproveitar a sessão do navegador (same-origin) após login em `/auth/login`. Escritas continuam exigindo token CSRF — decisão de **não** trocar o repositório de CSRF para não relaxar a proteção (§11.3); leituras funcionam direto da UI
+- [x] Testes: 3 de integração (`OpenApiDocTest`, `@SpringBootTest`) validando o `/v3/api-docs` real — doc público sem auth, esquema `sessionCookie` (apiKey/cookie/JSESSIONID) + requisito global, endpoints publicados com summary (inclui `/api/admin/users/{id}/reset-password`) e `/swagger-ui.html` acessível — **252/252 verdes**
 
 ### Etapa 16 — Hardening final de segurança (1-2 dias)
 
-- [ ] Revisão dos headers HTTP em produção
-- [ ] CSP refinada (sem `unsafe-inline`)
-- [ ] Verificação de OWASP Top 10 (checklist anexa)
-- [ ] Penetration test interno: SQLi, XSS, CSRF, IDOR, broken auth
-- [ ] OWASP Dependency Check rodando no build
+- [x] **Revisão dos headers HTTP em produção**: confirmado o conjunto no `SecurityConfig` (aplicado a todos os perfis) — HSTS (1 ano + includeSubDomains, emitido só em HTTPS), `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY` + `frame-ancestors 'none'`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy` restrita, CSP. Perfil `prod` reforça: Swagger off (`SPRINGDOC_ENABLED`), `server.error.include-*=never`, actuator restrito a `health,info,prometheus`. Nenhuma mudança necessária além do já existente
+- [x] **CSP refinada (sem `unsafe-inline`)**: descoberta e corrigida uma inconsistência latente — 25 atributos `style="..."` renderizados (via `th:style`/`th:attr`) em 7 telas **conflitavam** com a CSP `style-src 'self'` (seriam bloqueados pelo browser) e violavam o §2.3. Removidos **todos**: valores dinâmicos (cores/larguras/alturas) passam por `data-*` (`data-fill`/`data-stroke`/`data-bar-width`/`-height`/`-bottom`) aplicados por `static/js/style-bindings.js` via **CSSOM** (`element.style.*`), que **não** é governado por `style-src` — mantendo a CSP estrita intacta (§11.3: reforcei o controle em vez de relaxá-lo). Zero inline em todos os templates (grep §12 limpo)
+- [x] **Verificação OWASP Top 10**: revista a matriz do Anexo A; sem `th:utext` (XSS), sem `<script>` inline com lógica, JSON via `<script type="application/json">` (bloco de dados, não executável)
+- [x] **Penetration test interno (automatizado)** — `SecurityHardeningTest` (`@SpringBootTest` + cadeia real): CSP estrita **sem** `unsafe-inline`/`unsafe-eval`; headers de segurança presentes; **CSRF** obrigatório em escrita de API e de form (POST sem token → 403); fronteira de acesso (anônimo não alcança `/api/**` nem `/app/**`). IDOR coberto pelos testes de service de cada domínio (acesso cruzado → 404); SQLi por JPQL parametrizado + sentinelas testados
+- [x] **OWASP Dependency Check no build**: plugin `org.owasp:dependency-check-maven` no perfil opt-in `security` (`./mvnw -Psecurity verify`), falha a build em CVE com CVSS ≥ 7 (HIGH/CRITICAL); chave do NVD via `-Dnvd.api.key` para CI. Opt-in para não baixar a base do NVD em toda build
+- [x] Testes: **257/257 verdes** (5 novos em `SecurityHardeningTest`); 40 testes de renderização de template revalidados após a remoção dos estilos inline
 
 ### Etapa 17 — Observabilidade (1 dia)
 
-- [ ] Logs estruturados (Logback JSON)
-- [ ] Métricas Prometheus em `/actuator/prometheus`
-- [ ] Health, info, env endpoints (env restrito)
+- [x] **Logs estruturados (Logback JSON)**: logging estruturado nativo do Spring Boot 3.4+ (`logging.structured.format.console: logstash`) ligado no perfil `prod` (dev/test seguem legíveis). `MdcFilter` popula o MDC com `traceId` (por requisição; reaproveita/gera `X-Request-Id`, ecoado na resposta) e `userId` (quando autenticado) — ambos viram campos de topo no JSON. Registrado via `ObservabilityConfig` **depois** da cadeia do Spring Security (`DEFAULT_FILTER_ORDER + 10`) para o `SecurityContext` já estar disponível
+- [x] **Métricas Prometheus em `/actuator/prometheus`**: dependência `micrometer-registry-prometheus`; endpoint exposto (base/test/prod: `health,info,prometheus`; dev amplo) e com tag comum `application=rastroos` em todas as métricas (JVM, HTTP, Hikari, …). Protegido por autenticação (não público — §3.2)
+- [x] **Health, info, env (env restrito)**: `/actuator/health` + probes `liveness`/`readiness` públicos (orquestrador) — `SecurityConfig` liberado para `/actuator/health/**` (§11.3: só abre probes; demais actuator exigem auth); `/actuator/info` público expondo java/os + **build-info** (goal `build-info` do plugin → versão/artefato/timestamp); `/actuator/env` **não exposto** (restrito) mesmo autenticado → 404
+- [x] Testes: 3 unit `MdcFilterTest` (gera/reaproveita traceId, ecoa header, injeta userId, limpa o MDC ao fim) + 5 `ObservabilityEndpointsTest` (`@SpringBootTest` + `@AutoConfigureObservability`): probes públicos UP, info com java, prometheus autenticado com tag `application`, prometheus anônimo bloqueado, env 404 — **265/265 verdes**
 
 ### Etapa 18 — Cobertura + qualidade (1 dia)
 
-- [ ] JaCoCo configurado, meta inicial: **80% line coverage** no domínio
-- [ ] PMD / SpotBugs / Checkstyle integrados ao Maven
-- [ ] CI pipeline (GitHub Actions sugerido): build, test, coverage, dependency check
+- [x] **JaCoCo com gate no domínio**: `check` bound ao `verify` exigindo **≥80% line + ≥70% branch** no pacote `com.rastroos.domain.service` (`element=PACKAGE`, `haltOnFailure`). Para chegar lá, cobri as maiores lacunas com testes unitários novos: `AuthServiceTest` (signup/verify/reset/change — antes 13.6%), `VerificationCodeServiceTest` (issue/consume, hash, expiração), `LoggingEmailService`, e `listForMonth`/`toDto` de `TransactionService`/`IncomeService` (switches paid/fixed, i18n pt/en, fallback conta/categoria). **Cobertura do domínio: 74.4%→91.4% line, 57.2%→76.0% branch**
+- [x] **PMD / SpotBugs / Checkstyle integrados** no perfil opt-in `quality` (`./mvnw -Pquality verify` ou goals diretos), em modo relatório para servir de baseline: SpotBugs (effort Max, exclui EI_EXPOSE_REP de entities/DTOs em `config/spotbugs/exclude.xml`), PMD (errorprone+bestpractices, `config/pmd/ruleset.xml`), Checkstyle enxuto (linha ≤120, sem wildcard/imports não usados, `config/checkstyle/checkstyle.xml`)
+- [x] **CI (GitHub Actions)** em `.github/workflows/ci.yml`: job `test` (Postgres 16 service + JDK 25 Temurin + `mvnw verify` = testes + gate de cobertura, artefato JaCoCo); job `static-analysis` (perfil `quality`, report-only, não bloqueia); job `dependency-check` (perfil `security`, usa `secrets.NVD_API_KEY`, não bloqueia)
+- [x] Testes: +29 unit (AuthService 17, VerificationCode 6, LoggingEmail 1, Transaction/Income list 5) — **294/294 verdes**, gate de cobertura passando com folga (91.4% ≥ 80% line, 76.0% ≥ 70% branch)
 
 ### Etapa 19 — Deploy de referência (1 dia)
 
-- [ ] `Dockerfile` multi-stage (build → runtime distroless)
-- [ ] `docker-compose.prod.yml`
-- [ ] README com instruções de produção
+- [x] **`Dockerfile` multi-stage**: stage de build (JDK 25) compila o jar e monta um **JRE mínimo com `jlink`** (`java.se` + módulos jdk.* do Spring/JDBC/observabilidade); runtime **distroless non-root** (`gcr.io/distroless/java-base-debian12:nonroot`) recebe só o JRE + o jar. Cache de dependências Maven via `--mount=type=cache`, `SPRING_PROFILES_ACTIVE=prod`, `MaxRAMPercentage=75`. **Nota:** não há distroless oficial p/ Java 25 ainda → `java-base` + JRE do jlink dá o mesmo resultado (mínimo, non-root) e é portável
+- [x] **`docker-compose.prod.yml`**: app + Postgres; banco **sem porta no host** (só rede interna), `depends_on` healthy, segredos por env (`${VAR:?}`), `no-new-privileges`, `read_only` + tmpfs `/tmp`, logs rotacionados. `.dockerignore` exclui `target/`, `.env`, `.git` e artefatos de agente
+- [x] **README com produção**: seção "🐳 Produção (Docker)" (build da imagem, env obrigatórias, geração de hash BCrypt + APP_SECRET, endpoints de health/prometheus, logs JSON, Swagger off) + roadmap atualizado (todas as etapas ✅)
+- [x] **Bug de prod pego pelo smoke test:** ao subir o container no perfil `prod`, o contexto falhava — `AuthService` exige um `EmailService`, mas `LoggingEmailService` é `@Profile({"dev","test"})` (loga o código, proibido em prod §5.9). Adicionado `UnconfiguredEmailService` (`@Profile("prod")` + `@ConditionalOnMissingBean(name="smtpEmailService")`): sobe em prod e emite **WARN sem o código**, cedendo lugar a um bean SMTP/SES real quando registrado
+- [x] **Verificação e2e da imagem**: `docker build` OK (322 MB), container sobe em prod (~16s) contra o Postgres, **Liquibase aplicado**, HikariCP conectado, logs **JSON estruturados**, roda como **nonroot**; `GET /actuator/health` → `UP` (liveness/readiness 200). Suíte **295/295 verde** com o gate de cobertura passando
 
 ---
 
@@ -926,20 +934,20 @@ Rastroos/
 
 O projeto é considerado **pronto** quando:
 
-- [ ] `docker compose up` sobe DB + app e a aplicação responde em `http://localhost:8080`.
-- [ ] Landing visualmente equivalente ao mockup baixado.
-- [ ] Fluxos completos: login, cadastro com verificação, aprovação admin, reset de senha.
-- [ ] Todas as 13 telas implementadas e navegáveis.
-- [ ] Multi-idioma PT/EN funcionando.
-- [ ] Tema claro/escuro + 18 paletas persistidos por usuário.
-- [ ] Separação interna por usuário comprovada por testes (acesso cruzado → 404).
-- [ ] Swagger UI acessível e completo.
-- [ ] **Zero** HTML / JS / CSS inline.
-- [ ] Cobertura de testes ≥ 80% no domínio.
-- [ ] OWASP Dependency Check sem CVEs HIGH/CRITICAL.
-- [ ] CSP restrita ativa em produção.
-- [ ] Lockout de brute force ativo e testado.
-- [ ] Audit log persistido para operações sensíveis.
+- [x] `docker compose up` sobe DB + app e a aplicação responde em `http://localhost:8080`. _(imagem verificada e2e: sobe em prod, health `UP`)_
+- [ ] Landing visualmente equivalente ao mockup baixado. _(implementada; validação visual pendente)_
+- [ ] Fluxos completos: login, cadastro com verificação, aprovação admin, reset de senha. _(implementados e testados por unidade; e2e do fluxo completo pendente)_
+- [x] Todas as 13 telas implementadas e navegáveis.
+- [x] Multi-idioma PT/EN funcionando.
+- [x] Tema claro/escuro + 18 paletas persistidos por usuário.
+- [x] Separação interna por usuário comprovada por testes (acesso cruzado → 404).
+- [x] Swagger UI acessível e completo.
+- [x] **Zero** HTML / JS / CSS inline.
+- [x] Cobertura de testes ≥ 80% no domínio. _(91.4% line / 76.0% branch; gate no `verify`)_
+- [ ] OWASP Dependency Check sem CVEs HIGH/CRITICAL. _(plugin no perfil `security`; execução no NVD pendente)_
+- [x] CSP restrita ativa em produção.
+- [x] Lockout de brute force ativo e testado.
+- [x] Audit log persistido para operações sensíveis.
 
 ---
 
@@ -982,4 +990,4 @@ open http://localhost:8080/swagger-ui.html
 
 ---
 
-**Fim do documento.** A próxima etapa é gerar o esqueleto Maven e abrir a Etapa 1.
+**Fim do documento.** Todas as 19 etapas do roadmap estão concluídas (0–19). Próximos passos sugeridos fora do roadmap inicial: validação visual/e2e da landing e dos fluxos de auth, rodar o OWASP Dependency Check contra o NVD (perfil `security` + chave), e um `EmailService` SMTP/SES real para prod.
