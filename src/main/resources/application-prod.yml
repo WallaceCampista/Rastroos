@@ -49,3 +49,8 @@ logging:
     com.rastroos: INFO
     org.springframework: WARN
     org.hibernate: WARN
+  # Logs estruturados em JSON (Logback nativo do Spring Boot 3.4+).
+  # Inclui MDC (traceId, userId) como campos de topo. Ver MdcFilter.
+  structured:
+    format:
+      console: logstash

@@ -1,0 +1,34 @@
+# Build output (a imagem compila do zero)
+target/
+**/target/
+
+# Segredos e ambiente local — NUNCA vão para a imagem
+.env
+.env.*
+!.env.example
+
+# Git / CI
+.git/
+.gitignore
+.github/
+
+# Artefatos do Claude/agentes — nunca versionar nem empacotar
+.claude/
+CLAUDE.md
+CLAUDE.local.md
+.claude.json
+.mcp.json
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# SO
+.DS_Store
+
+# Docs e scripts que não afetam o build da app
+docs/
+scripts/
+*.md
+!README.md

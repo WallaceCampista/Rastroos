@@ -76,16 +76,23 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,prometheus   # env/metrics/etc NÃO expostos por padrão
       base-path: /actuator
   endpoint:
     health:
       show-details: never         # never em prod; perfil dev sobrescreve
       probes:
-        enabled: true
+        enabled: true             # /actuator/health/{liveness,readiness}
   info:
     env:
-      enabled: false              # nunca expor env por padrão
+      enabled: false              # não expõe info.* do ambiente (env restrito)
+    java:
+      enabled: true
+    os:
+      enabled: true
+  metrics:
+    tags:
+      application: rastroos       # tag comum em todas as métricas
 
 # ── Alfredo (gerente IA) ───────────────────────────────────
 # base-url vazio = modo demonstração (stub, sem chamada externa).
@@ -121,6 +128,8 @@ springdoc:
     path: /swagger-ui.html
     operations-sorter: alpha
     tags-sorter: alpha
+    # Sessão do navegador (JSESSIONID) reaproveitada nas chamadas same-origin
+    with-credentials: true
 
 # ── Logging ────────────────────────────────────────────────
 logging:
