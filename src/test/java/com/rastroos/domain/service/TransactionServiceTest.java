@@ -45,7 +45,7 @@ class TransactionServiceTest {
     private final UUID accountId = UUID.randomUUID();
 
     @Test
-    void createParcelaEm3xGeraTresTransactionsComMesesSequenciais() {
+    void createParcelaEm3xDivideOTotalEComecaNoMesSeguinte() {
         TransactionForm form = makeForm("Geladeira", new BigDecimal("450.00"),
                 LocalDate.of(2026, 5, 10), 3);
 
@@ -57,19 +57,57 @@ class TransactionServiceTest {
         List<Transaction> created = service.create(alice, form);
 
         assertThat(created).hasSize(3);
+        // 1ª parcela cai no mês seguinte ao vencimento informado (maio → junho).
         assertThat(created).extracting(Transaction::getDueDate)
                 .containsExactly(
-                        LocalDate.of(2026, 5, 10),
                         LocalDate.of(2026, 6, 10),
-                        LocalDate.of(2026, 7, 10));
+                        LocalDate.of(2026, 7, 10),
+                        LocalDate.of(2026, 8, 10));
         assertThat(created).extracting(Transaction::getInstallmentCurrent)
                 .containsExactly((short) 1, (short) 2, (short) 3);
         assertThat(created).extracting(Transaction::getInstallmentTotal)
                 .containsOnly((short) 3);
+        // 450,00 dividido em 3 → 150,00 por parcela (não o total em cada uma).
         assertThat(created).extracting(Transaction::getAmountCents)
-                .containsOnly(45_000L); // 450.00 → 45000 centavos
+                .containsOnly(15_000L);
         assertThat(created).extracting(Transaction::isPaid).containsOnly(false);
         verify(txRepo, times(3)).save(any(Transaction.class));
+    }
+
+    @Test
+    void createParcelaComRestoDistribuiCentavosNasPrimeirasEFechaOTotal() {
+        TransactionForm form = makeForm("Notebook", new BigDecimal("100.00"),
+                LocalDate.of(2026, 5, 10), 3);
+
+        when(accountsRepo.findByIdAndUserId(accountId, alice))
+                .thenReturn(Optional.of(accountOf(alice)));
+        when(categoriesRepo.existsById("outros")).thenReturn(true);
+        when(txRepo.save(any(Transaction.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        List<Transaction> created = service.create(alice, form);
+
+        // 10000 centavos / 3 = 3333 com resto 1 → primeira parcela absorve o centavo.
+        assertThat(created).extracting(Transaction::getAmountCents)
+                .containsExactly(3_334L, 3_333L, 3_333L);
+        long sum = created.stream().mapToLong(Transaction::getAmountCents).sum();
+        assertThat(sum).isEqualTo(10_000L); // soma fecha exatamente o total
+    }
+
+    @Test
+    void createParcelaComValorMenorQueNumeroDeParcelasLancaErroENaoSalva() {
+        // 0,03 em 4x → 3 centavos não dividem em 4 parcelas > 0.
+        TransactionForm form = makeForm("Bala", new BigDecimal("0.03"),
+                LocalDate.of(2026, 5, 10), 4);
+
+        when(accountsRepo.findByIdAndUserId(accountId, alice))
+                .thenReturn(Optional.of(accountOf(alice)));
+        when(categoriesRepo.existsById("outros")).thenReturn(true);
+
+        assertThatThrownBy(() -> service.create(alice, form))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("transaction.installmentTooSmall");
+
+        verify(txRepo, never()).save(any(Transaction.class));
     }
 
     @Test
@@ -90,6 +128,8 @@ class TransactionServiceTest {
         assertThat(t.getInstallmentCurrent()).isNull();
         assertThat(t.getInstallmentTotal()).isNull();
         assertThat(t.getAmountCents()).isEqualTo(12_345L);
+        // À vista (1x) mantém o vencimento informado — não desloca para o mês seguinte.
+        assertThat(t.getDueDate()).isEqualTo(LocalDate.of(2026, 5, 3));
         assertThat(t.isPaid()).isTrue();
         assertThat(t.getPaidAt()).isNotNull();
     }

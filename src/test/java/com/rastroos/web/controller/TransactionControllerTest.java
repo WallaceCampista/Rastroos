@@ -90,7 +90,7 @@ class TransactionControllerTest {
 
     @BeforeEach
     void setUp() {
-        when(currentUser.requireId()).thenReturn(userId);
+        when(currentUser.requireEffectiveId()).thenReturn(userId);
         when(accounts.findAllByUserIdOrderByNameAsc(userId)).thenReturn(List.of());
         when(categories.findAllByOrderBySortOrderAsc()).thenReturn(List.of());
     }

@@ -212,6 +212,6 @@ class UserAdminRestControllerTest {
                 UserRole.USER, UserStatus.ACTIVE, "pt-BR",
                 Instant.parse("2026-05-01T10:00:00Z"),
                 Instant.parse("2026-05-02T10:00:00Z"), null,
-                false, false, List.of(), List.of());
+                false, false, List.of(), List.of(), null, null);
     }
 }

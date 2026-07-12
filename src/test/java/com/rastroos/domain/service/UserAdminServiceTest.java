@@ -328,6 +328,106 @@ class UserAdminServiceTest {
         assertThat(service.terminateSession(otherId, sessionId)).isTrue();
     }
 
+    // ── acessor: validação de alvo ───────────────────────────
+
+    @Test
+    void createAcessorSemAlvoLancaTargetRequired() {
+        when(users.existsByEmailIgnoreCase(anyString())).thenReturn(false);
+        when(encoder.encode(anyString())).thenReturn("HASH");
+
+        UserCreateForm form = new UserCreateForm();
+        form.setName("Ana");
+        form.setEmail("ana@example.com");
+        form.setPassword(STRONG);
+        form.setRole(UserRole.ACESSOR);
+        form.setStatus(UserStatus.ACTIVE);
+        form.setAccessesUserId(null);
+
+        assertThatThrownBy(() -> service.create(form))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessage("users.accessor.targetRequired");
+        verify(users, never()).save(any());
+    }
+
+    @Test
+    void createAcessorComAlvoValidoSalvaComAlvo() {
+        UUID target = UUID.randomUUID();
+        User titular = user(target, "titular@example.com", UserRole.USER, UserStatus.ACTIVE);
+        when(users.existsByEmailIgnoreCase(anyString())).thenReturn(false);
+        when(encoder.encode(anyString())).thenReturn("HASH");
+        when(users.findById(target)).thenReturn(Optional.of(titular));
+        when(users.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        UserCreateForm form = new UserCreateForm();
+        form.setName("Ana");
+        form.setEmail("ana@example.com");
+        form.setPassword(STRONG);
+        form.setRole(UserRole.ACESSOR);
+        form.setStatus(UserStatus.ACTIVE);
+        form.setAccessesUserId(target);
+
+        UserAdminService.CreateResult result = service.create(form);
+
+        assertThat(result.ok()).isTrue();
+        assertThat(result.user().getRole()).isEqualTo(UserRole.ACESSOR);
+        assertThat(result.user().getAccessesUserId()).isEqualTo(target);
+    }
+
+    @Test
+    void createAcessorComAlvoAdminLancaTargetInvalid() {
+        UUID target = UUID.randomUUID();
+        User admin = user(target, "admin@example.com", UserRole.ADMIN, UserStatus.ACTIVE);
+        when(users.existsByEmailIgnoreCase(anyString())).thenReturn(false);
+        when(encoder.encode(anyString())).thenReturn("HASH");
+        when(users.findById(target)).thenReturn(Optional.of(admin));
+
+        UserCreateForm form = new UserCreateForm();
+        form.setName("Ana");
+        form.setEmail("ana@example.com");
+        form.setPassword(STRONG);
+        form.setRole(UserRole.ACESSOR);
+        form.setStatus(UserStatus.ACTIVE);
+        form.setAccessesUserId(target);
+
+        assertThatThrownBy(() -> service.create(form))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessage("users.accessor.targetInvalid");
+        verify(users, never()).save(any());
+    }
+
+    @Test
+    void createUsuarioComumIgnoraAlvo() {
+        when(users.existsByEmailIgnoreCase(anyString())).thenReturn(false);
+        when(encoder.encode(anyString())).thenReturn("HASH");
+        when(users.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        UserCreateForm form = new UserCreateForm();
+        form.setName("Bob");
+        form.setEmail("bob@example.com");
+        form.setPassword(STRONG);
+        form.setRole(UserRole.USER);
+        form.setStatus(UserStatus.ACTIVE);
+        form.setAccessesUserId(UUID.randomUUID());   // deve ser ignorado
+
+        UserAdminService.CreateResult result = service.create(form);
+
+        assertThat(result.user().getAccessesUserId()).isNull();
+    }
+
+    @Test
+    void updateTornarAdminComAcessoresVinculadosBloqueia() {
+        User u = user(otherId, "titular@example.com", UserRole.USER, UserStatus.ACTIVE);
+        when(users.findById(otherId)).thenReturn(Optional.of(u));
+        when(users.countByAccessesUserId(otherId)).thenReturn(2L);
+
+        UserEditForm form = editForm("Titular", "titular@example.com", UserRole.ADMIN, UserStatus.ACTIVE);
+
+        assertThatThrownBy(() -> service.update(otherId, adminId, form))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessage("users.accessor.stillTarget");
+        verify(users, never()).save(any());
+    }
+
     // ── helpers ──────────────────────────────────────────────
 
     private static User user(UUID id, String email, UserRole role, UserStatus status) {

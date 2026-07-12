@@ -30,6 +30,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import com.rastroos.domain.entity.User;
 import com.rastroos.domain.entity.enums.UserRole;
 import com.rastroos.domain.entity.enums.UserStatus;
+import com.rastroos.domain.service.AccessorService;
 import com.rastroos.domain.service.UserAdminService;
 import com.rastroos.domain.service.UserAdminService.CreateResult;
 import com.rastroos.security.AuditLogger;
@@ -69,6 +70,7 @@ class UserAdminControllerTest {
     @Autowired private MockMvc mvc;
 
     @MockitoBean private UserAdminService service;
+    @MockitoBean private AccessorService accessorService;
     @MockitoBean private CurrentUser currentUser;
     @MockitoBean private AuditLogger audit;
 
@@ -251,6 +253,6 @@ class UserAdminControllerTest {
                 Instant.parse("2026-05-01T10:00:00Z"),
                 Instant.parse("2026-05-02T10:00:00Z"),
                 Instant.parse("2026-05-02T12:00:00Z"),
-                false, self, List.of(s), List.of(a));
+                false, self, List.of(s), List.of(a), null, null);
     }
 }
