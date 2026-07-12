@@ -85,7 +85,7 @@ class AccountControllerTest {
 
     @BeforeEach
     void setUp() {
-        when(currentUser.requireId()).thenReturn(userId);
+        when(currentUser.requireEffectiveId()).thenReturn(userId);
     }
 
     @Test

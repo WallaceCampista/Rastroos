@@ -84,7 +84,7 @@ class DashboardControllerTest {
 
     @BeforeEach
     void setUp() {
-        when(currentUser.requireId()).thenReturn(userId);
+        when(currentUser.requireEffectiveId()).thenReturn(userId);
         when(currentUser.get()).thenReturn(Optional.of(principal));
         when(principal.getEmail()).thenReturn("alice@example.com");
         when(principal.getAuthorities()).thenReturn(List.of());

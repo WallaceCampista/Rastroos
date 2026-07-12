@@ -88,7 +88,7 @@ class IncomeControllerTest {
 
     @BeforeEach
     void setUp() {
-        when(currentUser.requireId()).thenReturn(userId);
+        when(currentUser.requireEffectiveId()).thenReturn(userId);
         when(categories.findAllByOrderBySortOrderAsc()).thenReturn(List.of());
     }
 
