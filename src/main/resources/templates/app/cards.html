@@ -36,10 +36,10 @@
             <article class="account-tile" th:each="a : ${view.cards()}"
                      th:data-id="${a.id()}">
                 <span class="account-tile-blob"
-                      th:style="${a.colorHex() != null} ? ('background:' + a.colorHex())"></span>
+                      th:attr="data-fill=${a.colorHex()}"></span>
                 <div class="account-tile-head">
                     <div class="account-avatar account-avatar-lg"
-                         th:style="${a.colorHex() != null} ? ('background:' + a.colorHex())"
+                         th:attr="data-fill=${a.colorHex()}"
                          th:text="${a.iconText() != null and !a.iconText().isBlank()
                                    ? a.iconText()
                                    : #strings.substring(a.name(),0,1)}">·</div>
@@ -58,7 +58,7 @@
                    th:data-amount="${a.total()}"
                    th:text="${#numbers.formatDecimal(a.total(), 1, 'POINT', 2, 'COMMA')}">0,00</p>
                 <div class="account-bar">
-                    <span th:attr="style='width:' + ${a.paidPercent()} + '%'"></span>
+                    <span th:attr="data-bar-width=${a.paidPercent()}"></span>
                 </div>
                 <div class="account-tile-foot">
                     <span>Pago: <strong
@@ -97,10 +97,10 @@
             <article class="account-tile" th:each="a : ${view.bills()}"
                      th:data-id="${a.id()}">
                 <span class="account-tile-blob"
-                      th:style="${a.colorHex() != null} ? ('background:' + a.colorHex())"></span>
+                      th:attr="data-fill=${a.colorHex()}"></span>
                 <div class="account-tile-head">
                     <div class="account-avatar account-avatar-lg"
-                         th:style="${a.colorHex() != null} ? ('background:' + a.colorHex())"
+                         th:attr="data-fill=${a.colorHex()}"
                          th:text="${a.iconText() != null and !a.iconText().isBlank()
                                    ? a.iconText()
                                    : #strings.substring(a.name(),0,1)}">·</div>
@@ -116,7 +116,7 @@
                    th:data-amount="${a.total()}"
                    th:text="${#numbers.formatDecimal(a.total(), 1, 'POINT', 2, 'COMMA')}">0,00</p>
                 <div class="account-bar">
-                    <span th:attr="style='width:' + ${a.paidPercent()} + '%'"></span>
+                    <span th:attr="data-bar-width=${a.paidPercent()}"></span>
                 </div>
                 <div class="account-tile-actions">
                     <a class="btn-link"

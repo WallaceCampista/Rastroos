@@ -96,7 +96,7 @@
                 <ul class="donut-legend">
                     <li th:each="c : ${data.byCategory()}">
                         <span class="donut-dot"
-                              th:style="'background:' + ${c.colorHex()}"></span>
+                              th:attr="data-fill=${c.colorHex()}"></span>
                         <span class="donut-name" th:text="${c.name()}">categoria</span>
                         <span class="donut-amount"
                               th:text="${#numbers.formatDecimal(c.amount(), 1, 'POINT', 2, 'COMMA')}">0,00</span>
@@ -152,7 +152,7 @@
             <ul class="account-list" th:unless="${data.topAccounts().isEmpty()}">
                 <li class="account-row" th:each="a : ${data.topAccounts()}">
                     <div class="account-avatar"
-                         th:style="${a.colorHex() != null} ? ('background:' + a.colorHex())"
+                         th:attr="data-fill=${a.colorHex()}"
                          th:text="${a.iconText() != null and !a.iconText().isBlank()
                                    ? a.iconText()
                                    : #strings.substring(a.name(),0,1)}">·</div>
@@ -163,7 +163,7 @@
                             <span th:text="${a.paidPercent()}">0</span>% pago
                         </p>
                         <div class="account-bar">
-                            <span th:attr="style='width:' + ${a.paidPercent()} + '%'"></span>
+                            <span th:attr="data-bar-width=${a.paidPercent()}"></span>
                         </div>
                     </div>
                     <div class="account-meta">

@@ -68,7 +68,7 @@
             </div>
 
             <div class="sr-chart">
-                <div class="sr-target" th:attr="style='bottom:' + ${data.target() * 100 / 40} + '%'">
+                <div class="sr-target" th:attr="data-bar-bottom=${data.target() * 100 / 40}">
                     <span class="sr-target-tag" th:text="'alvo ' + ${data.target()} + '%'">alvo 20%</span>
                 </div>
                 <div class="sr-cols">
@@ -80,7 +80,7 @@
                         <span class="sr-val" th:classappend="'sr-txt-' + ${tone}"
                               th:text="${rate == null ? '—' : rate + '%'}">0%</span>
                         <span class="sr-bar" th:classappend="'sr-' + ${tone}"
-                              th:attr="style='height:' + ${barPct} + '%'"></span>
+                              th:attr="data-bar-height=${barPct}"></span>
                         <span class="sr-lbl" th:text="${m.label()}">Mês</span>
                     </div>
                 </div>

@@ -1,0 +1,104 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+# Cancela runs antigos do mesmo ref quando um novo chega.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── Build + testes + gate de cobertura (JaCoCo) ─────────────────────────
+  test:
+    name: build & test
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: rastroos
+          POSTGRES_PASSWORD: change-me-in-local-env
+          POSTGRES_DB: rastroos
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U rastroos -d rastroos"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      # `verify` roda testes + relatório JaCoCo + o gate de cobertura do domínio.
+      - name: Build, test & coverage gate
+        run: ./mvnw -B -ntp verify
+
+      - name: Upload JaCoCo report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-report
+          path: target/site/jacoco/
+          if-no-files-found: ignore
+
+  # ── Análise estática (report-only; não bloqueia o merge) ────────────────
+  static-analysis:
+    name: static analysis
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - name: SpotBugs + PMD + Checkstyle
+        run: ./mvnw -B -ntp -Pquality checkstyle:check pmd:check spotbugs:spotbugs
+      - name: Upload analysis reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: static-analysis-reports
+          path: |
+            target/spotbugs*.xml
+            target/pmd.xml
+            target/checkstyle-result.xml
+          if-no-files-found: ignore
+
+  # ── OWASP Dependency Check (A06) — precisa da chave do NVD ───────────────
+  dependency-check:
+    name: dependency check
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - name: OWASP Dependency Check (falha em CVSS >= 7)
+        run: ./mvnw -B -ntp -Psecurity org.owasp:dependency-check-maven:check -Dnvd.api.key="${NVD_API_KEY}"
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+      - name: Upload dependency-check report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-check-report
+          path: target/dependency-check-report.*
+          if-no-files-found: ignore
