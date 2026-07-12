@@ -1,0 +1,92 @@
+# ─────────────────────────────────────────────────────────────
+# Rastro$ — Docker Compose (produção de referência)
+# ─────────────────────────────────────────────────────────────
+# Sobe app (imagem multi-stage) + PostgreSQL. Todos os segredos vêm
+# do ambiente (arquivo .env NÃO versionado, ou variáveis do host).
+# O banco NÃO é exposto no host — só a app fala com ele pela rede interna.
+#
+#   docker compose -f docker-compose.prod.yml up -d --build
+#   docker compose -f docker-compose.prod.yml logs -f app
+#   docker compose -f docker-compose.prod.yml down
+# ─────────────────────────────────────────────────────────────
+
+name: rastroos-prod
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: rastroos-prod-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER missing}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD missing}
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB missing}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+      TZ: UTC
+      PGTZ: UTC
+    volumes:
+      - rastroos-prod-pgdata:/var/lib/postgresql/data
+    networks:
+      - rastroos-prod-net
+    # Sem `ports`: o Postgres só é alcançável pela rede interna do compose.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: rastroos:latest
+    container_name: rastroos-prod-app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      # Admin inicial (Liquibase 003) — gere um hash BCrypt(12) próprio.
+      RASTROOS_ADMIN_EMAIL: ${RASTROOS_ADMIN_EMAIL:?RASTROOS_ADMIN_EMAIL missing}
+      RASTROOS_ADMIN_PASSWORD_HASH: ${RASTROOS_ADMIN_PASSWORD_HASH:?RASTROOS_ADMIN_PASSWORD_HASH missing}
+      RASTROOS_APP_SECRET: ${RASTROOS_APP_SECRET:?RASTROOS_APP_SECRET missing}
+      # Integração de IA (vazio = stub, sem tráfego externo)
+      ALFREDO_API_BASE_URL: ${ALFREDO_API_BASE_URL:-}
+      ALFREDO_API_KEY: ${ALFREDO_API_KEY:-}
+      # Swagger desligado em prod por padrão
+      SPRINGDOC_ENABLED: ${SPRINGDOC_ENABLED:-false}
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    networks:
+      - rastroos-prod-net
+    security_opt:
+      - no-new-privileges:true
+    read_only: true            # rootfs imutável (distroless + BYO JRE permite)
+    tmpfs:
+      - /tmp
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  rastroos-prod-pgdata:
+    name: rastroos-prod-pgdata
+
+networks:
+  rastroos-prod-net:
+    name: rastroos-prod-net
+    driver: bridge
