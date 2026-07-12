@@ -55,23 +55,23 @@
                     · vence dia <span th:text="${a.dueDay() != null ? a.dueDay() : '—'}">—</span>
                 </p>
                 <p class="account-tile-amount"
-                   th:data-amount="${a.total()}"
-                   th:text="${#numbers.formatDecimal(a.total(), 1, 'POINT', 2, 'COMMA')}">0,00</p>
+                   th:data-amount="${maskValues ? '' : a.total()}"
+                   th:text="${(maskValues ? '*****' : #numbers.formatDecimal(a.total(), 1, 'POINT', 2, 'COMMA'))}">0,00</p>
                 <div class="account-bar">
                     <span th:attr="data-bar-width=${a.paidPercent()}"></span>
                 </div>
                 <div class="account-tile-foot">
                     <span>Pago: <strong
-                            th:text="${#numbers.formatDecimal(a.paid(), 1, 'POINT', 2, 'COMMA')}">0,00</strong></span>
+                            th:text="${(maskValues ? '*****' : #numbers.formatDecimal(a.paid(), 1, 'POINT', 2, 'COMMA'))}">0,00</strong></span>
                     <span th:if="${a.remaining().signum() > 0}">
-                        <strong th:text="${#numbers.formatDecimal(a.remaining(), 1, 'POINT', 2, 'COMMA')}">0,00</strong> aberto
+                        <strong th:text="${(maskValues ? '*****' : #numbers.formatDecimal(a.remaining(), 1, 'POINT', 2, 'COMMA'))}">0,00</strong> aberto
                     </span>
                     <span th:if="${a.remaining().signum() <= 0}">fechado</span>
                 </div>
                 <div class="account-tile-actions">
                     <a class="btn-link"
                        th:href="@{/app/cards/{id}/edit(id=${a.id()})}">Editar</a>
-                    <form th:action="@{/app/cards/{id}/delete(id=${a.id()})}" method="post"
+                    <form th:if="${!accessorMode}" th:action="@{/app/cards/{id}/delete(id=${a.id()})}" method="post"
                           data-confirm="Remover este cartão?">
                         <input type="hidden"
                                th:if="${_csrf != null}"
@@ -113,15 +113,15 @@
                     <span th:text="${a.entriesCount()}">0</span> lançamentos
                 </p>
                 <p class="account-tile-amount"
-                   th:data-amount="${a.total()}"
-                   th:text="${#numbers.formatDecimal(a.total(), 1, 'POINT', 2, 'COMMA')}">0,00</p>
+                   th:data-amount="${maskValues ? '' : a.total()}"
+                   th:text="${(maskValues ? '*****' : #numbers.formatDecimal(a.total(), 1, 'POINT', 2, 'COMMA'))}">0,00</p>
                 <div class="account-bar">
                     <span th:attr="data-bar-width=${a.paidPercent()}"></span>
                 </div>
                 <div class="account-tile-actions">
                     <a class="btn-link"
                        th:href="@{/app/cards/{id}/edit(id=${a.id()})}">Editar</a>
-                    <form th:action="@{/app/cards/{id}/delete(id=${a.id()})}" method="post"
+                    <form th:if="${!accessorMode}" th:action="@{/app/cards/{id}/delete(id=${a.id()})}" method="post"
                           data-confirm="Remover esta conta?">
                         <input type="hidden"
                                th:if="${_csrf != null}"
@@ -145,8 +145,8 @@
             <article class="account-tile" th:each="a : ${view.recurrent()}">
                 <h3 class="account-tile-name" th:text="${a.name()}">Recorrente</h3>
                 <p class="account-tile-amount"
-                   th:data-amount="${a.total()}"
-                   th:text="${#numbers.formatDecimal(a.total(), 1, 'POINT', 2, 'COMMA')}">0,00</p>
+                   th:data-amount="${maskValues ? '' : a.total()}"
+                   th:text="${(maskValues ? '*****' : #numbers.formatDecimal(a.total(), 1, 'POINT', 2, 'COMMA'))}">0,00</p>
             </article>
         </div>
     </section>

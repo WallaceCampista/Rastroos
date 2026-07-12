@@ -46,7 +46,7 @@ public class AccountController {
     @GetMapping
     public String list(@RequestParam(value = "ym", required = false) String ym, Model model) {
         YearMonth period = parseOrCurrent(ym);
-        UUID userId = currentUser.requireId();
+        UUID userId = currentUser.requireEffectiveId();
         AccountsView view = accounts.listForMonth(userId, period);
 
         model.addAttribute("activeNav", "cards");
@@ -78,14 +78,14 @@ public class AccountController {
             model.addAttribute("kinds", AccountKind.values());
             return "app/account-form";
         }
-        accounts.create(currentUser.requireId(), form);
+        accounts.create(currentUser.requireEffectiveId(), form);
         flash.addFlashAttribute("ok", "account.created");
         return "redirect:/app/cards";
     }
 
     @GetMapping("/{id}/edit")
     public String editForm(@PathVariable UUID id, Model model) {
-        Account a = accounts.require(currentUser.requireId(), id);
+        Account a = accounts.require(currentUser.requireEffectiveId(), id);
         AccountForm form = new AccountForm();
         form.setName(a.getName());
         form.setKind(a.getKind());
@@ -116,15 +116,16 @@ public class AccountController {
             model.addAttribute("kinds", AccountKind.values());
             return "app/account-form";
         }
-        accounts.update(currentUser.requireId(), id, form);
+        accounts.update(currentUser.requireEffectiveId(), id, form);
         flash.addFlashAttribute("ok", "account.updated");
         return "redirect:/app/cards";
     }
 
     @PostMapping("/{id}/delete")
+    @PreAuthorize("isAuthenticated() and !hasRole('ACESSOR')")
     public String delete(@PathVariable UUID id, RedirectAttributes flash) {
         try {
-            accounts.delete(currentUser.requireId(), id);
+            accounts.delete(currentUser.requireEffectiveId(), id);
             flash.addFlashAttribute("ok", "account.deleted");
         } catch (IllegalStateException e) {
             flash.addFlashAttribute("error", e.getMessage());

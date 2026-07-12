@@ -50,13 +50,14 @@ public class CompareController {
     public String compare(@RequestParam(value = "ym", required = false) String ym,
                           Model model) {
         YearMonth period = parseOrCurrent(ym);
-        CompareModel data = compare.load(currentUser.requireId(), period);
+        CompareModel data = compare.load(currentUser.requireEffectiveId(), period);
 
         model.addAttribute("activeNav", "compare");
         model.addAttribute("period", period);
         model.addAttribute("periodLabel", periodLabel(period));
         model.addAttribute("data", data);
-        model.addAttribute("chartDataJson", buildChartJson(data));
+        model.addAttribute("chartDataJson",
+                currentUser.isMaskActive() ? "{\"labels\":[],\"series\":[]}" : buildChartJson(data));
         return "app/compare";
     }
 

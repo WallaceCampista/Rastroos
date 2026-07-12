@@ -31,7 +31,9 @@
             </header>
             <div class="line-wrap line-wrap-tall">
                 <canvas id="compareLine" role="img"
+                        th:classappend="${maskValues} ? 'is-hidden' : ''"
                         aria-label="Receita, gasto, saldo e aporte nos últimos 6 meses"></canvas>
+                <p class="chart-masked" th:if="${maskValues}">🔒 Valores ocultos pelo titular</p>
             </div>
             <div class="legend-inline">
                 <span><i class="legend-dot legend-received"></i> Total recebido</span>
@@ -105,17 +107,17 @@
                     <div class="ct-row" th:each="m : ${data.months()}"
                          th:classappend="${m.current()} ? 'current' : ''">
                         <span class="ct-month" th:text="${m.label()}">Mês</span>
-                        <span class="ct-recv" th:data-amount="${m.received()}"
-                              th:text="${#numbers.formatDecimal(m.received(), 1, 'POINT', 2, 'COMMA')}">0,00</span>
-                        <span class="ct-spent" th:data-amount="${m.spent()}"
-                              th:text="${#numbers.formatDecimal(m.spent(), 1, 'POINT', 2, 'COMMA')}">0,00</span>
-                        <span th:data-amount="${m.fixed()}"
-                              th:text="${#numbers.formatDecimal(m.fixed(), 1, 'POINT', 2, 'COMMA')}">0,00</span>
-                        <span th:data-amount="${m.oneTime()}"
-                              th:text="${#numbers.formatDecimal(m.oneTime(), 1, 'POINT', 2, 'COMMA')}">0,00</span>
+                        <span class="ct-recv" th:data-amount="${maskValues ? '' : m.received()}"
+                              th:text="${(maskValues ? '*****' : #numbers.formatDecimal(m.received(), 1, 'POINT', 2, 'COMMA'))}">0,00</span>
+                        <span class="ct-spent" th:data-amount="${maskValues ? '' : m.spent()}"
+                              th:text="${(maskValues ? '*****' : #numbers.formatDecimal(m.spent(), 1, 'POINT', 2, 'COMMA'))}">0,00</span>
+                        <span th:data-amount="${maskValues ? '' : m.fixed()}"
+                              th:text="${(maskValues ? '*****' : #numbers.formatDecimal(m.fixed(), 1, 'POINT', 2, 'COMMA'))}">0,00</span>
+                        <span th:data-amount="${maskValues ? '' : m.oneTime()}"
+                              th:text="${(maskValues ? '*****' : #numbers.formatDecimal(m.oneTime(), 1, 'POINT', 2, 'COMMA'))}">0,00</span>
                         <span class="ct-net" th:classappend="${m.net().signum() < 0} ? 'is-neg' : ''"
-                              th:data-amount="${m.net()}"
-                              th:text="${#numbers.formatDecimal(m.net(), 1, 'POINT', 2, 'COMMA')}">0,00</span>
+                              th:data-amount="${maskValues ? '' : m.net()}"
+                              th:text="${(maskValues ? '*****' : #numbers.formatDecimal(m.net(), 1, 'POINT', 2, 'COMMA'))}">0,00</span>
                     </div>
                 </div>
             </div>

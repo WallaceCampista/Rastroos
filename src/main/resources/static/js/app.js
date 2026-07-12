@@ -62,4 +62,14 @@
     };
     prev?.addEventListener('click', () => navigatePeriod(-1));
     next?.addEventListener('click', () => navigatePeriod(+1));
+
+    // ── Form de usuário (admin): alvo só aparece quando papel = Acessor ──
+    // Puramente cosmético — o service ignora o alvo se o papel não for ACESSOR.
+    const roleSelect  = document.querySelector('[data-role-select]');
+    const targetField = document.querySelector('[data-accessor-target-field]');
+    if (roleSelect && targetField) {
+        const apply = () => { targetField.hidden = roleSelect.value !== 'ACESSOR'; };
+        apply();
+        roleSelect.addEventListener('change', apply);
+    }
 })();
