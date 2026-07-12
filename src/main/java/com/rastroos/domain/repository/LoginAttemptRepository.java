@@ -1,6 +1,7 @@
 package com.rastroos.domain.repository;
 
 import java.time.Instant;
+import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -9,6 +10,9 @@ import org.springframework.data.repository.query.Param;
 import com.rastroos.domain.entity.LoginAttempt;
 
 public interface LoginAttemptRepository extends JpaRepository<LoginAttempt, Long> {
+
+    /** Histórico recente de tentativas de um email (mais novas primeiro). */
+    List<LoginAttempt> findTop50ByEmailIgnoreCaseOrderByAttemptedAtDesc(String email);
 
     @Query("""
             SELECT COUNT(la) FROM LoginAttempt la

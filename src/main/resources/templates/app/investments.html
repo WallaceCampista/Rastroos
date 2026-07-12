@@ -59,10 +59,10 @@
         <div class="inv-grid" th:unless="${view.piggies().isEmpty()}">
             <article class="inv-tile" th:each="p : ${view.piggies()}" th:data-id="${p.id()}">
                 <span class="inv-tile-blob"
-                      th:style="${p.colorHex() != null} ? ('background:' + p.colorHex())"></span>
+                      th:attr="data-fill=${p.colorHex()}"></span>
                 <div class="inv-tile-head">
                     <div class="inv-avatar"
-                         th:style="${p.colorHex() != null} ? ('background:' + p.colorHex())"
+                         th:attr="data-fill=${p.colorHex()}"
                          th:text="${p.iconText() != null and !p.iconText().isBlank()
                                    ? p.iconText()
                                    : #strings.substring(p.name(),0,1)}">·</div>
@@ -78,7 +78,7 @@
                     <strong th:text="${#numbers.formatDecimal(p.goal(), 1, 'POINT', 2, 'COMMA')}">0,00</strong>
                 </p>
                 <div class="account-bar" th:if="${p.progressPercent() != null}">
-                    <span th:attr="style='width:' + ${p.progressPercent()} + '%'"></span>
+                    <span th:attr="data-bar-width=${p.progressPercent()}"></span>
                 </div>
                 <div class="inv-tile-actions">
                     <a class="btn-link"
@@ -144,7 +144,7 @@
                 <tr th:each="p : ${view.portfolio()}">
                     <td class="inv-name">
                         <span class="inv-dot"
-                              th:style="${p.colorHex() != null} ? ('background:' + p.colorHex())"></span>
+                              th:attr="data-fill=${p.colorHex()}"></span>
                         <span th:text="${p.name()}">Nome</span>
                     </td>
                     <td>
