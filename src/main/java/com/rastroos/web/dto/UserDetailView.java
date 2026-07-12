@@ -29,6 +29,8 @@ public record UserDetailView(
         boolean passwordMustChange,
         boolean self,
         List<UserSessionDto> sessions,
-        List<LoginAttemptDto> loginHistory
+        List<LoginAttemptDto> loginHistory,
+        UUID accessesUserId,
+        String targetName
 ) {
 }

@@ -1,5 +1,6 @@
 package com.rastroos.domain.repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -24,6 +25,14 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     long countByRole(UserRole role);
 
     long countByRoleAndStatus(UserRole role, UserStatus status);
+
+    /** Alvos elegíveis para um acessor: usuários comuns ativos. */
+    List<User> findByRoleAndStatusOrderByNameAsc(UserRole role, UserStatus status);
+
+    /** Contas acessor vinculadas a um titular. */
+    List<User> findByAccessesUserIdOrderByCreatedAtAsc(UUID accessesUserId);
+
+    long countByAccessesUserId(UUID accessesUserId);
 
     /**
      * Busca de admin: filtro opcional por status ({@code null} = todos) e por

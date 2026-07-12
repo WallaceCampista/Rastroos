@@ -1,5 +1,7 @@
 package com.rastroos.web.form;
 
+import java.util.UUID;
+
 import com.rastroos.domain.entity.enums.UserRole;
 import com.rastroos.domain.entity.enums.UserStatus;
 
@@ -36,8 +38,15 @@ public class UserEditForm {
     @Schema(description = "Status da conta", example = "ACTIVE")
     private UserStatus status;
 
+    @Schema(description = "Usuário-alvo cujos dados o acessor operará "
+            + "(obrigatório e válido apenas quando role = ACESSOR)")
+    private UUID accessesUserId;
+
     public UserEditForm() {
     }
+
+    public UUID getAccessesUserId() { return accessesUserId; }
+    public void setAccessesUserId(UUID accessesUserId) { this.accessesUserId = accessesUserId; }
 
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }

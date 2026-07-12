@@ -21,9 +21,11 @@ import com.rastroos.domain.repository.LoginAttemptRepository;
 import com.rastroos.domain.repository.UserRepository;
 import com.rastroos.domain.repository.UserSessionRepository;
 import com.rastroos.security.PasswordPolicy;
+import com.rastroos.web.dto.AccessorSummaryDto;
 import com.rastroos.web.dto.LoginAttemptDto;
 import com.rastroos.web.dto.UserAdminListView;
 import com.rastroos.web.dto.UserDetailView;
+import com.rastroos.web.dto.UserOptionDto;
 import com.rastroos.web.dto.UserRowDto;
 import com.rastroos.web.dto.UserSessionDto;
 import com.rastroos.web.form.UserCreateForm;
@@ -125,12 +127,15 @@ public class UserAdminService {
                         .map(a -> new LoginAttemptDto(a.getIpAddress(), a.isSuccess(), a.getAttemptedAt()))
                         .toList();
 
+        String targetName = u.getAccessesUserId() == null ? null
+                : users.findById(u.getAccessesUserId()).map(User::getName).orElse(null);
+
         return new UserDetailView(
                 u.getId(), u.getName(), u.getEmail(), u.isEmailVerified(),
                 u.getRole(), u.getStatus(), u.getPreferredLocale(),
                 u.getCreatedAt(), u.getUpdatedAt(), u.getLastLoginAt(),
                 u.isPasswordMustChange(), u.getId().equals(currentAdminId),
-                activeSessions, history);
+                activeSessions, history, u.getAccessesUserId(), targetName);
     }
 
     @Transactional
@@ -150,6 +155,7 @@ public class UserAdminService {
         u.setPasswordHash(encoder.encode(form.getPassword()));
         u.setRole(form.getRole());
         u.setStatus(form.getStatus());
+        u.setAccessesUserId(resolveAccessorTarget(form.getRole(), form.getAccessesUserId(), null));
         u.setEmailVerified(true);          // conta criada pelo admin já é confiável
         u.setPasswordMustChange(true);     // obriga troca no primeiro login
         return new CreateResult(users.save(u), List.of());
@@ -171,11 +177,16 @@ public class UserAdminService {
         if (losesAdminPower && isLastActiveAdmin(u)) {
             throw new BusinessRuleException("users.lastAdmin");
         }
+        // Não deixar de ser usuário comum enquanto houver acessores apontando para esta conta.
+        if (form.getRole() != UserRole.USER && users.countByAccessesUserId(id) > 0) {
+            throw new BusinessRuleException("users.accessor.stillTarget");
+        }
 
         u.setName(form.getName().trim());
         u.setEmail(email);
         u.setRole(form.getRole());
         u.setStatus(form.getStatus());
+        u.setAccessesUserId(resolveAccessorTarget(form.getRole(), form.getAccessesUserId(), id));
         return users.save(u);
     }
 
@@ -238,7 +249,48 @@ public class UserAdminService {
                 .orElse(false);
     }
 
+    /** Alvos elegíveis para um acessor: usuários comuns ativos. */
+    @Transactional(readOnly = true)
+    public List<UserOptionDto> eligibleTargets() {
+        return users.findByRoleAndStatusOrderByNameAsc(UserRole.USER, UserStatus.ACTIVE).stream()
+                .map(u -> new UserOptionDto(u.getId(), u.getName(), u.getEmail()))
+                .toList();
+    }
+
+    /** Contas acessor vinculadas a um titular (transparência + detalhe admin). */
+    @Transactional(readOnly = true)
+    public List<AccessorSummaryDto> accessorsOf(UUID targetId) {
+        return users.findByAccessesUserIdOrderByCreatedAtAsc(targetId).stream()
+                .map(u -> new AccessorSummaryDto(u.getId(), u.getName(), u.getEmail(),
+                        u.getStatus(), u.isValuesMasked(), u.getCreatedAt()))
+                .toList();
+    }
+
     // ── helpers ──────────────────────────────────────────────────────────
+
+    /**
+     * Resolve/valida o usuário-alvo de um acessor. Para papéis não-ACESSOR
+     * retorna {@code null} (o alvo só existe em contas acessor). Para ACESSOR,
+     * o alvo é obrigatório, não pode ser a própria conta e deve ser um usuário
+     * comum <em>ativo</em> — evita apontar acessor para admin/acessor/inativo.
+     */
+    private UUID resolveAccessorTarget(UserRole role, UUID accessesUserId, UUID selfId) {
+        if (role != UserRole.ACESSOR) {
+            return null;
+        }
+        if (accessesUserId == null) {
+            throw new BusinessRuleException("users.accessor.targetRequired");
+        }
+        if (accessesUserId.equals(selfId)) {
+            throw new BusinessRuleException("users.accessor.targetSelf");
+        }
+        User target = users.findById(accessesUserId)
+                .orElseThrow(() -> new BusinessRuleException("users.accessor.targetNotFound"));
+        if (target.getRole() != UserRole.USER || target.getStatus() != UserStatus.ACTIVE) {
+            throw new BusinessRuleException("users.accessor.targetInvalid");
+        }
+        return accessesUserId;
+    }
 
     private User require(UUID id) {
         return users.findById(id)
