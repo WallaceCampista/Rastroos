@@ -15,5 +15,10 @@
                 }
             });
         });
+
+        // cor do gradiente de cada cartão (via CSSOM — compatível com a CSP)
+        document.querySelectorAll(".card-tile-cartao[data-color]").forEach(function (tile) {
+            tile.style.setProperty("--acc-c", tile.getAttribute("data-color"));
+        });
     });
 })();
