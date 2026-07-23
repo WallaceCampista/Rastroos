@@ -51,7 +51,9 @@ public class InvestmentForm {
     @Schema(description = "Cor de destaque (hex ou expressão CSS)", example = "#22c55e")
     private String colorHex = "#6366f1";
 
-    @Pattern(regexp = "^[\\p{Alnum}\\p{Punct}\\s]{0,8}$", message = "investment.iconInvalid")
+    // Ícone curto: letras/números/pontuação/símbolos Unicode (◆ ★ ♥ … e emojis)
+    // e espaços. \p{Alnum}/\p{Punct} do POSIX são só ASCII — quebravam os símbolos.
+    @Pattern(regexp = "^[\\p{L}\\p{N}\\p{P}\\p{S}\\s]{0,8}$", message = "investment.iconInvalid")
     @Size(max = 8)
     @Schema(description = "Ícone curto/emoji (até 8 chars)", example = "🐷")
     private String iconText;
