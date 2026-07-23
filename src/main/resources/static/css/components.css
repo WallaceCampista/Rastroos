@@ -148,6 +148,7 @@
     overflow: hidden;
     animation: modal-pop .18s cubic-bezier(.3, 1.4, .5, 1);
 }
+.modal.modal-wide { max-width: 620px; }
 .modal-head {
     display: flex; align-items: center; justify-content: space-between;
     padding: 18px 22px;
@@ -350,6 +351,7 @@
 .money-md { font-size: 17px; }
 .money-lg { font-size: 24px; }
 .money-xl { font-size: 30px; }
+.money-xxl { font-size: 38px; letter-spacing: -0.02em; }
 
 .acc-chip {
     width: 36px; height: 36px; border-radius: 10px;

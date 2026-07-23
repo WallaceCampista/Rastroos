@@ -154,6 +154,22 @@
         apply('create');
     }
 
+    // Detalhe do investimento: botão "Resgatar" revela o form de resgate.
+    function initInvWithdraw(toggle) {
+        if (toggle.dataset.init) return;
+        toggle.dataset.init = '1';
+        const root = toggle.closest('.invest-detail') || document;
+        const panel = root.querySelector('[data-inv-withdraw-panel]');
+        if (!panel) return;
+        const cancel = panel.querySelector('[data-inv-withdraw-cancel]');
+        const show = (on) => {
+            panel.hidden = !on;
+            if (on) { const i = panel.querySelector('input[name="amount"]'); if (i) i.focus(); }
+        };
+        toggle.addEventListener('click', () => show(panel.hidden));
+        if (cancel) cancel.addEventListener('click', () => show(false));
+    }
+
     // Modal de investimento: rendimento mensal estimado a partir do % do CDI.
     function initCdiCalc(form) {
         if (form.dataset.cdiInit) return;
@@ -191,6 +207,7 @@
             scope.querySelectorAll('[data-inv-kind]').forEach(initInvKind);
             scope.querySelectorAll('[data-swatch-group]').forEach(initSwatches);
             scope.querySelectorAll('[data-inv-mode-tabs]').forEach(initInvMode);
+            scope.querySelectorAll('[data-inv-withdraw-toggle]').forEach(initInvWithdraw);
             scope.querySelectorAll('[data-inv-form]').forEach(initCdiCalc);
         },
     };
