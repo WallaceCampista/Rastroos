@@ -9,6 +9,7 @@ import java.util.List;
 public record InvestmentsView(
         List<InvestmentDto> piggies,
         List<InvestmentDto> portfolio,
-        PortfolioSummaryDto summary
+        PortfolioSummaryDto summary,
+        InvestmentChartData chart
 ) {
 }

@@ -1,8 +1,11 @@
 package com.rastroos.domain.service;
 
 import java.math.BigDecimal;
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -16,8 +19,11 @@ import com.rastroos.domain.entity.enums.InvestmentKind;
 import com.rastroos.domain.exception.ResourceNotFoundException;
 import com.rastroos.domain.repository.InvestmentHistoryRepository;
 import com.rastroos.domain.repository.InvestmentRepository;
+import com.rastroos.web.dto.InvestmentChartData;
+import com.rastroos.web.dto.InvestmentDetailView;
 import com.rastroos.web.dto.InvestmentDto;
 import com.rastroos.web.dto.InvestmentHistoryEntryDto;
+import com.rastroos.web.dto.InvestmentMovementDto;
 import com.rastroos.web.dto.InvestmentsView;
 import com.rastroos.web.dto.MoneyDto;
 import com.rastroos.web.dto.PortfolioSummaryDto;
@@ -84,7 +90,63 @@ public class InvestmentService {
                 byKind
         );
 
-        return new InvestmentsView(piggies, portfolio, summary);
+        InvestmentChartData chart = buildChart(userId, all);
+        return new InvestmentsView(piggies, portfolio, summary, chart);
+    }
+
+    private static final String[] MONTHS_PT = {
+            "Jan", "Fev", "Mar", "Abr", "Mai", "Jun",
+            "Jul", "Ago", "Set", "Out", "Nov", "Dez"
+    };
+
+    /**
+     * Séries dos últimos 6 meses: patrimônio total por mês (onda do hero) e
+     * o histórico de cada investimento (sparkline). Usa carry-forward — o
+     * valor de um mês sem snapshot herda o último snapshot anterior; antes do
+     * primeiro snapshot vale 0; investimentos sem histórico usam o saldo atual.
+     */
+    private InvestmentChartData buildChart(UUID userId, List<Investment> all) {
+        YearMonth end = YearMonth.now();
+        List<YearMonth> months = new ArrayList<>(6);
+        for (int i = 5; i >= 0; i--) months.add(end.minusMonths(i));
+
+        List<String> labels = months.stream()
+                .map(m -> MONTHS_PT[m.getMonthValue() - 1])
+                .toList();
+
+        Map<UUID, List<InvestmentHistory>> byInv = new HashMap<>();
+        for (InvestmentHistory h : history.findAllByUserId(userId)) {
+            byInv.computeIfAbsent(h.getInvestmentId(), k -> new ArrayList<>()).add(h);
+        }
+
+        long[] total = new long[months.size()];
+        Map<String, List<Long>> sparklines = new LinkedHashMap<>();
+        for (Investment inv : all) {
+            List<InvestmentHistory> h = byInv.getOrDefault(inv.getId(), List.of());
+            List<Long> series = new ArrayList<>(months.size());
+            for (int i = 0; i < months.size(); i++) {
+                long val = valueAtMonth(h, months.get(i).toString(), inv.getAmountCents());
+                series.add(val);
+                total[i] += val;
+            }
+            sparklines.put(String.valueOf(inv.getId()), series);
+        }
+
+        List<Long> totalList = new ArrayList<>(months.size());
+        for (long v : total) totalList.add(v);
+        return new InvestmentChartData(labels, totalList, sparklines);
+    }
+
+    /** Valor (centavos) de um investimento no mês, com carry-forward. */
+    private static long valueAtMonth(List<InvestmentHistory> hist, String monthKey, long currentCents) {
+        if (hist.isEmpty()) return currentCents;   // sem histórico → saldo atual
+        long value = 0L;
+        boolean any = false;
+        for (InvestmentHistory e : hist) {         // ordenado asc por yearMonth
+            if (e.getYearMonth().compareTo(monthKey) <= 0) { value = e.getAmountCents(); any = true; }
+            else break;
+        }
+        return any ? value : 0L;                   // antes do 1º snapshot → 0
     }
 
     @Transactional(readOnly = true)
@@ -122,6 +184,91 @@ public class InvestmentService {
             history.deleteAll(snapshots);
         }
         investments.delete(existing);
+    }
+
+    /** Aporte num investimento existente: soma ao saldo e registra o snapshot do mês. */
+    @Transactional
+    public Investment deposit(UUID userId, UUID id, BigDecimal addAmount) {
+        Investment inv = require(userId, id);
+        long addCents = addAmount == null ? 0L : addAmount.movePointRight(2).longValueExact();
+        if (addCents <= 0) {
+            throw new IllegalArgumentException("investment.amountPositive");
+        }
+        long total = inv.getAmountCents() + addCents;
+        inv.setAmountCents(total);
+        investments.save(inv);
+
+        String ym = YearMonth.now().toString();
+        InvestmentHistory snap = history.findByInvestmentIdAndYearMonth(id, ym)
+                .orElseGet(() -> {
+                    InvestmentHistory h = new InvestmentHistory();
+                    h.setInvestmentId(id);
+                    h.setYearMonth(ym);
+                    return h;
+                });
+        snap.setAmountCents(total);
+        history.save(snap);
+        return inv;
+    }
+
+    /** Resgate de um investimento existente: subtrai do saldo e registra o snapshot do mês. */
+    @Transactional
+    public Investment withdraw(UUID userId, UUID id, BigDecimal amount) {
+        Investment inv = require(userId, id);
+        long cents = amount == null ? 0L : amount.movePointRight(2).longValueExact();
+        if (cents <= 0) {
+            throw new IllegalArgumentException("investment.amountPositive");
+        }
+        if (cents > inv.getAmountCents()) {
+            throw new IllegalArgumentException("investment.amountOverBalance");
+        }
+        long total = inv.getAmountCents() - cents;
+        inv.setAmountCents(total);
+        investments.save(inv);
+
+        String ym = YearMonth.now().toString();
+        InvestmentHistory snap = history.findByInvestmentIdAndYearMonth(id, ym)
+                .orElseGet(() -> {
+                    InvestmentHistory h = new InvestmentHistory();
+                    h.setInvestmentId(id);
+                    h.setYearMonth(ym);
+                    return h;
+                });
+        snap.setAmountCents(total);
+        history.save(snap);
+        return inv;
+    }
+
+    /** Detalhe do investimento com as movimentações derivadas do histórico. */
+    @Transactional(readOnly = true)
+    public InvestmentDetailView investmentDetail(UUID userId, UUID id) {
+        Investment inv = require(userId, id);
+        long incomeCents = inv.getMonthlyReturnCents() == null ? 0L : inv.getMonthlyReturnCents();
+        List<InvestmentMovementDto> moves = new ArrayList<>();
+        long prev = 0L;
+        for (InvestmentHistory h : history.findAllByInvestmentIdOrderByYearMonthAsc(id)) {
+            long delta = h.getAmountCents() - prev;
+            long deposit = Math.max(0L, delta - incomeCents);
+            moves.add(new InvestmentMovementDto(
+                    monthLabelFull(h.getYearMonth()),
+                    MoneyDto.fromCents(incomeCents),
+                    MoneyDto.fromCents(deposit),
+                    MoneyDto.fromCents(h.getAmountCents())));
+            prev = h.getAmountCents();
+        }
+        java.util.Collections.reverse(moves);   // mais recente primeiro
+        return new InvestmentDetailView(toDto(inv), moves);
+    }
+
+    /** "2026-05" → "Mai 2026". */
+    private static String monthLabelFull(String yearMonth) {
+        try {
+            String[] p = yearMonth.split("-");
+            int m = Integer.parseInt(p[1]);
+            return MONTHS_PT[m - 1] + " " + p[0];
+        } catch (RuntimeException e) {
+            return yearMonth;
+        }
     }
 
     @Transactional(readOnly = true)
