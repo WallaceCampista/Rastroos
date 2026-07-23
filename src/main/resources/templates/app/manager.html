@@ -1,6 +1,6 @@
 <!doctype html>
 <html xmlns:th="http://www.thymeleaf.org" lang="pt-BR"
-      th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+      th:replace="~{layout/base :: layout(~{::title}, ~{::head/link}, ~{::section}, ~{::head/script})}">
 <head>
     <title>Alfredo · Rastro$</title>
     <link rel="stylesheet" th:href="@{/css/screens/manager.css}">
@@ -8,98 +8,124 @@
 </head>
 <body>
 <section class="app-content screen screen-manager">
-    <div class="mgr-layout">
 
-        <!-- ── Histórico ─────────────────────────────────────── -->
-        <aside class="mgr-history">
-            <div class="mgr-history-head">
-                <span class="mgr-history-lbl">Conversas</span>
-                <a class="btn-link" th:href="@{/app/manager}">+ Nova</a>
+    <div th:if="${ok}" class="flash flash-ok" th:text="#{${ok}}">Ok</div>
+    <div th:if="${error}" class="flash flash-error" th:text="#{${error}}">Erro</div>
+
+    <!-- ── Boas-vindas (sem conversa ativa) ─────────────────────── -->
+    <div th:unless="${view.hasActiveChat()}" class="manager-welcome-screen">
+        <div class="mgr-hero">
+            <div class="mgr-hero-orb" aria-hidden="true">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 3l2.4 5.6 6 .5-4.6 3.9 1.4 5.9L12 16.9 6.8 18.9l1.4-5.9L3.6 9.1l6-.5z"/>
+                </svg>
             </div>
-            <ul class="mgr-history-list" th:unless="${view.history().isEmpty()}">
-                <li class="mgr-history-row" th:each="c : ${view.history()}"
-                    th:classappend="${c.active()} ? 'is-active' : ''">
-                    <a class="mgr-history-item" th:href="@{/app/manager(chat=${c.id()})}">
-                        <span class="mgr-history-title" th:text="${c.title()}">Título</span>
-                        <span class="mgr-history-when"
-                              th:text="${#temporals.format(c.createdAt().atZone(T(java.time.ZoneOffset).UTC), 'dd/MM')}">--</span>
-                    </a>
-                    <form class="inline-form" method="post"
-                          th:action="@{/app/manager/{id}/delete(id=${c.id()})}"
-                          data-confirm="Apagar esta conversa?">
-                        <input type="hidden" th:if="${_csrf != null}"
-                               th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                        <button type="submit" class="mgr-history-del" aria-label="Apagar conversa">×</button>
-                    </form>
-                </li>
-            </ul>
-            <p th:if="${view.history().isEmpty()}" class="mgr-history-empty">
-                Nenhuma conversa ainda.
-            </p>
-        </aside>
+            <h1>Alfredo, o seu gerente</h1>
+            <p class="muted">Pergunte qualquer coisa sobre seu dinheiro</p>
+        </div>
 
-        <!-- ── Painel principal ──────────────────────────────── -->
-        <div class="mgr-main">
-            <div th:if="${ok}" class="flash flash-ok" th:text="#{${ok}}">Ok</div>
-            <div th:if="${error}" class="flash flash-error" th:text="#{${error}}">Erro</div>
-
-            <!-- Boas-vindas (sem conversa ativa) -->
-            <div th:unless="${view.hasActiveChat()}" class="mgr-welcome">
-                <div class="mgr-orb" aria-hidden="true">R<span class="brand-dollar">$</span></div>
-                <h1 class="mgr-welcome-title">Oi, eu sou o Alfredo</h1>
-                <p class="mgr-welcome-sub">
-                    Seu gerente financeiro pessoal. Pergunte sobre seus gastos, contas e metas.
-                </p>
-
-                <div class="mgr-suggestions">
-                    <form th:each="s : ${view.suggestions()}" class="mgr-suggestion-form"
-                          method="post" th:action="@{/app/manager/new}">
-                        <input type="hidden" th:if="${_csrf != null}"
-                               th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                        <input type="hidden" name="message" th:value="${s}">
-                        <button type="submit" class="mgr-suggestion" th:text="${s}">Sugestão</button>
-                    </form>
-                </div>
-
-                <form class="mgr-composer" method="post"
-                      th:action="@{/app/manager/new}" th:object="${promptForm}">
+        <div class="mgr-suggestions">
+            <div class="mgr-suggestions-label">Experimente uma destas:</div>
+            <div class="mgr-suggestions-grid">
+                <form th:each="s, st : ${view.suggestions()}" class="mgr-suggestion-form"
+                      method="post" th:action="@{/app/manager/new}">
                     <input type="hidden" th:if="${_csrf != null}"
                            th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                    <textarea th:field="*{message}" class="mgr-input" rows="2" maxlength="2000"
-                              required placeholder="Pergunte ao Alfredo…"></textarea>
-                    <button type="submit" class="btn btn-primary mgr-send">Enviar</button>
+                    <input type="hidden" name="message" th:value="${s}">
+                    <button type="submit" class="mgr-suggestion">
+                        <span class="mgr-sg-icon" aria-hidden="true" th:switch="${st.index}">
+                            <svg th:case="0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12c0-3.3 3.1-6 7-6 3.3 0 6 1.8 6.7 4.5l2 .5v3l-2 .5c-.3 1.1-1 2-1.7 2.7V20h-3v-1.4c-.6.2-1.3.4-2 .4s-1.4-.2-2-.4V20H7v-2.7C5.8 16.2 5 14.7 5 12z"/><path d="M15 11h.01"/></svg>
+                            <svg th:case="1" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M21 7v6h-6"/></svg>
+                            <svg th:case="2" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.4 5.6 6 .5-4.6 3.9 1.4 5.9L12 16.9 6.8 18.9l1.4-5.9L3.6 9.1l6-.5z"/></svg>
+                            <svg th:case="3" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>
+                            <svg th:case="4" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6z"/><path d="M10 19a2 2 0 0 0 4 0"/></svg>
+                            <svg th:case="*" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 11h18"/><path d="M7 16h3"/></svg>
+                        </span>
+                        <span th:text="${s}">Sugestão</span>
+                    </button>
                 </form>
             </div>
 
-            <!-- Conversa ativa -->
-            <div th:if="${view.hasActiveChat()}" class="mgr-chat">
-                <header class="mgr-chat-head">
-                    <div class="mgr-chat-orb" aria-hidden="true">R<span class="brand-dollar">$</span></div>
-                    <div>
-                        <p class="mgr-chat-title">Alfredo</p>
-                        <p class="mgr-chat-sub" th:text="${view.activeChat().title()}">Conversa</p>
-                    </div>
-                </header>
+            <form method="post" th:action="@{/app/manager/start}">
+                <input type="hidden" th:if="${_csrf != null}"
+                       th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <button type="submit" class="btn btn-primary mgr-new-btn">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                    Nova conversa
+                </button>
+            </form>
 
-                <div class="mgr-thread" id="mgrThread" aria-live="polite">
-                    <div class="chat-msg" th:each="m : ${view.activeChat().messages()}"
-                         th:classappend="${m.assistant()} ? 'chat-msg-asst' : 'chat-msg-user'">
-                        <div class="chat-avatar" th:if="${m.assistant()}" aria-hidden="true">R<span class="brand-dollar">$</span></div>
-                        <div class="chat-bubble" th:text="${m.content()}">Mensagem</div>
-                    </div>
+            <details th:if="${!view.history().isEmpty()}" class="mgr-history-disc">
+                <summary class="mgr-history-link">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+                    <span th:text="${#lists.size(view.history())} + (${#lists.size(view.history())} == 1
+                          ? ' conversa anterior' : ' conversas anteriores')">conversas anteriores</span>
+                </summary>
+                <ul class="mgr-history-list">
+                    <li class="mgr-history-row" th:each="c : ${view.history()}">
+                        <a class="mgr-history-item" th:href="@{/app/manager(chat=${c.id()})}">
+                            <span class="mgr-history-title" th:text="${c.title()}">Título</span>
+                            <span class="mgr-history-when"
+                                  th:text="${#temporals.format(c.createdAt().atZone(T(java.time.ZoneOffset).UTC), 'dd/MM')}">--</span>
+                        </a>
+                        <form class="inline-form" method="post"
+                              th:action="@{/app/manager/{id}/delete(id=${c.id()})}"
+                              data-confirm="Apagar esta conversa?">
+                            <input type="hidden" th:if="${_csrf != null}"
+                                   th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                            <button type="submit" class="mgr-history-del" aria-label="Apagar conversa">×</button>
+                        </form>
+                    </li>
+                </ul>
+            </details>
+        </div>
+    </div>
+
+    <!-- ── Conversa ativa ───────────────────────────────────────── -->
+    <div th:if="${view.hasActiveChat()}" class="mgr-chat-pane">
+        <header class="mgr-chat-header">
+            <a class="mgr-back" th:href="@{/app/manager}" aria-label="Voltar às conversas">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            </a>
+            <div class="chat-avatar mgr-avatar" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.4 5.6 6 .5-4.6 3.9 1.4 5.9L12 16.9 6.8 18.9l1.4-5.9L3.6 9.1l6-.5z"/></svg>
+            </div>
+            <div class="mgr-chat-meta">
+                <p class="mgr-chat-title">Alfredo</p>
+                <p class="mgr-chat-sub" th:text="${view.activeChat().title()}">Conversa</p>
+            </div>
+        </header>
+
+        <div class="mgr-chat-messages" id="mgrThread" aria-live="polite">
+            <div class="chat-msg" th:each="m : ${view.activeChat().messages()}"
+                 th:classappend="${m.assistant()} ? 'chat-msg-asst' : 'chat-msg-user'">
+                <div class="chat-avatar mgr-avatar" th:if="${m.assistant()}" aria-hidden="true">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.4 5.6 6 .5-4.6 3.9 1.4 5.9L12 16.9 6.8 18.9l1.4-5.9L3.6 9.1l6-.5z"/></svg>
                 </div>
-
-                <form class="mgr-composer" method="post"
-                      th:action="@{/app/manager/{id}/messages(id=${view.activeChat().id()})}"
-                      th:object="${promptForm}">
-                    <input type="hidden" th:if="${_csrf != null}"
-                           th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                    <textarea th:field="*{message}" class="mgr-input" rows="2" maxlength="2000"
-                              required placeholder="Escreva sua mensagem…"></textarea>
-                    <button type="submit" class="btn btn-primary mgr-send">Enviar</button>
-                </form>
+                <div class="chat-avatar user-avatar" th:unless="${m.assistant()}" aria-hidden="true"
+                     th:text="${userInitial}">V</div>
+                <div class="chat-bubble" th:text="${m.content()}">Mensagem</div>
             </div>
         </div>
+
+        <form class="mgr-input-wrap" method="post"
+              th:action="@{/app/manager/{id}/messages(id=${view.activeChat().id()})}"
+              th:object="${promptForm}">
+            <input type="hidden" th:if="${_csrf != null}"
+                   th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+            <textarea th:field="*{message}" class="mgr-input" rows="1" maxlength="2000"
+                      required placeholder="Escreva sua mensagem…"></textarea>
+            <button type="submit" class="mgr-send" aria-label="Enviar">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+            </button>
+        </form>
     </div>
 </section>
 </body>

@@ -7,6 +7,7 @@
     <link rel="stylesheet" th:href="@{/css/tokens.css}">
     <link rel="stylesheet" th:href="@{/css/base.css}">
     <link rel="stylesheet" th:href="@{/css/auth.css}">
+    <script th:src="@{/js/auth-password.js}" defer></script>
 </head>
 <body>
 <main class="auth-shell">
@@ -43,8 +44,11 @@
             </label>
             <label>
                 <span>Senha</span>
-                <input type="password" name="password" autocomplete="current-password"
-                       required minlength="1" maxlength="128">
+                <div class="auth-input-wrap">
+                    <input type="password" name="password" autocomplete="current-password"
+                           required minlength="1" maxlength="128">
+                    <th:block th:replace="~{fragments/password-toggle :: pwdToggle}"></th:block>
+                </div>
             </label>
             <button type="submit" class="btn btn-primary">Entrar</button>
         </form>
