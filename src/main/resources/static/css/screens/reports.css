@@ -3,11 +3,9 @@
    ───────────────────────────────────────────────────────────── */
 
 .screen-reports {
-    padding: 28px 32px;
     display: flex;
     flex-direction: column;
     gap: 24px;
-    max-width: 1240px;
 }
 
 .screen-header {
@@ -190,14 +188,6 @@
     font-size: 14px;
     font-variant-numeric: tabular-nums;
     text-align: right;
-}
-
-.hbar-val::before,
-.weight-val::before {
-    content: "R$ ";
-    font-size: 0.72em;
-    color: var(--text-dim);
-    font-weight: 600;
 }
 
 .hbar-foot {

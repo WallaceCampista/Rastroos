@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import com.rastroos.domain.service.AuthService;
 import com.rastroos.security.CurrentUser;
 import com.rastroos.web.form.ChangePasswordForm;
+import com.rastroos.web.form.ProfileForm;
 
 import jakarta.validation.Valid;
 
@@ -30,6 +31,28 @@ public class ProfileController {
     public ProfileController(CurrentUser currentUser, AuthService auth) {
         this.currentUser = currentUser;
         this.auth = auth;
+    }
+
+    @GetMapping
+    public String profilePage(Model model) {
+        ProfileForm form = new ProfileForm();
+        currentUser.get().ifPresent(u -> {
+            form.setName(u.getName());
+            model.addAttribute("profileEmail", u.getEmail());
+        });
+        model.addAttribute("profileForm", form);
+        return "app/profile";
+    }
+
+    @PostMapping
+    public String profileSubmit(@Valid @ModelAttribute("profileForm") ProfileForm form,
+                                BindingResult binding, Model model) {
+        if (binding.hasErrors()) {
+            currentUser.get().ifPresent(u -> model.addAttribute("profileEmail", u.getEmail()));
+            return "app/profile";
+        }
+        auth.updateName(currentUser.requireId(), form.getName());
+        return "redirect:/app/dashboard?profileSaved";
     }
 
     @GetMapping("/change-password")
