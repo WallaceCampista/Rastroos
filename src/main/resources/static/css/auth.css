@@ -112,6 +112,56 @@
     margin-top: 6px;
 }
 
+.auth-input-wrap {
+    position: relative;
+    display: grid;
+}
+
+.auth-input-wrap input {
+    padding-right: 46px;
+}
+
+.auth-pwd-toggle {
+    position: absolute;
+    top: 50%;
+    right: 8px;
+    transform: translateY(-50%);
+    width: 32px;
+    height: 32px;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--text-faint);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s, background 0.15s;
+}
+
+.auth-pwd-toggle:hover {
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.auth-pwd-toggle:focus-visible {
+    outline: none;
+    color: var(--text);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.35);
+}
+
+.auth-pwd-toggle .auth-eye-hide {
+    display: none;
+}
+
+.auth-pwd-toggle.is-visible .auth-eye-show {
+    display: none;
+}
+
+.auth-pwd-toggle.is-visible .auth-eye-hide {
+    display: inline;
+}
+
 .auth-hint {
     color: var(--text-faint);
     font-size: 12.5px;

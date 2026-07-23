@@ -148,4 +148,13 @@ public class AuthService {
         sessions.revokeAllByUser(userId, java.time.Instant.now());
         return List.of();
     }
+
+    /** Atualiza o nome de exibição do próprio usuário. */
+    @Transactional
+    public void updateName(UUID userId, String name) {
+        User u = users.findById(userId)
+                .orElseThrow(() -> new IllegalStateException("Usuário não encontrado: " + userId));
+        u.setName(name == null ? "" : name.trim());
+        users.save(u);
+    }
 }
