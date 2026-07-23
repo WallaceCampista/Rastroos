@@ -1,6 +1,6 @@
 <!doctype html>
 <html xmlns:th="http://www.thymeleaf.org" lang="pt-BR"
-      th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+      th:replace="~{layout/base :: layout(~{::title}, ~{::head/link}, ~{::section}, ~{::head/script})}">
 <head>
     <title>Usuário · Rastro$</title>
     <link rel="stylesheet" th:href="@{/css/screens/users.css}">
@@ -37,14 +37,14 @@
                     <dt>Papel</dt>
                     <dd>
                         <span class="role-tag" th:classappend="'role-' + ${view.role().name().toLowerCase()}"
-                              th:text="~{fragments/user-labels :: roleText(${view.role()})}">Papel</span>
+                              th:insert="~{fragments/user-labels :: roleText(${view.role()})}">Papel</span>
                     </dd>
                 </div>
                 <div class="info-row">
                     <dt>Status</dt>
                     <dd>
                         <span class="st-pill" th:classappend="'st-' + ${view.status().name().toLowerCase()}"
-                              th:text="~{fragments/user-labels :: statusText(${view.status()})}">Status</span>
+                              th:insert="~{fragments/user-labels :: statusText(${view.status()})}">Status</span>
                     </dd>
                 </div>
                 <div class="info-row">

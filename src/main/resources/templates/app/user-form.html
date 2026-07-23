@@ -1,6 +1,6 @@
 <!doctype html>
 <html xmlns:th="http://www.thymeleaf.org" lang="pt-BR"
-      th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+      th:replace="~{layout/base :: layout(~{::title}, ~{::head/link}, ~{::section}, ~{::head/script})}">
 <head>
     <title th:text="${edit} ? 'Editar usuário · Rastro$' : 'Novo usuário · Rastro$'">Usuário · Rastro$</title>
     <link rel="stylesheet" th:href="@{/css/screens/users.css}">
@@ -51,7 +51,7 @@
                 <label for="role">Papel</label>
                 <select id="role" th:field="*{role}" data-role-select>
                     <option th:each="r : ${roles}" th:value="${r}"
-                            th:text="~{fragments/user-labels :: roleText(${r})}">Papel</option>
+                            th:insert="~{fragments/user-labels :: roleText(${r})}">Papel</option>
                 </select>
                 <p class="field-error" th:if="${#fields.hasErrors('role')}" th:errors="*{role}">erro</p>
             </div>
@@ -60,7 +60,7 @@
                 <label for="status">Status</label>
                 <select id="status" th:field="*{status}">
                     <option th:each="s : ${statuses}" th:value="${s}"
-                            th:text="~{fragments/user-labels :: statusText(${s})}">Status</option>
+                            th:insert="~{fragments/user-labels :: statusText(${s})}">Status</option>
                 </select>
                 <p class="field-error" th:if="${#fields.hasErrors('status')}" th:errors="*{status}">erro</p>
             </div>

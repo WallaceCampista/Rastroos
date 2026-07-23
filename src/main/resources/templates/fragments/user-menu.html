@@ -3,28 +3,113 @@
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <body>
 
-<div class="app-user-menu" th:fragment="menu">
-    <button type="button" class="app-user-trigger" data-user-menu-trigger>
-        <span class="app-user-avatar"
-              th:text="${userInitial != null ? userInitial : '·'}">·</span>
-        <span class="app-user-name"
-              sec:authentication="name">user@example.com</span>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+<div class="user-menu-wrap" th:fragment="menu">
+    <button type="button" class="user-menu-trigger" data-user-menu-trigger
+            aria-haspopup="menu" aria-expanded="false">
+        <span class="user-menu-avatar" th:text="${userInitial != null ? userInitial : 'V'}">V</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
              stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M6 9l6 6 6-6"/>
         </svg>
     </button>
 
-    <div class="app-user-dropdown" hidden data-user-menu-dropdown>
-        <a th:href="@{/app/profile}">Perfil</a>
-        <a th:href="@{/app/profile/password}">Trocar senha</a>
+    <div class="user-menu" role="menu" hidden data-user-menu-dropdown>
+
+        <div class="um-header">
+            <div class="um-avatar" th:text="${userInitial != null ? userInitial : 'V'}">V</div>
+            <div class="um-info">
+                <div class="um-name" th:text="${userDisplayName != null ? userDisplayName : 'Você'}">Você</div>
+                <div class="um-email" sec:authentication="name">conta@rastro.app</div>
+            </div>
+        </div>
+
+        <div class="um-divider"></div>
+
+        <div class="um-row">
+            <div class="um-row-left">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="9"/>
+                    <path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>
+                </svg>
+                <span>Idioma</span>
+            </div>
+            <div class="um-lang-seg" role="tablist" aria-label="Idioma">
+                <button type="button" class="um-lang-opt" role="tab" data-lang="pt"
+                        th:classappend="${#locale.language == 'pt'} ? 'on' : ''">PT (BR)</button>
+                <button type="button" class="um-lang-opt" role="tab" data-lang="en"
+                        th:classappend="${#locale.language == 'en'} ? 'on' : ''">EN</button>
+            </div>
+        </div>
+
+        <div class="um-divider"></div>
+
+        <div class="um-row">
+            <div class="um-row-left">
+                <svg data-theme-icon width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/>
+                </svg>
+                <span data-theme-label>Modo escuro</span>
+            </div>
+            <button type="button" class="um-switch on" data-theme-toggle role="switch" aria-checked="true">
+                <span class="um-switch-thumb"></span>
+            </button>
+        </div>
+
+        <div class="um-divider"></div>
+
+        <button type="button" class="um-action" data-theme-expand aria-expanded="false">
+            <span class="um-color-preview" data-color-preview>
+                <span></span><span></span>
+            </span>
+            <span>Tema de cores</span>
+            <svg class="um-action-chev um-action-chev-toggle" width="14" height="14" viewBox="0 0 24 24"
+                 fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+                 stroke-linejoin="round" aria-hidden="true">
+                <path d="M6 9l6 6 6-6"/>
+            </svg>
+        </button>
+        <div class="um-theme-inline" data-theme-tiles hidden></div>
+
+        <a class="um-action" data-modal-url th:href="@{/app/profile}">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm-8 9a8 8 0 0 1 16 0"/>
+            </svg>
+            <span>Editar perfil</span>
+            <svg class="um-action-chev" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"
+                 aria-hidden="true">
+                <path d="M9 6l6 6-6 6"/>
+            </svg>
+        </a>
+
+        <a class="um-action" data-modal-url th:href="@{/app/profile/change-password}">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M15 7a4 4 0 1 1-4 4m4-4a4 4 0 0 0-4 4m4-4v0M11 11l-7 7v3h3v-2h2v-2h2l2-2"/>
+            </svg>
+            <span>Trocar senha</span>
+            <svg class="um-action-chev" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"
+                 aria-hidden="true">
+                <path d="M9 6l6 6-6 6"/>
+            </svg>
+        </a>
+
         <form th:action="@{/auth/logout}" method="post" class="app-user-logout-form">
-            <input type="hidden"
-                   th:if="${_csrf != null}"
-                   th:name="${_csrf.parameterName}"
-                   th:value="${_csrf.token}">
-            <button type="submit" class="app-user-logout">Sair</button>
+            <input type="hidden" th:if="${_csrf != null}"
+                   th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+            <button type="submit" class="um-action um-action-danger">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M15 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h9M11 12h11m0 0l-4-4m4 4l-4 4"/>
+                </svg>
+                <span>Sair</span>
+            </button>
         </form>
+
     </div>
 </div>
 
