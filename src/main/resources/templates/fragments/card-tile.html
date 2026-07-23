@@ -1,0 +1,61 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security" lang="pt-BR">
+<body>
+
+<!-- Card de conta/cartão (clica para abrir o detalhe abaixo) -->
+<button th:fragment="tile(acc, mask)" type="button"
+        class="card-tile"
+        th:classappend="${acc.kind().name() == 'CARD' ? 'card-tile-cartao' : ''} + ' st-card-' + ${acc.status()}"
+        th:attr="data-account-detail-url=@{/app/cards/{id}/detail(id=${acc.id()})},data-color=${acc.colorHex()}"
+        th:with="barVal=${acc.status() == 'paid' ? 100 : (acc.paidPercent() == 0 ? 100 : acc.paidPercent())}">
+    <div class="card-tile-top">
+        <span class="acc-chip" th:attr="data-fill=${acc.colorHex()}"
+              th:text="${acc.iconText() != null and !acc.iconText().isBlank() ? acc.iconText() : #strings.substring(acc.name(),0,1)}">·</span>
+        <div class="card-tile-meta">
+            <div class="card-tile-name" th:text="${acc.name()}">Conta</div>
+            <div class="card-tile-type">
+                <span th:switch="${acc.kind().name()}">
+                    <th:block th:case="'CARD'">Fatura</th:block>
+                    <th:block th:case="'BILL'">Fixo</th:block>
+                    <th:block th:case="*">mensal</th:block>
+                </span><span th:if="${acc.dueDay() != null}"> · Vence dia <span th:text="${acc.dueDay()}">10</span></span>
+            </div>
+        </div>
+        <div class="card-tile-status">
+            <span class="pill pill-sm st-pill" th:classappend="'st-' + ${acc.status()}" th:switch="${acc.status()}">
+                <th:block th:case="'paid'">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-12"/></svg>
+                    Pago</th:block>
+                <th:block th:case="'overdue'">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6z"/><path d="M10 19a2 2 0 0 0 4 0"/></svg>
+                    Vencida</th:block>
+                <th:block th:case="'soon'">Vence em breve</th:block>
+                <th:block th:case="'open'">Em aberto</th:block>
+                <th:block th:case="*">Sem lançamentos</th:block>
+            </span>
+        </div>
+    </div>
+
+    <div class="card-tile-value">
+        <span class="money money-lg" th:data-amount="${mask ? '' : acc.total()}"
+              th:text="${(mask ? '••••' : 'R$ ' + #numbers.formatDecimal(acc.total(), 1, 'POINT', 2, 'COMMA'))}">R$ 0,00</span>
+    </div>
+
+    <div class="pb-wrap card-tile-bar">
+        <span class="pb-fill" th:attr="data-bar-width=${barVal}"></span>
+    </div>
+
+    <div class="card-tile-foot">
+        <span class="muted"><span th:text="${acc.entriesCount()}">0</span>
+            <th:block th:if="${acc.kind().name() == 'CARD'}">lançamentos</th:block>
+            <th:block th:unless="${acc.kind().name() == 'CARD'}">contas</th:block></span>
+        <span>
+            <span class="money money-sm" th:text="${(mask ? '••••' : 'R$ ' + #numbers.formatDecimal(acc.paid(), 1, 'POINT', 2, 'COMMA'))}">R$ 0,00</span>
+            / <span class="money money-sm" th:text="${(mask ? '••••' : 'R$ ' + #numbers.formatDecimal(acc.total(), 1, 'POINT', 2, 'COMMA'))}">R$ 0,00</span>
+        </span>
+    </div>
+</button>
+
+</body>
+</html>

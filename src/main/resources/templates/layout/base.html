@@ -1,6 +1,6 @@
 <!doctype html>
 <html xmlns:th="http://www.thymeleaf.org" lang="pt-BR"
-      th:fragment="layout(title, content)">
+      th:fragment="layout(title, links, content, scripts)">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -9,35 +9,58 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap">
+          href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500;600;700&amp;display=swap">
 
     <link rel="stylesheet" th:href="@{/css/tokens.css}">
     <link rel="stylesheet" th:href="@{/css/base.css}">
     <link rel="stylesheet" th:href="@{/css/layout.css}">
     <link rel="stylesheet" th:href="@{/css/components.css}">
 
-    <script th:src="@{/js/app.js}" defer></script>
+    <!-- CSS específico da tela (do <head> de cada template) -->
+    <th:block th:replace="${links} ?: ~{}"></th:block>
+
     <script th:src="@{/js/theme.js}" defer></script>
+    <script th:src="@{/js/app.js}" defer></script>
+    <script th:src="@{/js/modals.js}" defer></script>
+    <script th:src="@{/js/form-widgets.js}" defer></script>
+    <script th:src="@{/js/auth-password.js}" defer></script>
     <script th:src="@{/js/style-bindings.js}" defer></script>
+    <script th:src="@{/js/kpi-motion.js}" defer></script>
 </head>
 <body class="app-body"
       th:attr="data-theme=${userTheme != null ? userTheme : 'dark'},
                data-density=${userDensity != null ? userDensity : 'regular'},
                data-palette=${userPalette != null ? userPalette : 0}">
 
-<div class="app-shell">
-    <aside class="app-sidebar" th:replace="~{fragments/sidebar :: sidebar(active=${activeNav})}"></aside>
+<button class="mobile-nav-toggle" type="button" data-mobile-nav-toggle aria-label="Menu">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>
+    </svg>
+</button>
 
-    <div class="app-main">
-        <header class="app-topbar" th:replace="~{fragments/topbar :: topbar}"></header>
+<div class="app" data-app-shell>
+    <div class="sidebar-wrap" data-sidebar-wrap>
+        <aside th:replace="~{fragments/sidebar :: sidebar(active=${activeNav})}"></aside>
+    </div>
 
-        <section class="app-content" th:replace="${content}">
+    <main class="main">
+        <header th:replace="~{fragments/topbar :: topbar}"></header>
+
+        <section class="screen-host" th:replace="${content}">
             <p>Conteúdo da tela vai aqui.</p>
         </section>
 
-        <footer class="app-footer" th:replace="~{fragments/footer :: footer}"></footer>
-    </div>
+        <footer th:replace="~{fragments/footer :: footer}"></footer>
+    </main>
 </div>
+
+<div class="modal-backdrop" data-modal-backdrop hidden>
+    <div class="modal" data-modal-container role="dialog" aria-modal="true"></div>
+</div>
+
+<!-- JS específico da tela (do <head> de cada template) -->
+<th:block th:replace="${scripts} ?: ~{}"></th:block>
 
 </body>
 </html>

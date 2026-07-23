@@ -1,5 +1,6 @@
 /* ─────────────────────────────────────────────────────────────
-   Rastro$ — base global (reset + tipografia + utilitários)
+   Rastro$ — base global (reset + tipografia + botões + utils)
+   Espelha a seção Base/Buttons do protótipo (styles.css).
    ───────────────────────────────────────────────────────────── */
 *, *::before, *::after {
     box-sizing: border-box;
@@ -25,6 +26,12 @@ body {
     text-rendering: optimizeLegibility;
 }
 
+h1, h2, h3, h4 {
+    margin: 0;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
 a {
     color: var(--primary-2);
     text-decoration: none;
@@ -41,47 +48,72 @@ a:hover {
 
 button {
     font-family: inherit;
+    color: inherit;      /* fundamental: sem isso o texto some no dark */
+    cursor: pointer;
 }
 
+/* ── Utilitários ─────────────────────────────────────────── */
+.muted { color: var(--text-dim); }
+.accent { color: var(--accent); }
+
+.link {
+    background: none;
+    border: 0;
+    color: var(--primary);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 6px;
+}
+.link:hover { background: color-mix(in oklch, var(--primary) 12%, transparent); }
+
+/* ── Botões ──────────────────────────────────────────────── */
 .btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 10px;
-    padding: 12px 22px;
-    border: 0;
-    border-radius: 999px;
-    font-family: inherit;
-    font-weight: 700;
-    font-size: 15px;
-    cursor: pointer;
-    transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
+    gap: 6px;
+    padding: 9px 14px;
+    font: 600 13px/1 var(--font);
+    border: 1px solid var(--border-2);
+    border-radius: 10px;
+    background: var(--surface-2);
+    color: var(--text);
+    text-decoration: none;
     white-space: nowrap;
-    letter-spacing: -0.005em;
+    transition: transform .12s, background .15s, border-color .15s, filter .15s;
 }
+.btn:hover { background: var(--surface-3); text-decoration: none; }
+.btn:active { transform: translateY(1px); }
 
 .btn-primary {
-    background: linear-gradient(135deg, var(--primary), var(--primary-2));
+    background: linear-gradient(180deg, var(--primary), color-mix(in oklch, var(--primary) 80%, black));
     color: white;
-    box-shadow: 0 10px 30px -10px var(--primary), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    border-color: transparent;
+    box-shadow: 0 8px 20px -10px var(--primary);
 }
-
 .btn-primary:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 16px 38px -10px var(--primary), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    filter: brightness(1.08);
+    background: linear-gradient(180deg, var(--primary), color-mix(in oklch, var(--primary) 80%, black));
 }
 
-.btn-ghost {
+.btn-ghost { background: transparent; }
+.btn-ghost:hover { background: var(--surface-2); }
+
+.btn-block { width: 100%; }
+.btn-icon-only { padding: 9px 10px; }
+
+.icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
     background: transparent;
-    color: var(--text);
-    border: 1px solid var(--border-2);
+    color: var(--text-dim);
+    transition: background .15s, color .15s, border-color .15s;
 }
-
-.btn-ghost:hover {
-    background: var(--surface);
-    border-color: var(--text-faint);
-}
-
-.accent {
-    color: var(--accent);
-}
+.icon-btn:hover { background: var(--surface-2); color: var(--text); }
