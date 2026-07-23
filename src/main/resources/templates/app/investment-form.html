@@ -1,10 +1,9 @@
 <!doctype html>
 <html xmlns:th="http://www.thymeleaf.org" lang="pt-BR"
-      th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+      th:replace="~{layout/base :: layout(~{::title}, ~{::head/link}, ~{::section}, ~{::head/script})}">
 <head>
     <title th:text="${editing ? 'Editar investimento · Rastro$' : 'Novo investimento · Rastro$'}">Investimento · Rastro$</title>
     <link rel="stylesheet" th:href="@{/css/screens/investments.css}">
-    <script th:src="@{/js/screens/investment-form.js}" defer></script>
 </head>
 <body>
 <section class="app-content screen screen-investments screen-inv-form">
@@ -12,94 +11,124 @@
         <div>
             <h1 class="screen-title"
                 th:text="${editing ? 'Editar investimento' : 'Novo investimento'}">Novo investimento</h1>
-            <p class="screen-sub">
-                Cofrinho (meta) ou ativo de renda fixa/variável.
-            </p>
+            <p class="screen-sub">Cofrinho (meta) ou ativo de renda fixa/variável.</p>
         </div>
         <div class="screen-actions">
             <a class="btn" th:href="@{/app/investments}">Voltar</a>
         </div>
     </header>
 
-    <form class="inv-form card"
+    <form class="form inv-form" data-inv-form
           th:action="${editing ? '/app/investments/' + investmentId + '/edit' : '/app/investments/new'}"
-          method="post"
-          th:object="${investmentForm}">
-        <input type="hidden"
-               th:if="${_csrf != null}"
-               th:name="${_csrf.parameterName}"
-               th:value="${_csrf.token}">
+          method="post" th:object="${investmentForm}">
+        <input type="hidden" th:if="${_csrf != null}"
+               th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
 
-        <div class="inv-form-grid">
-            <div class="field">
-                <label for="kind">Tipo</label>
-                <select id="kind" th:field="*{kind}" data-inv-kind>
-                    <option value="PIGGY">Cofrinho</option>
-                    <option value="CDI">CDB / CDI</option>
-                    <option value="TREASURY">Tesouro</option>
-                    <option value="LCI">LCI</option>
-                    <option value="LIMITE_GARANTIDO">Limite garantido</option>
-                    <option value="STOCK">Ações</option>
-                </select>
-                <p class="field-error" th:if="${#fields.hasErrors('kind')}"
-                   th:errors="*{kind}">erro</p>
-            </div>
-
-            <div class="field field-wide">
-                <label for="name">Nome</label>
-                <input id="name" type="text" th:field="*{name}"
-                       maxlength="120" required autocomplete="off">
-                <p class="field-error" th:if="${#fields.hasErrors('name')}"
-                   th:errors="*{name}">erro</p>
-            </div>
-
-            <div class="field">
-                <label for="amount">Saldo atual (R$)</label>
-                <input id="amount" type="number" step="0.01" min="0"
-                       th:field="*{amount}" required>
-                <p class="field-error" th:if="${#fields.hasErrors('amount')}"
-                   th:errors="*{amount}">erro</p>
-            </div>
-
-            <div class="field" data-only-kind="PIGGY">
-                <label for="goal">Meta (R$)</label>
-                <input id="goal" type="number" step="0.01" min="0.01"
-                       th:field="*{goal}">
-                <p class="field-error" th:if="${#fields.hasErrors('goal')}"
-                   th:errors="*{goal}">erro</p>
-            </div>
-
-            <div class="field" data-only-kind="CDI,TREASURY,LCI,LIMITE_GARANTIDO,STOCK">
-                <label for="rateLabel">Rentabilidade (texto)</label>
-                <input id="rateLabel" type="text" th:field="*{rateLabel}"
-                       maxlength="60" placeholder="ex.: 105% CDI">
-            </div>
-
-            <div class="field" data-only-kind="CDI,TREASURY,LCI,LIMITE_GARANTIDO,STOCK">
-                <label for="monthlyReturn">Rend. mensal estimado (R$)</label>
-                <input id="monthlyReturn" type="number" step="0.01" min="0"
-                       th:field="*{monthlyReturn}">
-            </div>
-
-            <div class="field">
-                <label for="colorHex">Cor</label>
-                <input id="colorHex" type="text" th:field="*{colorHex}"
-                       maxlength="80" placeholder="#6366f1">
-            </div>
-
-            <div class="field">
-                <label for="iconText">Ícone (texto)</label>
-                <input id="iconText" type="text" th:field="*{iconText}"
-                       maxlength="8" placeholder="🐷">
-                <p class="field-error" th:if="${#fields.hasErrors('iconText')}"
-                   th:errors="*{iconText}">erro</p>
-            </div>
+        <!-- Abas: criar novo / adicionar em existente (só na criação) -->
+        <div class="form-tabs" data-inv-mode-tabs th:unless="${editing}">
+            <button type="button" class="form-tab on" data-inv-mode="create">Criar novo</button>
+            <button type="button" class="form-tab" data-inv-mode="existing"
+                    th:if="${existingInvestments != null and !existingInvestments.isEmpty()}">Adicionar em existente</button>
         </div>
 
-        <footer class="inv-form-foot">
-            <button type="submit" class="btn btn-primary"
-                    th:text="${editing ? 'Salvar' : 'Criar investimento'}">Salvar</button>
-        </footer>
+        <!-- ── Criar novo ─────────────────────────────────────── -->
+        <div data-inv-section="create">
+            <label>
+                <span>Tipo</span>
+                <div class="form-tabs form-tabs-sm" data-inv-kind>
+                    <button type="button" class="form-tab" data-kind="PIGGY">Cofrinho</button>
+                    <button type="button" class="form-tab" data-kind="CDI">CDI / CDB</button>
+                    <button type="button" class="form-tab" data-kind="LIMITE_GARANTIDO">Limite Garantido</button>
+                    <button type="button" class="form-tab" data-kind="TREASURY">Tesouro</button>
+                </div>
+                <input type="hidden" th:field="*{kind}">
+                <small th:if="${#fields.hasErrors('kind')}" th:errors="*{kind}" class="form-hint form-hint-err"></small>
+            </label>
+
+            <label>
+                <span>Nome</span>
+                <input class="input" type="text" th:field="*{name}"
+                       maxlength="120" autocomplete="off" placeholder="Ex: Reserva casamento">
+                <small th:if="${#fields.hasErrors('name')}" th:errors="*{name}" class="form-hint form-hint-err"></small>
+            </label>
+
+            <div class="form-row">
+                <label>
+                    <span>Valor inicial</span>
+                    <input class="input" type="number" step="0.01" min="0" th:field="*{amount}"
+                           data-cdi-value placeholder="0,00">
+                    <small th:if="${#fields.hasErrors('amount')}" th:errors="*{amount}" class="form-hint form-hint-err"></small>
+                </label>
+                <label data-only-kind="PIGGY">
+                    <span>Meta (opcional)</span>
+                    <input class="input" type="number" step="0.01" min="0.01" th:field="*{goal}" placeholder="0,00">
+                    <small th:if="${#fields.hasErrors('goal')}" th:errors="*{goal}" class="form-hint form-hint-err"></small>
+                </label>
+            </div>
+
+            <label>
+                <span>Rendimento (% do CDI)</span>
+                <div class="cdi-row">
+                    <input type="range" min="50" max="150" step="1" value="100" class="cdi-slider" data-cdi-pct>
+                    <div class="cdi-value" data-cdi-pct-label>100%</div>
+                </div>
+                <small class="form-hint">Com base no CDI ~10,75% a.a.</small>
+            </label>
+
+            <div class="cdi-result">
+                <div>
+                    <span class="muted">Rendimento mensal estimado</span>
+                    <span class="money money-lg cdi-estimate" data-cdi-estimate>R$ 0,00</span>
+                </div>
+                <div class="cdi-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8M21 7v6m0-6h-6"/></svg>
+                </div>
+            </div>
+
+            <input type="hidden" th:field="*{rateLabel}" data-cdi-rate-label>
+            <input type="hidden" th:field="*{monthlyReturn}" data-cdi-monthly>
+
+            <label>
+                <span>Cor</span>
+                <div class="swatch-grid" data-swatch-group data-swatch-input="colorHex">
+                    <button type="button" class="swatch"
+                            th:each="c : ${ {'#6366f1','#a78bfa','#22d3ee','#34d399','#fbbf24','#fb7185','#f472b6','#fb923c','#e879f9','#a3e635'} }"
+                            th:attr="data-swatch=${c},data-fill=${c}"></button>
+                </div>
+                <input type="hidden" th:field="*{colorHex}">
+            </label>
+
+            <label>
+                <span>Ícone</span>
+                <div class="swatch-grid swatch-grid-icons" data-swatch-group data-swatch-input="iconText">
+                    <button type="button" class="swatch swatch-icon"
+                            th:each="ic : ${ {'◆','◐','✈','☂','⬢','◉','★','♥','⌂','$'} }"
+                            th:attr="data-swatch=${ic}" th:text="${ic}"></button>
+                </div>
+                <input type="hidden" th:field="*{iconText}">
+            </label>
+        </div>
+
+        <!-- ── Adicionar em existente ─────────────────────────── -->
+        <div data-inv-section="existing" hidden th:unless="${editing}">
+            <label>
+                <span>Investimento</span>
+                <select class="input" name="depositId" disabled>
+                    <option value="" disabled>Selecione…</option>
+                    <option th:each="e : ${existingInvestments}" th:value="${e.id()}" th:text="${e.name()}">Investimento</option>
+                </select>
+            </label>
+            <label>
+                <span>Valor a adicionar (R$)</span>
+                <input class="input" type="number" step="0.01" min="0.01" name="depositAmount" disabled placeholder="0,00">
+            </label>
+        </div>
+
+        <div class="form-actions">
+            <a class="btn btn-ghost" data-modal-close th:href="@{/app/investments}">Cancelar</a>
+            <button type="submit" class="btn btn-primary" data-inv-submit
+                    th:text="${editing ? 'Salvar alterações' : 'Criar'}">Criar</button>
+        </div>
     </form>
 </section>
 </body>

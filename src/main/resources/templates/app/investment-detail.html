@@ -1,0 +1,71 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security" lang="pt-BR">
+<head><title>Detalhe do investimento · Rastro$</title></head>
+<body>
+<!-- invest-detail.js extrai .invest-detail e injeta abaixo do card. -->
+<div class="invest-detail" th:with="i=${detail.investment()}">
+    <div class="invest-detail-head">
+        <span class="piggy-icon invest-detail-icon" th:attr="data-fill=${i.colorHex()}"
+              th:text="${i.iconText() != null and !i.iconText().isBlank() ? i.iconText() : #strings.substring(i.name(),0,1)}">·</span>
+        <div class="invest-detail-meta">
+            <div class="invest-detail-kind" th:switch="${i.kind().name()}">
+                <th:block th:case="'PIGGY'">Cofrinho</th:block>
+                <th:block th:case="'CDI'">CDI / CDB</th:block>
+                <th:block th:case="'LIMITE_GARANTIDO'">Limite Garantido</th:block>
+                <th:block th:case="'TREASURY'">Tesouro</th:block>
+                <th:block th:case="*">Carteira</th:block>
+            </div>
+            <div class="invest-detail-name" th:text="${i.name()}">Investimento</div>
+            <div class="invest-detail-sub">
+                <span class="pill pill-info pill-sm" th:if="${i.rateLabel() != null and !i.rateLabel().isBlank()}"
+                      th:text="${i.rateLabel()}">102% CDI</span>
+                <span class="up" th:if="${i.monthlyReturn() != null}">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5m0 0l-6 6m6-6l6 6"/></svg>
+                    <span th:text="${'R$ ' + #numbers.formatDecimal(i.monthlyReturn(), 1, 'POINT', 2, 'COMMA')}">R$ 0,00</span> rendimento do mês
+                </span>
+            </div>
+        </div>
+        <div class="invest-detail-actions" sec:authorize="!hasRole('ACESSOR')">
+            <a class="btn btn-sm" data-modal-url th:href="@{/app/investments/{id}/edit(id=${i.id()})}">Editar</a>
+            <form th:action="@{/app/investments/{id}/delete(id=${i.id()})}" method="post" data-confirm="Excluir este investimento?" class="inline-form">
+                <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <button type="submit" class="btn btn-sm btn-ghost">Excluir</button>
+            </form>
+        </div>
+        <button type="button" class="acct-detail-close" data-invest-detail-close aria-label="Fechar">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M6 18L18 6"/></svg>
+        </button>
+    </div>
+
+    <div class="invest-detail-stats">
+        <div><span class="muted">Saldo atual</span>
+            <span class="money money-md" th:text="${'R$ ' + #numbers.formatDecimal(i.amount(), 1, 'POINT', 2, 'COMMA')}">R$ 0,00</span></div>
+        <div th:if="${i.goal() != null}"><span class="muted">Meta</span>
+            <span class="money money-md" th:text="${'R$ ' + #numbers.formatDecimal(i.goal(), 1, 'POINT', 2, 'COMMA')}">R$ 0,00</span></div>
+        <div th:if="${i.progressPercent() != null}"><span class="muted">Progresso</span>
+            <span class="money money-md" th:text="${i.progressPercent() + '%'}">0%</span></div>
+    </div>
+
+    <div class="invest-detail-moves">
+        <div class="invest-detail-moves-head">Movimentações
+            <span class="muted" th:text="${#lists.size(detail.movements())}">0</span></div>
+        <ul class="move-list" th:unless="${detail.movements().isEmpty()}">
+            <li class="move-row" th:each="m : ${detail.movements()}">
+                <div class="move-main">
+                    <span class="move-title">Depósito</span>
+                    <span class="move-when muted" th:text="'· ' + ${m.monthLabel()}">· Mai 2026</span>
+                </div>
+                <div class="move-nums">
+                    <span class="move-income muted">
+                        <span th:text="${'R$ ' + #numbers.formatDecimal(m.income(), 1, 'POINT', 2, 'COMMA')}">R$ 0,00</span> rendimento</span>
+                    <span class="move-deposit up">+ <span th:text="${'R$ ' + #numbers.formatDecimal(m.deposit(), 1, 'POINT', 2, 'COMMA')}">R$ 0,00</span></span>
+                    <span class="move-balance muted">Saldo: <span th:text="${'R$ ' + #numbers.formatDecimal(m.balance(), 1, 'POINT', 2, 'COMMA')}">R$ 0,00</span></span>
+                </div>
+            </li>
+        </ul>
+        <div class="acct-tx-empty muted" th:if="${detail.movements().isEmpty()}">Sem movimentações registradas.</div>
+    </div>
+</div>
+</body>
+</html>
