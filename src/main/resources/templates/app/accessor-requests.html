@@ -1,6 +1,6 @@
 <!doctype html>
 <html xmlns:th="http://www.thymeleaf.org" lang="pt-BR"
-      th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+      th:replace="~{layout/base :: layout(~{::title}, ~{::head/link}, ~{::section}, ~{::head/script})}">
 <head>
     <title>Solicitações de acessor · Rastro$</title>
     <link rel="stylesheet" th:href="@{/css/screens/accessors.css}">
@@ -26,7 +26,8 @@
         <p>Quando um titular solicitar um acessor, a solicitação aparecerá aqui.</p>
     </div>
 
-    <section class="acc-section card" th:unless="${#lists.isEmpty(requests)}">
+    <section class="panel" th:unless="${#lists.isEmpty(requests)}">
+        <div class="table-scroll">
         <table class="data-table">
             <thead>
                 <tr>
@@ -61,6 +62,7 @@
                 </tr>
             </tbody>
         </table>
+        </div>
     </section>
 </section>
 </body>

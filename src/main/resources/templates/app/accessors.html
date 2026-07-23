@@ -1,6 +1,6 @@
 <!doctype html>
 <html xmlns:th="http://www.thymeleaf.org" lang="pt-BR"
-      th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+      th:replace="~{layout/base :: layout(~{::title}, ~{::head/link}, ~{::section}, ~{::head/script})}">
 <head>
     <title>Acessores · Rastro$</title>
     <link rel="stylesheet" th:href="@{/css/screens/accessors.css}">
@@ -18,121 +18,133 @@
     <div th:if="${ok}" class="flash flash-ok" th:text="#{${ok}}">Ok</div>
     <div th:if="${error}" class="flash flash-error" th:text="#{${error}}">Erro</div>
 
-    <!-- Transparência: quantos/quais acessores têm acesso (mesmo criados pelo admin) -->
-    <section class="acc-section card">
-        <h2>Meus acessores</h2>
-        <p class="acc-sub">
-            <span class="acc-kpi">
-                <span class="acc-kpi-val" th:text="${#lists.size(myAccessors)}">0</span>
-                <span class="acc-kpi-lbl">conta(s) com acesso à sua</span>
-            </span>
-        </p>
+    <!-- Meus acessores -->
+    <section class="panel">
+        <div class="panel-head">
+            <h3>Meus acessores</h3>
+            <span class="panel-sub muted"
+                  th:text="${#lists.size(myAccessors)} + (${#lists.size(myAccessors)} == 1
+                        ? ' conta com acesso à sua' : ' contas com acesso à sua')">0 contas com acesso à sua</span>
+        </div>
 
         <div th:if="${#lists.isEmpty(myAccessors)}" class="empty-state">
             <h3>Nenhum acessor</h3>
             <p>Ninguém tem acesso aos seus dados no momento.</p>
         </div>
 
-        <table class="data-table" th:unless="${#lists.isEmpty(myAccessors)}">
-            <thead>
-                <tr>
-                    <th>Acessor</th>
-                    <th>Status</th>
-                    <th>Valores</th>
-                    <th>Desde</th>
-                    <th class="actions">Ação</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr th:each="a : ${myAccessors}">
-                    <td>
-                        <div class="acc-name" th:text="${a.name()}">Nome</div>
-                        <div class="acc-email" th:text="${a.email()}">email@ex.com</div>
-                    </td>
-                    <td>
-                        <span class="pill" th:text="~{fragments/user-labels :: statusText(${a.status()})}">Status</span>
-                    </td>
-                    <td>
-                        <span th:if="${a.valuesMasked()}" class="pill pill-warn">Ocultos (*)</span>
-                        <span th:unless="${a.valuesMasked()}" class="pill pill-success">Visíveis</span>
-                    </td>
-                    <td th:text="${#temporals.format(a.createdAt().atZone(T(java.time.ZoneOffset).UTC), 'dd/MM/yyyy')}">--/--</td>
-                    <td class="actions">
-                        <form class="inline-form" method="post"
-                              th:action="${a.valuesMasked()}
-                                  ? @{/app/accessors/{id}/unmask(id=${a.id()})}
-                                  : @{/app/accessors/{id}/mask(id=${a.id()})}">
-                            <input type="hidden" th:if="${_csrf != null}"
-                                   th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                            <button type="submit" class="btn"
-                                    th:text="${a.valuesMasked()} ? 'Mostrar valores' : 'Ocultar valores'">Alternar</button>
-                        </form>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+        <div class="table-scroll" th:unless="${#lists.isEmpty(myAccessors)}">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Acessor</th>
+                        <th>Status</th>
+                        <th>Valores</th>
+                        <th>Desde</th>
+                        <th class="actions">Ação</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="a : ${myAccessors}">
+                        <td>
+                            <div class="acc-cell">
+                                <span class="acc-avatar"
+                                      th:text="${a.name() != null and !a.name().isEmpty() ? a.name().substring(0,1).toUpperCase() : '?'}">A</span>
+                                <div class="acc-cell-main">
+                                    <div class="acc-name" th:text="${a.name()}">Nome</div>
+                                    <div class="acc-email" th:text="${a.email()}">email@ex.com</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="st-pill st-active" th:switch="${a.status().name()}">
+                                <span class="st-dot" aria-hidden="true"></span>
+                                <th:block th:case="'ACTIVE'">Ativo</th:block>
+                                <th:block th:case="'PENDING_APPROVAL'">Pendente</th:block>
+                                <th:block th:case="'DISABLED'">Desativado</th:block>
+                            </span>
+                        </td>
+                        <td>
+                            <span th:if="${a.valuesMasked()}" class="pill pill-warn">🔒 Ocultos</span>
+                            <span th:unless="${a.valuesMasked()}" class="pill pill-success">Visíveis</span>
+                        </td>
+                        <td class="acc-when" th:text="${#temporals.format(a.createdAt().atZone(T(java.time.ZoneOffset).UTC), 'dd/MM/yyyy')}">--/--</td>
+                        <td class="actions">
+                            <form class="inline-form" method="post"
+                                  th:action="${a.valuesMasked()}
+                                      ? @{/app/accessors/{id}/unmask(id=${a.id()})}
+                                      : @{/app/accessors/{id}/mask(id=${a.id()})}">
+                                <input type="hidden" th:if="${_csrf != null}"
+                                       th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                <button type="submit" class="btn"
+                                        th:text="${a.valuesMasked()} ? 'Mostrar valores' : 'Ocultar valores'">Alternar</button>
+                            </form>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
     </section>
 
-    <!-- Solicitar um acessor (o admin cria a conta) -->
-    <section class="acc-section card">
-        <h2>Solicitar um acessor</h2>
-        <p class="acc-sub">Um administrador criará a conta. O acessor poderá cadastrar, pagar e editar
+    <!-- Solicitar um acessor -->
+    <section class="panel">
+        <div class="panel-head"><h3>Solicitar um acessor</h3></div>
+        <p class="acc-note muted">Um administrador criará a conta. O acessor poderá cadastrar, pagar e editar
             seus lançamentos, mas nunca excluir.</p>
 
-        <form method="post" th:action="@{/app/accessors/request}" th:object="${requestForm}">
+        <form class="form" method="post" th:action="@{/app/accessors/request}" th:object="${requestForm}">
             <input type="hidden" th:if="${_csrf != null}"
                    th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-            <div class="acc-form-grid">
-                <div class="field">
-                    <label for="accessorName">Nome do acessor</label>
-                    <input id="accessorName" type="text" th:field="*{accessorName}"
-                           maxlength="120" required autocomplete="off">
-                    <p class="field-error" th:if="${#fields.hasErrors('accessorName')}"
-                       th:errors="*{accessorName}">erro</p>
-                </div>
-                <div class="field">
-                    <label for="accessorEmail">Email do acessor</label>
-                    <input id="accessorEmail" type="email" th:field="*{accessorEmail}"
-                           maxlength="180" required autocomplete="off">
-                    <p class="field-error" th:if="${#fields.hasErrors('accessorEmail')}"
-                       th:errors="*{accessorEmail}">erro</p>
-                </div>
-                <div class="field field-wide">
-                    <label for="note">Observação (opcional)</label>
-                    <input id="note" type="text" th:field="*{note}" maxlength="500"
-                           placeholder="Ex.: meu contador, minha esposa…">
-                    <p class="field-error" th:if="${#fields.hasErrors('note')}" th:errors="*{note}">erro</p>
-                </div>
+            <div class="form-row">
+                <label>
+                    <span>Nome do acessor</span>
+                    <input class="input" type="text" th:field="*{accessorName}"
+                           maxlength="120" required autocomplete="off" placeholder="Ex: Maria Silva">
+                    <small th:if="${#fields.hasErrors('accessorName')}" th:errors="*{accessorName}" class="form-hint form-hint-err"></small>
+                </label>
+                <label>
+                    <span>Email do acessor</span>
+                    <input class="input" type="email" th:field="*{accessorEmail}"
+                           maxlength="180" required autocomplete="off" placeholder="maria@email.com">
+                    <small th:if="${#fields.hasErrors('accessorEmail')}" th:errors="*{accessorEmail}" class="form-hint form-hint-err"></small>
+                </label>
             </div>
-            <footer class="acc-form-foot">
+            <label>
+                <span>Observação (opcional)</span>
+                <input class="input" type="text" th:field="*{note}" maxlength="500"
+                       placeholder="Ex.: meu contador, minha esposa…">
+                <small th:if="${#fields.hasErrors('note')}" th:errors="*{note}" class="form-hint form-hint-err"></small>
+            </label>
+            <div class="form-actions">
                 <button type="submit" class="btn btn-primary">Enviar solicitação</button>
-            </footer>
+            </div>
         </form>
     </section>
 
     <!-- Minhas solicitações -->
-    <section class="acc-section card" th:unless="${#lists.isEmpty(myRequests)}">
-        <h2>Minhas solicitações</h2>
-        <table class="data-table">
-            <thead>
-                <tr><th>Acessor</th><th>Status</th><th>Enviada em</th></tr>
-            </thead>
-            <tbody>
-                <tr th:each="r : ${myRequests}">
-                    <td>
-                        <div class="acc-name" th:text="${r.accessorName()}">Nome</div>
-                        <div class="acc-email" th:text="${r.accessorEmail()}">email@ex.com</div>
-                    </td>
-                    <td>
-                        <span class="pill"
-                              th:classappend="${r.status().name() == 'APPROVED'} ? 'pill-success'
-                                  : (${r.status().name() == 'REJECTED'} ? 'pill-danger' : 'pill-warn')"
-                              th:text="~{fragments/accessor-labels :: statusText(${r.status()})}">Status</span>
-                    </td>
-                    <td th:text="${#temporals.format(r.createdAt().atZone(T(java.time.ZoneOffset).UTC), 'dd/MM/yyyy')}">--/--</td>
-                </tr>
-            </tbody>
-        </table>
+    <section class="panel" th:unless="${#lists.isEmpty(myRequests)}">
+        <div class="panel-head"><h3>Minhas solicitações</h3></div>
+        <div class="table-scroll">
+            <table class="data-table">
+                <thead>
+                    <tr><th>Acessor</th><th>Status</th><th>Enviada em</th></tr>
+                </thead>
+                <tbody>
+                    <tr th:each="r : ${myRequests}">
+                        <td>
+                            <div class="acc-name" th:text="${r.accessorName()}">Nome</div>
+                            <div class="acc-email" th:text="${r.accessorEmail()}">email@ex.com</div>
+                        </td>
+                        <td>
+                            <span class="pill"
+                                  th:classappend="${r.status().name() == 'APPROVED'} ? 'pill-success'
+                                      : (${r.status().name() == 'REJECTED'} ? 'pill-danger' : 'pill-warn')"
+                                  th:insert="~{fragments/accessor-labels :: statusText(${r.status()})}">Status</span>
+                        </td>
+                        <td class="acc-when" th:text="${#temporals.format(r.createdAt().atZone(T(java.time.ZoneOffset).UTC), 'dd/MM/yyyy')}">--/--</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
     </section>
 </section>
 </body>
