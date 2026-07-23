@@ -59,6 +59,30 @@ public class AccountController {
         return "app/cards";
     }
 
+    /** Fragmento com os lançamentos da conta no mês — abre abaixo do card (fetch). */
+    @GetMapping("/{id}/detail")
+    public String detail(@PathVariable UUID id,
+                         @RequestParam(value = "ym", required = false) String ym,
+                         Model model) {
+        YearMonth period = parseOrCurrent(ym);
+        UUID userId = currentUser.requireEffectiveId();
+        model.addAttribute("detail", accounts.accountDetail(userId, id, period));
+        model.addAttribute("period", period);
+        return "app/account-detail";
+    }
+
+    /** Pagar/reabrir a fatura (todos os lançamentos da conta no mês). */
+    @PostMapping("/{id}/pay")
+    @PreAuthorize("isAuthenticated() and !hasRole('ACESSOR')")
+    public String pay(@PathVariable UUID id,
+                      @RequestParam(value = "ym", required = false) String ym,
+                      RedirectAttributes flash) {
+        YearMonth period = parseOrCurrent(ym);
+        accounts.payInvoice(currentUser.requireEffectiveId(), id, period);
+        flash.addFlashAttribute("ok", "account.invoicePaid");
+        return "redirect:/app/cards?ym=" + period;
+    }
+
     @GetMapping("/new")
     public String newForm(Model model) {
         model.addAttribute("activeNav", "cards");

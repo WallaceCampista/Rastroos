@@ -44,6 +44,7 @@ import com.rastroos.security.LockoutChecker;
 import com.rastroos.security.LockoutPreAuthFilter;
 import com.rastroos.security.LoginFailureHandler;
 import com.rastroos.security.LoginSuccessHandler;
+import com.rastroos.web.interceptor.TopbarChipsInterceptor;
 import com.rastroos.web.dto.AccountsView;
 import com.rastroos.web.form.AccountForm;
 
@@ -62,7 +63,8 @@ import com.rastroos.web.form.AccountForm;
                         LoginSuccessHandler.class,
                         LoginFailureHandler.class,
                         CustomUserDetailsService.class,
-                        AuditLogger.class
+                        AuditLogger.class,
+                        TopbarChipsInterceptor.class
                 }))
 @AutoConfigureMockMvc(addFilters = false)
 @Import(AccountControllerTest.Config.class)
@@ -90,7 +92,8 @@ class AccountControllerTest {
 
     @Test
     void listDeveCarregarTresGruposNoMesAtual() throws Exception {
-        AccountsView empty = new AccountsView(List.of(), List.of(), List.of());
+        AccountsView empty = new AccountsView(List.of(), List.of(), List.of(),
+                java.math.BigDecimal.ZERO, java.math.BigDecimal.ZERO, java.math.BigDecimal.ZERO, 0);
         when(accountService.listForMonth(eq(userId), eq(YearMonth.of(2026, 5)))).thenReturn(empty);
 
         mvc.perform(get("/app/cards"))
