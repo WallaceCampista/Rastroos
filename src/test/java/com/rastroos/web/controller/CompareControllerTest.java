@@ -38,8 +38,10 @@ import com.rastroos.security.LockoutChecker;
 import com.rastroos.security.LockoutPreAuthFilter;
 import com.rastroos.security.LoginFailureHandler;
 import com.rastroos.security.LoginSuccessHandler;
+import com.rastroos.web.interceptor.TopbarChipsInterceptor;
 import com.rastroos.web.dto.CompareModel;
 import com.rastroos.web.dto.MonthSummaryDto;
+import com.rastroos.web.dto.SavingsBarView;
 
 @WebMvcTest(controllers = CompareController.class,
         excludeAutoConfiguration = {
@@ -56,7 +58,8 @@ import com.rastroos.web.dto.MonthSummaryDto;
                         LoginSuccessHandler.class,
                         LoginFailureHandler.class,
                         CustomUserDetailsService.class,
-                        AuditLogger.class
+                        AuditLogger.class,
+                        TopbarChipsInterceptor.class
                 }))
 @AutoConfigureMockMvc(addFilters = false)
 @Import(CompareControllerTest.Config.class)
@@ -127,7 +130,7 @@ class CompareControllerTest {
     }
 
     private CompareModel emptyModel() {
-        return new CompareModel(List.of(), 20, null, 0, 0, null, null);
+        return new CompareModel(List.of(), 20, null, 0, 0, null, null, List.of(), 100, 50);
     }
 
     private CompareModel populatedModel() {
@@ -139,7 +142,15 @@ class CompareControllerTest {
                 month("2026-03", "Mar", 45, "4500.00"),
                 month("2026-04", "Abr", 25, "2500.00"),
                 month("2026-05", "Mai", 22, "2200.00"));
-        return new CompareModel(months, 20, 20, 3, 5, "Mar", 45);
+        // top=45, bottom=-5, range=50 → zeroTop=90, targetTop=50
+        List<SavingsBarView> bars = List.of(
+                new SavingsBarView("Dez", null, 90, 1.5, "muted", false),
+                new SavingsBarView("Jan", -5, 90, 10, "bad", true),
+                new SavingsBarView("Fev", 10, 70, 20, "warn", false),
+                new SavingsBarView("Mar", 45, 10, 80, "ok", false),
+                new SavingsBarView("Abr", 25, 40, 50, "ok", false),
+                new SavingsBarView("Mai", 22, 46, 44, "ok", false));
+        return new CompareModel(months, 20, 20, 3, 5, "Mar", 45, bars, 90, 50);
     }
 
     private MonthSummaryDto month(String ym, String label, Integer rate, String net) {

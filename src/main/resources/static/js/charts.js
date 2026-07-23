@@ -195,10 +195,21 @@
         readJson: function (id) {
             var el = document.getElementById(id);
             if (!el) return null;
+            var text = el.textContent || el.innerText || "";
             try {
-                return JSON.parse(el.textContent || el.innerText || "null");
+                return JSON.parse(text);
             } catch (e) {
-                return null;
+                // Dentro de <script> o browser não decodifica entidades HTML;
+                // th:text escapa as aspas (&quot;). Decodificamos as 5 entidades
+                // padrão antes de parsear (seguro: nunca vai para innerHTML).
+                try {
+                    return JSON.parse(text
+                        .replace(/&quot;/g, "\"").replace(/&#39;/g, "'")
+                        .replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+                        .replace(/&amp;/g, "&"));
+                } catch (e2) {
+                    return null;
+                }
             }
         }
     };

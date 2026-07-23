@@ -32,10 +32,17 @@ public class ChatService {
     public static final int TITLE_MAX = 60;
 
     private static final List<String> SUGGESTIONS = List.of(
-            "Como estão meus gastos este mês?",
-            "Onde eu poderia economizar?",
-            "Quanto já paguei das minhas contas?",
-            "Quais vencimentos estão próximos?");
+            "Posso assumir uma nova parcela de R$ 400 sem comprometer o orçamento?",
+            "Como estão indo meus gastos comparado ao mês passado?",
+            "Onde posso cortar gastos para economizar mais?",
+            "Quanto tempo até eu atingir minha meta do casamento?",
+            "Quais contas eu ainda preciso pagar este mês?",
+            "Qual cartão tem a maior fatura? E o melhor parcelamento?");
+
+    /** Saudação inicial do Alfredo numa conversa em branco. */
+    private static final String WELCOME =
+            "Oi! Sou o Alfredo, seu gerente financeiro. Pergunte qualquer coisa — "
+            + "tenho acesso a todos os seus lançamentos, contas, investimentos e metas.";
 
     private final ChatRepository chats;
     private final ChatMessageRepository messages;
@@ -65,6 +72,17 @@ public class ChatService {
                         activeChatId != null && c.getId().equals(activeChatId)))
                 .toList();
         return new ManagerView(history, active, SUGGESTIONS);
+    }
+
+    /** Abre uma conversa em branco (botão "Nova conversa"), só com a saudação. */
+    @Transactional
+    public UUID startEmpty(UUID userId) {
+        Chat chat = new Chat();
+        chat.setUserId(userId);
+        chat.setTitle("Nova conversa");
+        chats.save(chat);
+        saveMessage(chat.getId(), ChatMessageRole.ASSISTANT, WELCOME);
+        return chat.getId();
     }
 
     /** Abre uma nova conversa a partir da primeira mensagem e já responde. */

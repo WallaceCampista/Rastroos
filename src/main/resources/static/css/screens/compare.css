@@ -3,11 +3,9 @@
    ───────────────────────────────────────────────────────────── */
 
 .screen-compare {
-    padding: 28px 32px;
     display: flex;
     flex-direction: column;
     gap: 24px;
-    max-width: 1240px;
 }
 
 .screen-header {
@@ -92,21 +90,33 @@
 .legend-net      { background: #6366f1; }
 .legend-invested { background: #22d3ee; }
 
-/* ── Taxa de poupança: stats ─────────────────────────────── */
-.sr-stats {
+/* ── Taxa de poupança: wrapper ───────────────────────────── */
+.sr-wrap {
     display: flex;
-    flex-wrap: wrap;
-    gap: 26px;
+    flex-direction: column;
+    gap: 14px;
+}
+
+/* ── stats (3 cards) ─────────────────────────────────────── */
+.sr-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    padding: 12px 0 4px;
 }
 
 .sr-stats > div {
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    gap: 4px;
+    padding: 10px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
 }
 
 .sr-stat-lbl {
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -114,77 +124,98 @@
 }
 
 .sr-stat-val {
-    font-size: 18px;
-    font-weight: 800;
+    font-weight: 700;
+    font-size: 16px;
     font-variant-numeric: tabular-nums;
+    color: var(--text);
 }
 
-/* ── Taxa de poupança: gráfico de barras ─────────────────── */
+/* ── gráfico de barras (posicionamento absoluto) ─────────── */
 .sr-chart {
     position: relative;
-    height: 150px;
-    margin: 12px 4px 36px;
+    height: 240px;
+    padding: 22px 6px 26px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
 }
 
-.sr-target {
+.sr-target-line {
     position: absolute;
-    left: 0;
-    right: 0;
-    border-top: 1px dashed var(--border-2);
+    left: 12px;
+    right: 12px;
+    height: 0;
+    border-top: 1.6px dashed #34d399;
+    z-index: 2;
     pointer-events: none;
 }
 
 .sr-target-tag {
     position: absolute;
     right: 0;
-    top: -8px;
-    font-size: 10px;
-    font-weight: 600;
-    color: var(--text-dim);
-    background: var(--bg);
-    padding: 0 6px;
+    top: -16px;
+    font-weight: 700;
+    font-size: 11px;
+    color: #34d399;
+}
+
+.sr-zero-line {
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    height: 0;
+    border-top: 1.4px solid var(--text-dim);
+    z-index: 1;
+    pointer-events: none;
+    opacity: 0.5;
 }
 
 .sr-cols {
     position: absolute;
-    inset: 0;
-    display: grid;
-    grid-auto-flow: column;
-    grid-auto-columns: 1fr;
-    gap: 12px;
-    align-items: end;
+    inset: 22px 12px 26px;
+    display: flex;
+    align-items: stretch;
 }
 
 .sr-col {
+    flex: 1;
     position: relative;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-end;
 }
 
-.sr-bar {
-    width: 58%;
-    max-width: 30px;
-    min-height: 3px;
-    border-radius: 4px 4px 0 0;
-    transition: height 0.3s ease;
-}
-
-.sr-val {
-    font-size: 11px;
-    font-weight: 700;
-    margin-bottom: 4px;
-    line-height: 1;
-    font-variant-numeric: tabular-nums;
-}
-
-.sr-lbl {
+.sr-col-bar {
+    display: block;
     position: absolute;
-    top: 100%;
-    margin-top: 8px;
-    font-size: 11px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: clamp(10px, 40%, 26px);
+    border-radius: 3px 3px 0 0;
+    transition: top 0.5s cubic-bezier(0.3, 0.8, 0.4, 1),
+                height 0.5s cubic-bezier(0.3, 0.8, 0.4, 1);
+}
+
+.sr-col-bar.is-neg {
+    border-radius: 0 0 3px 3px;
+}
+
+.sr-col-val {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-top: -18px;
+    font-weight: 800;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    z-index: 3;
+}
+
+.sr-col-lbl {
+    position: absolute;
+    bottom: -22px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-weight: 600;
+    font-size: 12px;
     color: var(--text-dim);
     white-space: nowrap;
 }
@@ -192,12 +223,11 @@
 .sr-ok    { background: #34d399; }
 .sr-warn  { background: #fbbf24; }
 .sr-bad   { background: #fb7185; }
-.sr-muted { background: var(--surface-2); }
+.sr-muted { background: var(--surface-3); opacity: 0.4; }
 
 .sr-txt-ok    { color: #34d399; }
 .sr-txt-warn  { color: #fbbf24; }
 .sr-txt-bad   { color: #fb7185; }
-.sr-txt-muted { color: var(--text-faint); }
 
 /* ── Quadro do mês (tabela) ──────────────────────────────── */
 .compare-table-wrap {
@@ -261,4 +291,11 @@
 .app-body.values-hidden [data-amount] {
     filter: blur(7px);
     user-select: none;
+}
+
+/* ── Responsivo ──────────────────────────────────────────── */
+@media (max-width: 640px) {
+    .sr-stats {
+        grid-template-columns: 1fr;
+    }
 }
