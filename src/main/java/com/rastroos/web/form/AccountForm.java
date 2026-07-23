@@ -21,7 +21,7 @@ public class AccountForm {
     /** Cor em hex no formato {@code #RRGGBB}. Aceita também a cor sem #. */
     @Pattern(regexp = "^#?[0-9a-fA-F]{6}$", message = "account.colorHexInvalid")
     @Size(max = 7)
-    private String colorHex;
+    private String colorHex = "#6366f1";
 
     @Size(max = 8)
     private String iconText;

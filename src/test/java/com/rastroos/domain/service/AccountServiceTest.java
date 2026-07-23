@@ -34,11 +34,19 @@ class AccountServiceTest {
 
     @Mock private AccountRepository accountsRepo;
     @Mock private TransactionRepository txRepo;
+    @Mock private com.rastroos.domain.repository.CategoryRepository categoriesRepo;
 
-    @InjectMocks private AccountService service;
+    private final java.time.Clock clock =
+            java.time.Clock.fixed(java.time.Instant.parse("2026-05-18T12:00:00Z"), java.time.ZoneOffset.UTC);
+    private AccountService service;
 
     private final UUID alice = UUID.randomUUID();
     private final UUID bob   = UUID.randomUUID();
+
+    @org.junit.jupiter.api.BeforeEach
+    void initService() {
+        service = new AccountService(accountsRepo, txRepo, categoriesRepo, clock);
+    }
 
     @Test
     void requireDeveLancarNotFoundQuandoNaoExiste() {
