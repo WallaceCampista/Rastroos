@@ -9,7 +9,6 @@ import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.time.YearMonth;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
@@ -20,11 +19,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.rastroos.domain.entity.Investment;
-import com.rastroos.domain.entity.InvestmentHistory;
-import com.rastroos.domain.entity.enums.InvestmentKind;
-import com.rastroos.domain.repository.InvestmentHistoryRepository;
-import com.rastroos.domain.repository.InvestmentRepository;
 import com.rastroos.web.dto.CompareModel;
 import com.rastroos.web.dto.MonthSummaryDto;
 import com.rastroos.web.dto.MoneyDto;
@@ -33,32 +27,21 @@ import com.rastroos.web.dto.MoneyDto;
 class CompareServiceTest {
 
     @Mock private MonthlyFinanceAggregator aggregator;
-    @Mock private InvestmentRepository investments;
-    @Mock private InvestmentHistoryRepository history;
+    @Mock private InvestmentContributionService contributions;
 
     @InjectMocks private CompareService service;
 
     private final UUID alice = UUID.randomUUID();
 
     @Test
-    void loadEstimaAporteMensalComoDeltaMenosRendimento() {
+    void loadRepassaOAporteMensalParaOAgregador() {
         // aggregator ecoa o investedCents recebido para dentro do DTO
         when(aggregator.summarize(eq(alice), any(YearMonth.class), anyLong(), anyBoolean()))
                 .thenAnswer(inv -> echoInvested((YearMonth) inv.getArgument(1),
                         (long) inv.getArgument(2), (boolean) inv.getArgument(3)));
 
-        UUID invId = UUID.randomUUID();
-        Investment cdb = new Investment();
-        cdb.setId(invId);
-        cdb.setUserId(alice);
-        cdb.setKind(InvestmentKind.CDI);
-        cdb.setMonthlyReturnCents(1_000L); // R$10 de rendimento estimado
-        when(investments.findAllByUserIdOrderByNameAsc(alice)).thenReturn(List.of(cdb));
-
-        when(history.findAllByUserId(alice)).thenReturn(List.of(
-                snapshot(invId, "2026-03", 100_000L),
-                snapshot(invId, "2026-04", 105_000L),  // delta 5000 - 1000 = 4000
-                snapshot(invId, "2026-05", 112_000L))); // delta 7000 - 1000 = 6000
+        when(contributions.byMonthCents(alice))
+                .thenReturn(Map.of("2026-04", 4_000L, "2026-05", 6_000L));
 
         CompareModel data = service.load(alice, YearMonth.of(2026, 5));
 
@@ -79,8 +62,7 @@ class CompareServiceTest {
                 .thenAnswer(inv -> withRate((YearMonth) inv.getArgument(1),
                         rates::get, (boolean) inv.getArgument(3)));
 
-        when(investments.findAllByUserIdOrderByNameAsc(alice)).thenReturn(List.of());
-        when(history.findAllByUserId(alice)).thenReturn(List.of());
+        when(contributions.byMonthCents(alice)).thenReturn(Map.of());
 
         CompareModel data = service.load(alice, YearMonth.of(2026, 5));
 
@@ -114,13 +96,5 @@ class CompareServiceTest {
         Integer rate = rateFn.apply(ym.toString());
         return new MonthSummaryDto(ym.toString(), ym.toString(),
                 z, z, z, z, z, z, z, z, rate, current);
-    }
-
-    private static InvestmentHistory snapshot(UUID investmentId, String ym, long cents) {
-        InvestmentHistory h = new InvestmentHistory();
-        h.setInvestmentId(investmentId);
-        h.setYearMonth(ym);
-        h.setAmountCents(cents);
-        return h;
     }
 }

@@ -2,7 +2,6 @@ package com.rastroos.domain.service;
 
 import java.time.YearMonth;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -10,12 +9,9 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.rastroos.domain.entity.Investment;
-import com.rastroos.domain.entity.InvestmentHistory;
-import com.rastroos.domain.repository.InvestmentHistoryRepository;
-import com.rastroos.domain.repository.InvestmentRepository;
 import com.rastroos.web.dto.CompareModel;
 import com.rastroos.web.dto.MonthSummaryDto;
+import com.rastroos.web.dto.SavingsBarView;
 
 /**
  * Agrega os dados da tela "Comparativo": receita vs gasto vs saldo vs aporte
@@ -32,20 +28,17 @@ public class CompareService {
     public static final int TRAILING_MONTHS = 6;
 
     private final MonthlyFinanceAggregator aggregator;
-    private final InvestmentRepository investments;
-    private final InvestmentHistoryRepository history;
+    private final InvestmentContributionService contributions;
 
     public CompareService(MonthlyFinanceAggregator aggregator,
-                          InvestmentRepository investments,
-                          InvestmentHistoryRepository history) {
+                          InvestmentContributionService contributions) {
         this.aggregator = aggregator;
-        this.investments = investments;
-        this.history = history;
+        this.contributions = contributions;
     }
 
     @Transactional(readOnly = true)
     public CompareModel load(UUID userId, YearMonth ym) {
-        Map<String, Long> investedByMonth = investedByMonth(userId);
+        Map<String, Long> investedByMonth = contributions.byMonthCents(userId);
 
         List<MonthSummaryDto> months = new ArrayList<>(TRAILING_MONTHS);
         for (YearMonth m : MonthlyFinanceAggregator.trailingAxis(ym, TRAILING_MONTHS)) {
@@ -56,37 +49,7 @@ public class CompareService {
         return withStats(months);
     }
 
-    /**
-     * Estima o aporte por mês: para cada investimento, percorre os snapshots
-     * em ordem cronológica e soma {@code max(0, delta − rendimentoMensal)} no
-     * mês do snapshot mais recente do par. Chave do mapa: {@code "YYYY-MM"}.
-     */
-    private Map<String, Long> investedByMonth(UUID userId) {
-        Map<UUID, Long> monthlyReturn = new HashMap<>();
-        for (Investment inv : investments.findAllByUserIdOrderByNameAsc(userId)) {
-            long ret = inv.getMonthlyReturnCents() == null ? 0L : inv.getMonthlyReturnCents();
-            monthlyReturn.put(inv.getId(), ret);
-        }
-
-        Map<String, Long> byMonth = new HashMap<>();
-        UUID lastInvestment = null;
-        long lastAmount = 0L;
-        // findAllByUserId vem ordenado por (investmentId, yearMonth)
-        for (InvestmentHistory h : history.findAllByUserId(userId)) {
-            if (!h.getInvestmentId().equals(lastInvestment)) {
-                lastInvestment = h.getInvestmentId();
-                lastAmount = h.getAmountCents();
-                continue; // primeiro ponto do investimento não tem delta
-            }
-            long delta = h.getAmountCents() - lastAmount;
-            long contribution = Math.max(0L, delta - monthlyReturn.getOrDefault(lastInvestment, 0L));
-            byMonth.merge(h.getYearMonth(), contribution, Long::sum);
-            lastAmount = h.getAmountCents();
-        }
-        return byMonth;
-    }
-
-    /** Calcula média, meses acima da meta e melhor mês a partir das taxas. */
+    /** Calcula média, meses acima da meta, melhor mês e a geometria das barras. */
     private CompareModel withStats(List<MonthSummaryDto> months) {
         int target = MonthlyFinanceAggregator.SAVINGS_TARGET_PERCENT;
 
@@ -108,6 +71,50 @@ public class CompareService {
         }
         Integer avg = counted > 0 ? (int) Math.round((double) sum / counted) : null;
 
-        return new CompareModel(months, target, avg, aboveTarget, counted, bestLabel, bestRate);
+        return buildBars(months, target, avg, aboveTarget, counted, bestLabel, bestRate);
+    }
+
+    /**
+     * Deriva a geometria das barras da taxa de poupança. Replica o cálculo do
+     * protótipo: o eixo vai de {@code bottom = min(0, menor taxa)} até
+     * {@code top = max(target + 10, 40, maior taxa)}, e cada barra é ancorada
+     * entre a linha do zero e a sua taxa (podendo cair abaixo do zero).
+     */
+    private CompareModel buildBars(List<MonthSummaryDto> months, int target, Integer avg,
+                                   int aboveTarget, int counted, String bestLabel, Integer bestRate) {
+        int maxRate = 0;
+        int minRate = 0;
+        boolean any = false;
+        for (MonthSummaryDto m : months) {
+            Integer rate = m.savingsRate();
+            if (rate == null) continue;
+            maxRate = any ? Math.max(maxRate, rate) : rate;
+            minRate = any ? Math.min(minRate, rate) : rate;
+            any = true;
+        }
+
+        double top = Math.max(Math.max(target + 10.0, 40.0), maxRate);
+        double bottom = Math.min(0.0, minRate);
+        double range = (top - bottom) == 0 ? 1 : (top - bottom);
+        double zeroTop = (top - 0) / range * 100.0;
+        double targetTop = (top - target) / range * 100.0;
+
+        List<SavingsBarView> bars = new ArrayList<>(months.size());
+        for (MonthSummaryDto m : months) {
+            Integer rate = m.savingsRate();
+            if (rate == null) {
+                bars.add(new SavingsBarView(m.label(), null, zeroTop, 1.5, "muted", false));
+                continue;
+            }
+            double pctFromTop = (top - rate) / range * 100.0;
+            double barTop = Math.min(zeroTop, pctFromTop);
+            double barBot = Math.max(zeroTop, pctFromTop);
+            double height = Math.max(1.5, barBot - barTop);
+            String tone = rate >= target ? "ok" : rate >= 0 ? "warn" : "bad";
+            bars.add(new SavingsBarView(m.label(), rate, barTop, height, tone, rate < 0));
+        }
+
+        return new CompareModel(months, target, avg, aboveTarget, counted, bestLabel, bestRate,
+                bars, zeroTop, targetTop);
     }
 }
