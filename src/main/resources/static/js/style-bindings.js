@@ -13,6 +13,7 @@
      data-bar-width="<n>"       → width: n%
      data-bar-height="<n>"      → height: n%
      data-bar-bottom="<n>"      → bottom: n%
+     data-bar-top="<n>"         → top: n%
    Valores são atribuídos via CSSOM: strings inválidas são
    simplesmente ignoradas pelo browser (não há execução de código).
    ───────────────────────────────────────────────────────────── */
@@ -38,6 +39,9 @@
         });
         applyEach("[data-bar-bottom]", function (el) {
             el.style.bottom = el.getAttribute("data-bar-bottom") + "%";
+        });
+        applyEach("[data-bar-top]", function (el) {
+            el.style.top = el.getAttribute("data-bar-top") + "%";
         });
     });
 })();

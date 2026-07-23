@@ -1,6 +1,6 @@
 <!doctype html>
 <html xmlns:th="http://www.thymeleaf.org" lang="pt-BR"
-      th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+      th:replace="~{layout/base :: layout(~{::title}, ~{::head/link}, ~{::section}, ~{::head/script})}">
 <head>
     <title th:text="'Chamado ' + ${view.id()} + ' · Rastro$'">Chamado · Rastro$</title>
     <link rel="stylesheet" th:href="@{/css/screens/support.css}">
@@ -14,7 +14,7 @@
             <h1 class="screen-title" th:text="${view.title()}">Título do chamado</h1>
             <p class="screen-sub">
                 <span class="support-id" th:text="${view.id()}">T-XXXXXX</span> ·
-                <span th:text="~{fragments/support-labels :: categoryText(${view.category()})}">Categoria</span> ·
+                <span th:insert="~{fragments/support-labels :: categoryText(${view.category()})}">Categoria</span> ·
                 aberto em
                 <span th:text="${#temporals.format(view.createdAt().atZone(T(java.time.ZoneOffset).UTC), 'dd/MM/yyyy')}">--/--</span>
             </p>
@@ -30,10 +30,10 @@
     <article class="card support-ticket">
         <div class="support-ticket-meta">
             <span class="st-pill" th:classappend="'st-' + ${view.status().name().toLowerCase()}"
-                  th:text="~{fragments/support-labels :: statusText(${view.status()})}">Status</span>
+                  th:insert="~{fragments/support-labels :: statusText(${view.status()})}">Status</span>
             <span class="pr-tag" th:classappend="'pr-' + ${view.priority().name().toLowerCase()}">
                 <span class="pr-dot"></span>
-                <span th:text="~{fragments/support-labels :: priorityText(${view.priority()})}">Prio</span>
+                <span th:insert="~{fragments/support-labels :: priorityText(${view.priority()})}">Prio</span>
             </span>
             <span class="support-requester" th:if="${view.admin()}"
                   th:text="${view.requesterEmail()}">user@ex.com</span>
@@ -50,7 +50,7 @@
         <label for="status">Alterar status</label>
         <select id="status" th:field="*{status}">
             <option th:each="s : ${statuses}" th:value="${s}"
-                    th:text="~{fragments/support-labels :: statusText(${s})}">Status</option>
+                    th:insert="~{fragments/support-labels :: statusText(${s})}">Status</option>
         </select>
         <button type="submit" class="btn">Atualizar</button>
     </form>

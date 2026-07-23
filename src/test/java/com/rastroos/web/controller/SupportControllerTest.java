@@ -41,6 +41,7 @@ import com.rastroos.security.LockoutChecker;
 import com.rastroos.security.LockoutPreAuthFilter;
 import com.rastroos.security.LoginFailureHandler;
 import com.rastroos.security.LoginSuccessHandler;
+import com.rastroos.web.interceptor.TopbarChipsInterceptor;
 import com.rastroos.web.dto.SupportListView;
 import com.rastroos.web.dto.TicketCommentDto;
 import com.rastroos.web.dto.TicketDetailView;
@@ -61,7 +62,8 @@ import com.rastroos.web.dto.TicketSummaryDto;
                         LoginSuccessHandler.class,
                         LoginFailureHandler.class,
                         CustomUserDetailsService.class,
-                        AuditLogger.class
+                        AuditLogger.class,
+                        TopbarChipsInterceptor.class
                 }))
 @AutoConfigureMockMvc(addFilters = false)
 class SupportControllerTest {
