@@ -22,6 +22,14 @@ spring:
   thymeleaf:
     cache: false                 # auto-reload em dev
 
+  # Em dev o navegador sempre revalida JS/CSS/estáticos (Cache-Control: no-cache),
+  # evitando rodar assets obsoletos após uma alteração. Em prod mantém-se o cache.
+  web:
+    resources:
+      cache:
+        cachecontrol:
+          no-cache: true
+
 server:
   error:
     include-message: always
