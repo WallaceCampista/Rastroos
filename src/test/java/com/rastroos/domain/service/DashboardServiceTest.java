@@ -38,6 +38,7 @@ class DashboardServiceTest {
     @Mock private AccountRepository accountsRepo;
     @Mock private CategoryRepository categoryRepo;
     @Mock private AccountService accountService;
+    @Mock private InvestmentContributionService contributions;
 
     @InjectMocks private DashboardService service;
 

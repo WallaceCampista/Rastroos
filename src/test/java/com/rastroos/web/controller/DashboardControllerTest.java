@@ -42,6 +42,7 @@ import com.rastroos.security.LockoutChecker;
 import com.rastroos.security.LockoutPreAuthFilter;
 import com.rastroos.security.LoginFailureHandler;
 import com.rastroos.security.LoginSuccessHandler;
+import com.rastroos.web.interceptor.TopbarChipsInterceptor;
 import com.rastroos.web.dto.DashboardKpisDto;
 import com.rastroos.web.dto.DashboardModel;
 
@@ -60,7 +61,8 @@ import com.rastroos.web.dto.DashboardModel;
                         LoginSuccessHandler.class,
                         LoginFailureHandler.class,
                         CustomUserDetailsService.class,
-                        AuditLogger.class
+                        AuditLogger.class,
+                        TopbarChipsInterceptor.class
                 }))
 @AutoConfigureMockMvc(addFilters = false)
 @Import(DashboardControllerTest.Config.class)
@@ -130,8 +132,8 @@ class DashboardControllerTest {
         LocalDate end = ym.plusMonths(1).atDay(1);
         DashboardKpisDto kpis = new DashboardKpisDto(
                 BigDecimal.ZERO, BigDecimal.ZERO,
-                BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
+                BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
         return new DashboardModel(start, end, 0L, 0L, kpis,
-                List.of(), List.of(), List.of(), List.of());
+                List.of(), List.of(), List.of(), List.of(), List.of());
     }
 }

@@ -11,6 +11,7 @@ public record DashboardKpisDto(
         BigDecimal spent,
         BigDecimal paid,
         BigDecimal toPay,
-        BigDecimal balance
+        BigDecimal balance,
+        BigDecimal invested
 ) {
 }

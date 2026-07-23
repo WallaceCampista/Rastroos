@@ -1,5 +1,6 @@
 package com.rastroos.domain.service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.ArrayList;
@@ -55,17 +56,20 @@ public class DashboardService {
     private final AccountRepository accounts;
     private final CategoryRepository categories;
     private final AccountService accountService;
+    private final InvestmentContributionService contributions;
 
     public DashboardService(TransactionRepository transactions,
                             IncomeRepository incomes,
                             AccountRepository accounts,
                             CategoryRepository categories,
-                            AccountService accountService) {
+                            AccountService accountService,
+                            InvestmentContributionService contributions) {
         this.transactions = transactions;
         this.incomes = incomes;
         this.accounts = accounts;
         this.categories = categories;
         this.accountService = accountService;
+        this.contributions = contributions;
     }
 
     @Transactional(readOnly = true)
@@ -78,13 +82,15 @@ public class DashboardService {
         long paidCents = transactions.sumPaidByUserAndPeriod(userId, start, end);
         long toPayCents = Math.max(0L, spentCents - paidCents);
         long balanceCents = incomeCents - paidCents;
+        long investedCents = contributions.inMonthCents(userId, ym);
 
         DashboardKpisDto kpis = new DashboardKpisDto(
                 MoneyDto.fromCents(incomeCents),
                 MoneyDto.fromCents(spentCents),
                 MoneyDto.fromCents(paidCents),
                 MoneyDto.fromCents(toPayCents),
-                MoneyDto.fromCents(balanceCents)
+                MoneyDto.fromCents(balanceCents),
+                MoneyDto.fromCents(investedCents)
         );
 
         List<Transaction> monthTx =
@@ -93,6 +99,7 @@ public class DashboardService {
                 incomes.findAllByUserIdAndIncomeDateBetweenOrderByIncomeDateDesc(userId, start, end);
 
         List<BalancePointDto> balanceSeries = buildBalanceSeries(ym, monthIncomes, monthTx);
+        List<BigDecimal> dailySpend = buildDailySpend(ym, monthTx);
 
         List<CategoryBreakdownDto> byCategory =
                 buildCategoryBreakdown(userId, start, end);
@@ -131,10 +138,25 @@ public class DashboardService {
                 entriesCount,
                 kpis,
                 balanceSeries,
+                dailySpend,
                 byCategory,
                 upcoming,
                 topAccounts
         );
+    }
+
+    /** Gasto lançado por dia do mês (1..N), somando todas as transações do dia. */
+    private List<BigDecimal> buildDailySpend(YearMonth ym, List<Transaction> monthTx) {
+        int daysIn = ym.lengthOfMonth();
+        long[] perDay = new long[daysIn + 1]; // 1-indexed
+        for (Transaction t : monthTx) {
+            perDay[t.getDueDate().getDayOfMonth()] += t.getAmountCents();
+        }
+        List<BigDecimal> series = new ArrayList<>(daysIn);
+        for (int d = 1; d <= daysIn; d++) {
+            series.add(MoneyDto.fromCents(perDay[d]));
+        }
+        return series;
     }
 
     /**
