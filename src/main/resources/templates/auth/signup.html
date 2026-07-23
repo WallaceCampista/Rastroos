@@ -7,6 +7,7 @@
     <link rel="stylesheet" th:href="@{/css/tokens.css}">
     <link rel="stylesheet" th:href="@{/css/base.css}">
     <link rel="stylesheet" th:href="@{/css/auth.css}">
+    <script th:src="@{/js/auth-password.js}" defer></script>
 </head>
 <body>
 <main class="auth-shell">
@@ -40,8 +41,11 @@
             </label>
             <label>
                 <span>Senha</span>
-                <input type="password" th:field="*{password}"
-                       autocomplete="new-password" required minlength="8" maxlength="128">
+                <div class="auth-input-wrap">
+                    <input type="password" th:field="*{password}"
+                           autocomplete="new-password" required minlength="8" maxlength="128">
+                    <th:block th:replace="~{fragments/password-toggle :: pwdToggle}"></th:block>
+                </div>
                 <small class="auth-hint">
                     Mínimo 8 caracteres, com maiúscula, minúscula, dígito e caractere especial.
                 </small>
@@ -50,8 +54,11 @@
             </label>
             <label>
                 <span>Confirmar senha</span>
-                <input type="password" th:field="*{passwordConfirm}"
-                       autocomplete="new-password" required minlength="8" maxlength="128">
+                <div class="auth-input-wrap">
+                    <input type="password" th:field="*{passwordConfirm}"
+                           autocomplete="new-password" required minlength="8" maxlength="128">
+                    <th:block th:replace="~{fragments/password-toggle :: pwdToggle}"></th:block>
+                </div>
                 <small th:if="${#fields.hasErrors('passwordConfirm')}"
                        th:errors="*{passwordConfirm}" class="auth-err"></small>
             </label>

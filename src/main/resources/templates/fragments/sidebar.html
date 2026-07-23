@@ -4,35 +4,182 @@
       lang="pt-BR">
 <body>
 
-<aside class="app-sidebar" th:fragment="sidebar(active)">
-    <a class="app-sidebar-brand" th:href="@{/app/dashboard}">
-        <span class="brand-logo">R</span>
-        <span class="app-sidebar-brand-text">Rastro<span class="brand-dollar">$</span></span>
-    </a>
+<aside class="sidebar" th:fragment="sidebar(active)">
 
-    <nav class="app-sidebar-nav" aria-label="Navegação principal">
-        <a th:href="@{/app/dashboard}"   th:classappend="${active == 'dashboard'}   ? 'is-active' : ''">Visão geral</a>
-        <a th:href="@{/app/cards}"       th:classappend="${active == 'cards'}       ? 'is-active' : ''">Cartões &amp; Contas</a>
-        <a th:href="@{/app/expenses}"    th:classappend="${active == 'expenses'}    ? 'is-active' : ''">Gastos</a>
-        <a th:href="@{/app/income}"      th:classappend="${active == 'income'}      ? 'is-active' : ''">Receitas</a>
-        <a th:href="@{/app/investments}" th:classappend="${active == 'investments'} ? 'is-active' : ''">Investimentos</a>
-        <a th:href="@{/app/reports}"     th:classappend="${active == 'reports'}     ? 'is-active' : ''">Relatórios</a>
-        <a th:href="@{/app/compare}"     th:classappend="${active == 'compare'}     ? 'is-active' : ''">Comparativo</a>
-        <a th:href="@{/app/manager}"     th:classappend="${active == 'manager'}     ? 'is-active' : ''">Alfredo</a>
+    <div class="brand">
+        <button type="button" class="sidebar-burger" data-sidebar-toggle
+                aria-label="Recolher menu">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>
+            </svg>
+        </button>
+        <a class="brand-logo" th:href="@{/app/dashboard}" aria-label="Rastro$">
+            <span class="accent">R</span>$
+        </a>
+        <a class="brand-name" th:href="@{/app/dashboard}">Rastro<span class="accent">$</span></a>
+    </div>
 
-        <a sec:authorize="!hasRole('ACESSOR')" th:href="@{/app/accessors}"
-           th:classappend="${active == 'accessors'} ? 'is-active' : ''">Acessores</a>
+    <nav class="nav" aria-label="Navegação principal">
+        <a class="nav-item" th:href="@{/app/dashboard}"
+           th:classappend="${active == 'dashboard'} ? 'active' : ''">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M3 12h7V3H3v9zm0 9h7v-6H3v6zm11 0h7v-9h-7v9zm0-18v6h7V3h-7z"/>
+            </svg>
+            <span>Visão geral</span>
+        </a>
+        <a class="nav-item" th:href="@{/app/cards}"
+           th:classappend="${active == 'cards'} ? 'active' : ''">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M3 7h18v12H3V7zm0 4h18M7 15h4"/>
+            </svg>
+            <span>Cartões &amp; Contas</span>
+        </a>
+        <a class="nav-item" th:href="@{/app/expenses}"
+           th:classappend="${active == 'expenses'} ? 'active' : ''">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2V3zm3 5h8m-8 4h8m-8 4h5"/>
+            </svg>
+            <span>Gastos Variáveis</span>
+        </a>
+        <a class="nav-item" th:href="@{/app/income}"
+           th:classappend="${active == 'income'} ? 'active' : ''">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 5v14m0 0l-6-6m6 6l6-6"/>
+            </svg>
+            <span>Receitas</span>
+        </a>
+        <a class="nav-item" th:href="@{/app/investments}"
+           th:classappend="${active == 'investments'} ? 'active' : ''">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M5 13a6 6 0 0 1 12 0v2a3 3 0 0 1-3 3h-1l-1 2H8l-1-2H7a2 2 0 0 1-2-2v-3zm10-4l2-3m-9 5h.01"/>
+            </svg>
+            <span>Investimentos</span>
+        </a>
+        <a class="nav-item" th:href="@{/app/reports}"
+           th:classappend="${active == 'reports'} ? 'active' : ''">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M3 17l6-6 4 4 8-8M21 7v6m0-6h-6"/>
+            </svg>
+            <span>Relatórios</span>
+        </a>
+        <a class="nav-item" th:href="@{/app/compare}"
+           th:classappend="${active == 'compare'} ? 'active' : ''">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M3 6h7v12H3zm11 0h7v12h-7zM10 9l4 6m0-6l-4 6"/>
+            </svg>
+            <span>Comparativo</span>
+        </a>
+        <a class="nav-item" th:href="@{/app/manager}"
+           th:classappend="${active == 'manager'} ? 'active' : ''">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 3l2.4 5 5.6.8-4 4 1 5.6-5-2.6L7 18.4l1-5.6-4-4 5.6-.8L12 3zM5 21l1-1m12 1l-1-1M4 4l1 1"/>
+            </svg>
+            <span>Alfredo</span>
+        </a>
 
-        <div sec:authorize="hasRole('ADMIN')" class="app-sidebar-group">
-            <span class="app-sidebar-group-lbl">Admin</span>
-            <a th:href="@{/app/users}" th:classappend="${active == 'users'} ? 'is-active' : ''">Usuários</a>
-            <a th:href="@{/app/accessor-requests}"
-               th:classappend="${active == 'accessor-requests'} ? 'is-active' : ''">Solicitações de acessor</a>
+        <a class="nav-item" sec:authorize="!hasRole('ACESSOR')" th:href="@{/app/accessors}"
+           th:classappend="${active == 'accessors'} ? 'active' : ''">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 2l8 3v6c0 5-3.5 9-8 11-4.5-2-8-6-8-11V5l8-3z"/>
+            </svg>
+            <span>Acessores</span>
+        </a>
+
+        <div sec:authorize="hasRole('ADMIN')">
+            <span class="nav-group-lbl">Admin</span>
+            <a class="nav-item" th:href="@{/app/users}"
+               th:classappend="${active == 'users'} ? 'active' : ''">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M16 14a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/>
+                    <path d="M8 13a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"/>
+                    <path d="M2 20a6 6 0 0 1 12 0M14 20a6 6 0 0 1 8-4.6"/>
+                </svg>
+                <span>Usuários</span>
+            </a>
+            <a class="nav-item" th:href="@{/app/accessor-requests}"
+               th:classappend="${active == 'accessor-requests'} ? 'active' : ''">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M6 16V11a6 6 0 1 1 12 0v5l2 2H4l2-2zm4 4a2 2 0 0 0 4 0"/>
+                </svg>
+                <span>Solicitações</span>
+            </a>
         </div>
 
-        <a th:href="@{/app/support}" th:classappend="${active == 'support'} ? 'is-active' : ''">Suporte</a>
-        <a th:href="@{/app/profile}" th:classappend="${active == 'profile'} ? 'is-active' : ''">Perfil</a>
+        <a class="nav-item" th:href="@{/app/support}"
+           th:classappend="${active == 'support'} ? 'active' : ''">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/>
+                <path d="M5 5l3.2 3.2M15.8 15.8L19 19M5 19l3.2-3.2M15.8 8.2L19 5"/>
+            </svg>
+            <span>Suporte</span>
+        </a>
     </nav>
+
+    <div class="streak-stats" th:if="${streakInControl != null or streakOutControl != null}">
+        <div class="streak-row streak-on" th:if="${streakInControl != null}">
+            <span class="streak-emoji" aria-hidden="true">👍</span>
+            <div class="streak-info">
+                <div class="streak-num" th:text="${streakInControl}">0</div>
+                <div class="streak-lbl">meses no controle</div>
+            </div>
+        </div>
+        <div class="streak-row streak-out" th:if="${streakOutControl != null and streakOutControl > 0}">
+            <span class="streak-emoji" aria-hidden="true">👎</span>
+            <div class="streak-info">
+                <div class="streak-num" th:text="${streakOutControl}">0</div>
+                <div class="streak-lbl">meses fora do controle</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="sidebar-actions">
+        <a class="btn btn-primary btn-block" data-modal-url th:href="@{/app/expenses/new}">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 5v14M5 12h14"/>
+            </svg>
+            <span>Lançar gasto</span>
+        </a>
+        <a class="btn btn-ghost btn-block" data-modal-url th:href="@{/app/income/new}">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 5v14m0 0l-6-6m6 6l6-6"/>
+            </svg>
+            <span>Lançar receita</span>
+        </a>
+    </div>
+
+    <div class="sidebar-user">
+        <span class="user-avatar" th:text="${userInitial != null ? userInitial : '·'}">·</span>
+        <div class="user-info">
+            <div class="user-name" th:text="${userDisplayName != null ? userDisplayName : 'Minha conta'}">Minha conta</div>
+            <div class="user-email muted" sec:authentication="name">conta@rastro.app</div>
+        </div>
+        <form th:action="@{/auth/logout}" method="post" class="sidebar-user-form">
+            <input type="hidden" th:if="${_csrf != null}"
+                   th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+            <button type="submit" class="user-logout" title="Sair" aria-label="Sair">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M15 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h9M11 12h11m0 0l-4-4m4 4l-4 4"/>
+                </svg>
+            </button>
+        </form>
+    </div>
+
 </aside>
 
 </body>

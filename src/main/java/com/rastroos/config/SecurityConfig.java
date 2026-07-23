@@ -12,10 +12,12 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import org.springframework.security.web.header.writers.XXssProtectionHeaderWriter;
 
 import com.rastroos.security.BruteForceFilter;
+import com.rastroos.security.CsrfTokenEagerLoadFilter;
 import com.rastroos.security.CustomUserDetailsService;
 import com.rastroos.security.LockoutPreAuthFilter;
 import com.rastroos.security.LoginFailureHandler;
@@ -127,6 +129,10 @@ public class SecurityConfig {
                         .policy("camera=(), microphone=(), geolocation=()"))
             )
             .authenticationProvider(authenticationProvider())
+            // Materializa o token CSRF antes do render (evita
+            // "Cannot create a session after the response has been committed"
+            // em páginas grandes com <form th:action>). Ver CsrfTokenEagerLoadFilter.
+            .addFilterAfter(new CsrfTokenEagerLoadFilter(), CsrfFilter.class)
             .addFilterBefore(bruteForceFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(lockoutFilter,    UsernamePasswordAuthenticationFilter.class);
 
