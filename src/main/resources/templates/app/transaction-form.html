@@ -1,112 +1,117 @@
 <!doctype html>
 <html xmlns:th="http://www.thymeleaf.org" lang="pt-BR"
-      th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+      th:replace="~{layout/base :: layout(~{::title}, ~{::head/link}, ~{::section}, ~{::head/script})}">
 <head>
-    <title th:text="${editing ? 'Editar lançamento · Rastro$' : 'Novo lançamento · Rastro$'}">Lançamento · Rastro$</title>
+    <title th:text="${editing ? 'Editar lançamento · Rastro$' : 'Lançar gasto · Rastro$'}">Lançamento · Rastro$</title>
     <link rel="stylesheet" th:href="@{/css/screens/expenses.css}">
-    <script th:src="@{/js/screens/transaction-form.js}" defer></script>
 </head>
 <body>
 <section class="app-content screen screen-expenses screen-tx-form">
     <header class="screen-header">
         <div>
             <h1 class="screen-title"
-                th:text="${editing ? 'Editar lançamento' : 'Novo lançamento'}">Novo lançamento</h1>
-            <p class="screen-sub">
-                Despesa pontual, recorrente ou parcelada.
-            </p>
+                th:text="${editing ? 'Editar lançamento' : 'Lançar gasto'}">Lançar gasto</h1>
+            <p class="screen-sub">Despesa pontual, recorrente ou parcelada.</p>
         </div>
         <div class="screen-actions">
             <a class="btn" th:href="@{/app/expenses}">Voltar</a>
         </div>
     </header>
 
-    <form class="tx-form card"
+    <form class="form tx-form"
           th:action="${editing ? '/app/expenses/' + transactionId + '/edit' : '/app/expenses/new'}"
           method="post"
           th:object="${transactionForm}">
-        <input type="hidden"
-               th:if="${_csrf != null}"
-               th:name="${_csrf.parameterName}"
-               th:value="${_csrf.token}">
+        <input type="hidden" th:if="${_csrf != null}"
+               th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
 
-        <div class="tx-form-grid">
-            <div class="field field-wide">
-                <label for="description">Descrição</label>
-                <input id="description" type="text" th:field="*{description}"
-                       maxlength="200" required autocomplete="off">
-                <p class="field-error" th:if="${#fields.hasErrors('description')}"
-                   th:errors="*{description}">erro</p>
-            </div>
+        <div class="form-tabs" data-tx-tabs>
+            <button type="button" class="form-tab" data-tx-tab="variable">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2V3zm3 5h8m-8 4h8m-8 4h5"/>
+                </svg>
+                Gasto variável
+            </button>
+            <button type="button" class="form-tab" data-tx-tab="fixed">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>
+                </svg>
+                Gasto fixo
+            </button>
+        </div>
+        <input type="checkbox" th:field="*{fixed}" hidden>
+        <span class="form-hint" data-tx-hint>Gasto pontual como alimentação, combustível, compras.</span>
 
-            <div class="field">
-                <label for="amount">Valor (R$)</label>
-                <input id="amount" type="number" step="0.01" min="0.01"
-                       th:field="*{amount}" required>
-                <p class="field-error" th:if="${#fields.hasErrors('amount')}"
-                   th:errors="*{amount}">erro</p>
-            </div>
+        <label>
+            <span>Descrição</span>
+            <input class="input" type="text" th:field="*{description}"
+                   maxlength="200" required autocomplete="off" placeholder="Ex: Almoço iFood">
+            <small th:if="${#fields.hasErrors('description')}" th:errors="*{description}"
+                   class="form-hint form-hint-err"></small>
+        </label>
 
-            <div class="field">
-                <label for="dueDate">Vencimento</label>
-                <input id="dueDate" type="date" th:field="*{dueDate}" required>
-                <p class="field-error" th:if="${#fields.hasErrors('dueDate')}"
-                   th:errors="*{dueDate}">erro</p>
-            </div>
-
-            <div class="field">
-                <label for="accountId">Conta</label>
-                <select id="accountId" th:field="*{accountId}" required>
-                    <option value="" disabled>Selecione…</option>
-                    <option th:each="a : ${accountOptions}"
-                            th:value="${a.id}"
-                            th:text="${a.name}">Conta</option>
-                </select>
-                <p class="field-error" th:if="${#fields.hasErrors('accountId')}"
-                   th:errors="*{accountId}">erro</p>
-            </div>
-
-            <div class="field">
-                <label for="categoryId">Categoria</label>
-                <select id="categoryId" th:field="*{categoryId}" required>
-                    <option value="" disabled>Selecione…</option>
-                    <option th:each="c : ${categoryOptions}"
-                            th:value="${c.id}"
-                            th:text="${c.namePt}">Categoria</option>
-                </select>
-                <p class="field-error" th:if="${#fields.hasErrors('categoryId')}"
-                   th:errors="*{categoryId}">erro</p>
-            </div>
-
-            <div class="field" th:unless="${editing}">
-                <label for="installments">Parcelas</label>
-                <input id="installments" type="number" min="1" max="60"
-                       th:field="*{installments}">
-                <p class="field-help">1 = pagamento único. Acima disso, o valor é o
-                    total da compra, dividido nas parcelas a partir do mês seguinte.</p>
-                <p class="field-error" th:if="${#fields.hasErrors('installments')}"
-                   th:errors="*{installments}">erro</p>
-            </div>
-
-            <div class="field field-checkbox">
-                <label>
-                    <input type="checkbox" th:field="*{fixed}">
-                    Lançamento fixo (recorrente)
-                </label>
-            </div>
-
-            <div class="field field-checkbox">
-                <label>
-                    <input type="checkbox" th:field="*{paid}">
-                    Marcar como pago
-                </label>
-            </div>
+        <div class="form-row">
+            <label>
+                <span>Valor (R$)</span>
+                <input class="input" type="number" step="0.01" min="0.01"
+                       th:field="*{amount}" required placeholder="0,00">
+                <small th:if="${#fields.hasErrors('amount')}" th:errors="*{amount}"
+                       class="form-hint form-hint-err"></small>
+            </label>
+            <label>
+                <span>Vencimento</span>
+                <input class="input" type="date" th:field="*{dueDate}" required>
+                <small th:if="${#fields.hasErrors('dueDate')}" th:errors="*{dueDate}"
+                       class="form-hint form-hint-err"></small>
+            </label>
         </div>
 
-        <footer class="tx-form-foot">
+        <label th:unless="${editing}">
+            <span>Parcelas</span>
+            <input class="input" id="installments" type="number" min="1" max="60"
+                   th:field="*{installments}">
+            <small class="form-hint field-help">1 = pagamento único. Acima disso, o valor é o
+                total da compra, dividido nas parcelas a partir do mês seguinte.</small>
+            <small th:if="${#fields.hasErrors('installments')}" th:errors="*{installments}"
+                   class="form-hint form-hint-err"></small>
+        </label>
+
+        <label>
+            <span>Conta</span>
+            <select class="input" th:field="*{accountId}" required>
+                <option value="" disabled>Selecione…</option>
+                <option th:each="a : ${accountOptions}" th:value="${a.id}" th:text="${a.name}">Conta</option>
+            </select>
+            <small th:if="${#fields.hasErrors('accountId')}" th:errors="*{accountId}"
+                   class="form-hint form-hint-err"></small>
+        </label>
+
+        <label>
+            <span>Categoria</span>
+            <div class="cat-grid" data-cat-grid>
+                <button type="button" class="cat-btn" th:each="c : ${categoryOptions}"
+                        th:attr="data-cat=${c.id},data-color=${c.colorHex}">
+                    <span class="cat-dot"></span>
+                    <span th:text="${c.namePt}">Categoria</span>
+                </button>
+            </div>
+            <input type="hidden" th:field="*{categoryId}" data-cat-input>
+            <small th:if="${#fields.hasErrors('categoryId')}" th:errors="*{categoryId}"
+                   class="form-hint form-hint-err"></small>
+        </label>
+
+        <label class="check-row">
+            <input type="checkbox" th:field="*{paid}">
+            <span>Já está pago</span>
+        </label>
+
+        <div class="form-actions">
+            <a class="btn btn-ghost" data-modal-close th:href="@{/app/expenses}">Cancelar</a>
             <button type="submit" class="btn btn-primary"
-                    th:text="${editing ? 'Salvar' : 'Criar lançamento'}">Salvar</button>
-        </footer>
+                    th:text="${editing ? 'Salvar alterações' : 'Lançar gasto'}">Lançar gasto</button>
+        </div>
     </form>
 </section>
 </body>

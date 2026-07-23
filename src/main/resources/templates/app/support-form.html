@@ -1,6 +1,6 @@
 <!doctype html>
 <html xmlns:th="http://www.thymeleaf.org" lang="pt-BR"
-      th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+      th:replace="~{layout/base :: layout(~{::title}, ~{::head/link}, ~{::section}, ~{::head/script})}">
 <head>
     <title>Novo chamado · Rastro$</title>
     <link rel="stylesheet" th:href="@{/css/screens/support.css}">
@@ -27,7 +27,7 @@
                 <label for="category">Tipo</label>
                 <select id="category" th:field="*{category}">
                     <option th:each="c : ${categories}" th:value="${c}"
-                            th:text="~{fragments/support-labels :: categoryText(${c})}">Tipo</option>
+                            th:insert="~{fragments/support-labels :: categoryText(${c})}">Tipo</option>
                 </select>
                 <p class="field-error" th:if="${#fields.hasErrors('category')}"
                    th:errors="*{category}">erro</p>
@@ -37,7 +37,7 @@
                 <label for="priority">Prioridade</label>
                 <select id="priority" th:field="*{priority}">
                     <option th:each="p : ${priorities}" th:value="${p}"
-                            th:text="~{fragments/support-labels :: priorityText(${p})}">Prioridade</option>
+                            th:insert="~{fragments/support-labels :: priorityText(${p})}">Prioridade</option>
                 </select>
                 <p class="field-error" th:if="${#fields.hasErrors('priority')}"
                    th:errors="*{priority}">erro</p>

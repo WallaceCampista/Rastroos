@@ -1,34 +1,91 @@
 /* ─────────────────────────────────────────────────────────────
    Rastro$ — tokens de design (CSS vars)
+   Espelha o sistema visual do protótipo (styles.css):
+   dark como baseline no :root, [data-theme="light"] sobrescreve,
+   densidade via [data-density]. Aliases de compatibilidade mantêm
+   nomes antigos (--bg-2, --rose, --green, --text-faint…) válidos.
+   Obs.: o projeto coloca data-theme/density no <body>, por isso
+   usamos seletores de atributo (não :root[data-theme]).
    ───────────────────────────────────────────────────────────── */
 :root {
+    /* Marca e semânticos (iguais em dark/light) */
     --primary:   #6366f1;
     --primary-2: #818cf8;
     --accent:    #fbbf24;
+    --success:   #34d399;
+    --danger:    #fb7185;
+    --warn:      #fbbf24;
+    --info:      #22d3ee;
+    --violet:    #a78bfa;
     --pink:      #f472b6;
-    --green:     #34d399;
-    --rose:      #fb7185;
-    --danger:    #ef4444;
-    --warn:      #f59e0b;
-    --success:   #22c55e;
 
-    --bg:        #131829;
-    --bg-2:      #1b2238;
-    --surface:   rgba(255, 255, 255, 0.045);
-    --surface-2: rgba(255, 255, 255, 0.085);
-    --border:    rgba(255, 255, 255, 0.09);
-    --border-2:  rgba(255, 255, 255, 0.17);
+    /* Tipografia */
+    --font:  'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
+    --mono:  'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
 
-    --text:       #f4f4f8;
-    --text-dim:   rgba(244, 244, 248, 0.62);
-    --text-faint: rgba(244, 244, 248, 0.35);
+    /* Raios */
+    --radius-sm: 8px;
+    --radius:    12px;
+    --radius-lg: 18px;
+    --radius-xl: 22px;
 
-    --font: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-    --serif: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    /* Densidade (padding das telas) */
+    --pad-x: 28px;
+    --pad-y: 24px;
 
-    --radius-sm:  8px;
-    --radius:     12px;
-    --radius-lg:  20px;
+    /* ── Baseline = tema escuro ── */
+    --bg:        #0a0e1f;
+    --surface:   #131829;
+    --surface-2: #1a2138;
+    --surface-3: #232c47;
+    --border:    rgba(255, 255, 255, 0.07);
+    --border-2:  rgba(255, 255, 255, 0.12);
+    --text:      #eef0f9;
+    --text-dim:  #98a2c7;
+    --muted:     #6b7497;
+    --kpi-glow:  0 0 0 1px rgba(255, 255, 255, 0.04), 0 12px 30px -20px rgba(0, 0, 0, 0.6);
+    --panel-bg:  linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent), #131829;
 
+    /* ── Aliases de compatibilidade (nomes antigos do projeto) ── */
+    --bg-2:        var(--surface-2);
+    --green:       var(--success);
+    --rose:        var(--danger);
+    --text-faint:  var(--muted);
+    --serif:       var(--font);
     --shadow-glow: 0 0 60px -20px rgba(99, 102, 241, 0.55);
 }
+
+/* ── Tema claro ── */
+[data-theme="light"] {
+    --bg:        #f5f6fb;
+    --surface:   #ffffff;
+    --surface-2: #fafbff;
+    --surface-3: #eef1fa;
+    --border:    rgba(11, 20, 40, 0.08);
+    --border-2:  rgba(11, 20, 40, 0.14);
+    --text:      #0b1224;
+    --text-dim:  #5d6890;
+    --muted:     #98a2c7;
+    --kpi-glow:  0 1px 0 rgba(255, 255, 255, 0.7) inset, 0 8px 20px -16px rgba(11, 20, 40, 0.2);
+    --panel-bg:  #ffffff;
+    --shadow-glow: 0 0 60px -20px rgba(99, 102, 241, 0.30);
+}
+
+/* Redundante mas explícito: garante dark mesmo se algo sobrescrever antes */
+[data-theme="dark"] {
+    --bg:        #0a0e1f;
+    --surface:   #131829;
+    --surface-2: #1a2138;
+    --surface-3: #232c47;
+    --border:    rgba(255, 255, 255, 0.07);
+    --border-2:  rgba(255, 255, 255, 0.12);
+    --text:      #eef0f9;
+    --text-dim:  #98a2c7;
+    --muted:     #6b7497;
+    --kpi-glow:  0 0 0 1px rgba(255, 255, 255, 0.04), 0 12px 30px -20px rgba(0, 0, 0, 0.6);
+    --panel-bg:  linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent), #131829;
+}
+
+/* ── Densidade ── */
+[data-density="compact"] { --pad-x: 20px; --pad-y: 18px; }
+[data-density="comfy"]   { --pad-x: 36px; --pad-y: 32px; }
