@@ -1,126 +1,78 @@
 <!doctype html>
-<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR"
-      th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      lang="pt-BR"
+      th:replace="~{layout/base :: layout(~{::title}, ~{::head/link}, ~{::section}, ~{::head/script})}">
 <head>
     <title>Receitas · Rastro$</title>
     <link rel="stylesheet" th:href="@{/css/screens/income.css}">
     <script th:src="@{/js/screens/income.js}" defer></script>
 </head>
 <body>
-<section class="app-content screen screen-income"
-         th:data-period="${period}">
-
-    <header class="screen-header">
-        <div>
-            <h1 class="screen-title">Receitas</h1>
-            <p class="screen-sub">
-                <span th:text="${view.totalElements()}">0</span> receitas ·
-                Total
-                <strong th:text="${(maskValues ? '*****' : #numbers.formatDecimal(view.totalAmount(), 1, 'POINT', 2, 'COMMA'))}">0,00</strong>
-            </p>
-        </div>
-        <div class="screen-actions">
-            <a class="btn btn-primary" th:href="@{/app/income/new}">+ Nova receita</a>
-        </div>
-    </header>
+<section class="app-content screen screen-income income-screen" th:data-period="${period}">
 
     <div th:if="${ok}" class="flash flash-ok" th:text="#{${ok}}">Ok</div>
 
-    <form class="filter-bar" method="get" th:action="@{/app/income}">
-        <input type="hidden" name="ym" th:value="${period}">
-
-        <div class="filter-field">
-            <label for="categoryId">Categoria</label>
-            <select id="categoryId" name="categoryId">
-                <option value="">Todas</option>
-                <option th:each="c : ${categories}"
-                        th:value="${c.id}"
-                        th:text="${c.namePt}"
-                        th:selected="${filter.categoryId() != null and filter.categoryId() == c.id}">Categoria</option>
-            </select>
+    <div class="income-hero">
+        <div>
+            <div class="income-hero-label">Total recebido</div>
+            <div class="income-hero-value"
+                 th:data-amount="${maskValues ? '' : view.totalAmount()}"
+                 th:text="${maskValues ? '••••' : 'R$ ' + #numbers.formatDecimal(view.totalAmount(), 1, 'POINT', 2, 'COMMA')}">R$ 0,00</div>
+            <div class="income-hero-sub"><span th:text="${view.totalElements()}">0</span> lançamentos neste mês</div>
         </div>
-
-        <div class="filter-field filter-field-grow">
-            <label for="q">Busca</label>
-            <input id="q" type="search" name="q"
-                   th:value="${filter.search()}" placeholder="Fonte…">
-        </div>
-
-        <div class="filter-actions">
-            <button type="submit" class="btn">Filtrar</button>
-            <a class="btn-link" th:href="@{/app/income(ym=${period})}">Limpar</a>
-        </div>
-    </form>
-
-    <div th:if="${view.items().isEmpty()}" class="empty-state">
-        Nenhuma receita encontrada neste período.
+        <a class="btn btn-primary" data-modal-url th:href="@{/app/income/new}" sec:authorize="!hasRole('ACESSOR')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+            Lançar receita
+        </a>
     </div>
 
-    <table class="income-table" th:unless="${view.items().isEmpty()}">
-        <thead>
-            <tr>
-                <th>Data</th>
-                <th>Fonte</th>
-                <th>Categoria</th>
-                <th class="num">Valor</th>
-                <th class="actions">Ações</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr th:each="i : ${view.items()}">
-                <td>
-                    <span th:text="${#temporals.format(i.incomeDate(), 'dd/MM')}">--/--</span>
-                </td>
-                <td>
-                    <div class="income-source">
-                        <span th:text="${i.source()}">Fonte</span>
-                        <small class="income-note" th:if="${i.note() != null}"
-                               th:text="${i.note()}">obs</small>
-                    </div>
-                </td>
-                <td>
-                    <span class="income-chip"
-                          th:if="${i.categoryId() != null}"
-                          th:attr="data-stroke=${i.categoryColorHex()}"
-                          th:text="${i.categoryName() != null ? i.categoryName() : i.categoryId()}">Categoria</span>
-                </td>
-                <td class="num">
-                    <span class="income-amount"
-                          th:data-amount="${maskValues ? '' : i.amount()}"
-                          th:text="${(maskValues ? '*****' : #numbers.formatDecimal(i.amount(), 1, 'POINT', 2, 'COMMA'))}">0,00</span>
-                </td>
-                <td class="actions">
-                    <a class="btn-link"
-                       th:href="@{/app/income/{id}/edit(id=${i.id()})}">Editar</a>
-                    <form class="inline-form" th:if="${!accessorMode}"
-                          th:action="@{/app/income/{id}/delete(id=${i.id()})}"
-                          method="post"
-                          data-confirm="Remover esta receita?">
-                        <input type="hidden"
-                               th:if="${_csrf != null}"
-                               th:name="${_csrf.parameterName}"
-                               th:value="${_csrf.token}">
-                        <button type="submit" class="btn-link btn-link-danger">Remover</button>
-                    </form>
-                </td>
-            </tr>
-        </tbody>
-    </table>
+    <div class="panel" th:if="${!maskValues}" style="margin-bottom:20px">
+        <div class="panel-head"><h3>Últimos 6 meses</h3></div>
+        <div class="income-chart-wrap"><canvas id="incomeChart" aria-label="Receita nos últimos 6 meses"></canvas></div>
+        <script type="application/json" id="incomeChartData" th:text="${incomeChartJson}">{"points":[]}</script>
+    </div>
 
-    <nav class="pagination" th:if="${view.totalPages() > 1}"
-         aria-label="Paginação">
-        <a class="btn-link"
-           th:if="${view.page() > 0}"
-           th:href="@{/app/income(ym=${period}, page=${view.page() - 1}, size=${view.size()},
-                                  categoryId=${filter.categoryId()}, q=${filter.search()})}">← Anterior</a>
-        <span class="pagination-info">
-            Página <strong th:text="${view.page() + 1}">1</strong> de
-            <strong th:text="${view.totalPages()}">1</strong>
-        </span>
-        <a class="btn-link"
-           th:if="${view.page() + 1 < view.totalPages()}"
-           th:href="@{/app/income(ym=${period}, page=${view.page() + 1}, size=${view.size()},
-                                  categoryId=${filter.categoryId()}, q=${filter.search()})}">Próxima →</a>
+    <div class="panel">
+        <div class="panel-head"><h3>Receitas deste mês</h3></div>
+        <div th:if="${view.items().isEmpty()}" class="empty-sm muted">Nenhuma receita registrada neste período.</div>
+        <ul class="income-list" th:unless="${view.items().isEmpty()}">
+            <li class="income-row" th:each="i : ${view.items()}">
+                <span class="income-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14m0 0l-6-6m6 6l6-6"/></svg>
+                </span>
+                <div class="income-mid">
+                    <div class="income-src" th:text="${i.source()}">Fonte</div>
+                    <div class="income-meta">
+                        <span th:text="${#temporals.format(i.incomeDate(), 'dd ''de'' MMM')}">18 de mai</span>
+                        <span th:if="${i.categoryName() != null}"> · <span th:text="${i.categoryName()}">Categoria</span></span>
+                        <span th:if="${i.categoryName() == null and i.note() != null}"> · <span th:text="${i.note()}">obs</span></span>
+                    </div>
+                </div>
+                <span class="money money-md income-amount"
+                      th:data-amount="${maskValues ? '' : i.amount()}"
+                      th:text="${maskValues ? '••••' : '+R$ ' + #numbers.formatDecimal(i.amount(), 1, 'POINT', 2, 'COMMA')}">+R$ 0,00</span>
+                <div class="tx-actions">
+                    <a class="row-action" data-modal-url th:href="@{/app/income/{id}/edit(id=${i.id()})}" title="Editar">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l11-11-4-4L4 16v4z"/></svg>
+                    </a>
+                    <form th:if="${!accessorMode}" th:action="@{/app/income/{id}/delete(id=${i.id()})}" method="post" data-confirm="Remover esta receita?">
+                        <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                        <button type="submit" class="row-action danger" title="Remover">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14M9 7V4h6v3m-7 0v13h8V7"/></svg>
+                        </button>
+                    </form>
+                </div>
+            </li>
+        </ul>
+    </div>
+
+    <nav class="pagination" th:if="${view.totalPages() > 1}" aria-label="Paginação">
+        <a class="btn" th:if="${view.page() > 0}"
+           th:href="@{/app/income(ym=${period}, page=${view.page() - 1}, size=${view.size()}, categoryId=${filter.categoryId()}, q=${filter.search()})}">← Anterior</a>
+        <span class="pagination-info muted">Página <strong th:text="${view.page() + 1}">1</strong> de <strong th:text="${view.totalPages()}">1</strong></span>
+        <a class="btn" th:if="${view.page() + 1 < view.totalPages()}"
+           th:href="@{/app/income(ym=${period}, page=${view.page() + 1}, size=${view.size()}, categoryId=${filter.categoryId()}, q=${filter.search()})}">Próxima →</a>
     </nav>
 </section>
 </body>

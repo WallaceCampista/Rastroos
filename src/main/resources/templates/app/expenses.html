@@ -1,180 +1,91 @@
 <!doctype html>
-<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR"
-      th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      lang="pt-BR"
+      th:replace="~{layout/base :: layout(~{::title}, ~{::head/link}, ~{::section}, ~{::head/script})}">
 <head>
     <title>Gastos · Rastro$</title>
     <link rel="stylesheet" th:href="@{/css/screens/expenses.css}">
     <script th:src="@{/js/screens/expenses.js}" defer></script>
 </head>
 <body>
-<section class="app-content screen screen-expenses"
-         th:data-period="${period}">
-
-    <header class="screen-header">
-        <div>
-            <h1 class="screen-title">Gastos</h1>
-            <p class="screen-sub">
-                <span th:text="${view.totalElements()}">0</span> lançamentos ·
-                Total
-                <strong th:text="${(maskValues ? '*****' : #numbers.formatDecimal(view.totalAmount(), 1, 'POINT', 2, 'COMMA'))}">0,00</strong> ·
-                Pago
-                <strong th:text="${(maskValues ? '*****' : #numbers.formatDecimal(view.totalPaid(), 1, 'POINT', 2, 'COMMA'))}">0,00</strong>
-            </p>
-        </div>
-        <div class="screen-actions">
-            <a class="btn btn-primary" th:href="@{/app/expenses/new}">+ Novo lançamento</a>
-        </div>
-    </header>
+<section class="app-content screen screen-expenses expenses-screen" th:data-period="${period}">
 
     <div th:if="${ok}" class="flash flash-ok" th:text="#{${ok}}">Ok</div>
 
-    <form class="filter-bar" method="get" th:action="@{/app/expenses}">
-        <input type="hidden" name="ym" th:value="${period}">
-
-        <div class="filter-field">
-            <label for="paid">Status</label>
-            <select id="paid" name="paid">
-                <option value="ALL"    th:selected="${filter.paid().name() == 'ALL'}">Todos</option>
-                <option value="PAID"   th:selected="${filter.paid().name() == 'PAID'}">Pagos</option>
-                <option value="UNPAID" th:selected="${filter.paid().name() == 'UNPAID'}">Em aberto</option>
-            </select>
+    <div class="filter-bar">
+        <form class="search" method="get" th:action="@{/app/expenses}">
+            <input type="hidden" name="ym" th:value="${period}">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zm5-2l4 4"/></svg>
+            <input type="search" name="q" th:value="${filter.search()}" placeholder="Buscar lançamento…">
+        </form>
+        <div class="chip-filters">
+            <a class="chip" th:classappend="${filter.paid().name() == 'ALL' and filter.fixed().name() == 'ALL' and filter.search() == null} ? 'on' : ''"
+               th:href="@{/app/expenses(ym=${period})}">Todos</a>
+            <a class="chip" th:classappend="${filter.paid().name() == 'UNPAID'} ? 'on' : ''"
+               th:href="@{/app/expenses(ym=${period}, paid='UNPAID')}">Em aberto</a>
+            <a class="chip" th:classappend="${filter.paid().name() == 'PAID'} ? 'on' : ''"
+               th:href="@{/app/expenses(ym=${period}, paid='PAID')}">Pago</a>
+            <a class="chip" th:classappend="${filter.fixed().name() == 'FIXED'} ? 'on' : ''"
+               th:href="@{/app/expenses(ym=${period}, fixed='FIXED')}">Fixo</a>
+            <a class="chip" th:classappend="${filter.fixed().name() == 'ONE_OFF'} ? 'on' : ''"
+               th:href="@{/app/expenses(ym=${period}, fixed='ONE_OFF')}">Pontual</a>
         </div>
-
-        <div class="filter-field">
-            <label for="fixed">Tipo</label>
-            <select id="fixed" name="fixed">
-                <option value="ALL"     th:selected="${filter.fixed().name() == 'ALL'}">Todos</option>
-                <option value="FIXED"   th:selected="${filter.fixed().name() == 'FIXED'}">Fixos</option>
-                <option value="ONE_OFF" th:selected="${filter.fixed().name() == 'ONE_OFF'}">Pontuais</option>
-            </select>
-        </div>
-
-        <div class="filter-field">
-            <label for="accountId">Conta</label>
-            <select id="accountId" name="accountId">
-                <option value="">Todas</option>
-                <option th:each="a : ${accounts}"
-                        th:value="${a.id}"
-                        th:text="${a.name}"
-                        th:selected="${filter.accountId() != null and filter.accountId() == a.id}">Conta</option>
-            </select>
-        </div>
-
-        <div class="filter-field">
-            <label for="categoryId">Categoria</label>
-            <select id="categoryId" name="categoryId">
-                <option value="">Todas</option>
-                <option th:each="c : ${categories}"
-                        th:value="${c.id}"
-                        th:text="${c.namePt}"
-                        th:selected="${filter.categoryId() != null and filter.categoryId() == c.id}">Categoria</option>
-            </select>
-        </div>
-
-        <div class="filter-field filter-field-grow">
-            <label for="q">Busca</label>
-            <input id="q" type="search" name="q"
-                   th:value="${filter.search()}" placeholder="Descrição…">
-        </div>
-
-        <div class="filter-actions">
-            <button type="submit" class="btn">Filtrar</button>
-            <a class="btn-link" th:href="@{/app/expenses(ym=${period})}">Limpar</a>
-        </div>
-    </form>
-
-    <div th:if="${view.items().isEmpty()}" class="empty-state">
-        Nenhum lançamento encontrado neste período.
     </div>
 
-    <table class="tx-table" th:unless="${view.items().isEmpty()}">
-        <thead>
-            <tr>
-                <th>Data</th>
-                <th>Descrição</th>
-                <th>Conta</th>
-                <th>Categoria</th>
-                <th class="num">Valor</th>
-                <th class="actions">Ações</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr th:each="t : ${view.items()}"
-                th:classappend="${t.paid()} ? 'tx-row-paid' : ''">
-                <td>
-                    <span th:text="${#temporals.format(t.dueDate(), 'dd/MM')}">--/--</span>
-                </td>
-                <td>
-                    <div class="tx-desc">
-                        <span th:text="${t.description()}">Lançamento</span>
-                        <span th:if="${t.fixed()}" class="pill pill-accent">fixo</span>
-                        <span th:if="${t.isInstallment()}" class="pill"
-                              th:text="${t.installmentLabel()}">1/3</span>
+    <div class="panel">
+        <div th:if="${view.items().isEmpty()}" class="empty-sm muted">Nenhum lançamento encontrado neste período.</div>
+        <ul class="tx-list" th:unless="${view.items().isEmpty()}">
+            <li class="tx-row" th:each="t : ${view.items()}">
+                <span class="acc-chip" th:attr="data-fill=${t.accountColorHex()}"
+                      th:text="${t.accountName() != null and !t.accountName().isBlank() ? #strings.substring(t.accountName(),0,1) : '·'}">·</span>
+                <div class="tx-mid">
+                    <div class="tx-top">
+                        <span class="tx-desc" th:text="${t.description()}">Lançamento</span>
+                        <span class="money money-sm" th:classappend="${t.paid()} ? 'tx-paid' : ''"
+                              th:data-amount="${maskValues ? '' : t.amount()}"
+                              th:text="${(maskValues ? '••••' : 'R$ ' + #numbers.formatDecimal(t.amount(), 1, 'POINT', 2, 'COMMA'))}">R$ 0,00</span>
                     </div>
-                </td>
-                <td>
-                    <span class="tx-chip"
-                          th:attr="data-stroke=${t.accountColorHex()}"
-                          th:text="${t.accountName()}">Conta</span>
-                </td>
-                <td>
-                    <span class="tx-chip"
-                          th:attr="data-stroke=${t.categoryColorHex()}"
-                          th:text="${t.categoryName()}">Categoria</span>
-                </td>
-                <td class="num">
-                    <span class="tx-amount"
-                          th:data-amount="${maskValues ? '' : t.amount()}"
-                          th:text="${(maskValues ? '*****' : #numbers.formatDecimal(t.amount(), 1, 'POINT', 2, 'COMMA'))}">0,00</span>
-                </td>
-                <td class="actions">
-                    <form class="inline-form"
-                          th:action="@{/app/expenses/{id}/toggle-paid(id=${t.id()})}"
-                          method="post">
-                        <input type="hidden"
-                               th:if="${_csrf != null}"
-                               th:name="${_csrf.parameterName}"
-                               th:value="${_csrf.token}">
-                        <input type="hidden" name="redirect"
-                               th:value="@{/app/expenses(ym=${period})}">
-                        <button type="submit" class="btn-link"
-                                th:text="${t.paid()} ? 'Reabrir' : 'Pagar'">Pagar</button>
+                    <div class="tx-bot">
+                        <span class="tx-cat"><span class="cat-dot" th:attr="data-fill=${t.categoryColorHex()}"></span><span th:text="${t.categoryName()}">Categoria</span></span>
+                        <span class="tx-acct" th:text="${t.accountName()}">Conta</span>
+                        <span th:if="${t.fixed()}" class="pill pill-info pill-xs">Fixo</span>
+                        <span th:if="${t.isInstallment()}" class="pill pill-xs" th:text="${t.installmentLabel()}">1/3</span>
+                        <span th:if="${t.paid()}" class="pill pill-success pill-xs">Pago</span>
+                        <span th:unless="${t.paid()}" class="pill pill-warn pill-xs">Em aberto</span>
+                    </div>
+                </div>
+                <div class="tx-actions">
+                    <form th:action="@{/app/expenses/{id}/toggle-paid(id=${t.id()})}" method="post">
+                        <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                        <input type="hidden" name="redirect" th:value="@{/app/expenses(ym=${period})}">
+                        <button type="submit" class="paid-toggle" th:classappend="${t.paid()} ? 'is-paid' : ''"
+                                th:title="${t.paid()} ? 'Reabrir' : 'Marcar como pago'">
+                            <svg th:if="${t.paid()}" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>
+                            <svg th:unless="${t.paid()}" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M16.5 7.5c0-1.93-1.79-3.5-4-3.5h-1c-2.21 0-4 1.57-4 3.5S9.29 11 11.5 11h1c2.21 0 4 1.57 4 3.5S14.71 18 12.5 18h-1c-2.21 0-4-1.57-4-3.5"/></svg>
+                        </button>
                     </form>
-                    <a class="btn-link"
-                       th:href="@{/app/expenses/{id}/edit(id=${t.id()})}">Editar</a>
-                    <form class="inline-form" th:if="${!accessorMode}"
-                          th:action="@{/app/expenses/{id}/delete(id=${t.id()})}"
-                          method="post"
-                          data-confirm="Remover este lançamento?">
-                        <input type="hidden"
-                               th:if="${_csrf != null}"
-                               th:name="${_csrf.parameterName}"
-                               th:value="${_csrf.token}">
-                        <button type="submit" class="btn-link btn-link-danger">Remover</button>
+                    <a class="row-action" data-modal-url th:href="@{/app/expenses/{id}/edit(id=${t.id()})}" title="Editar">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l11-11-4-4L4 16v4z"/></svg>
+                    </a>
+                    <form th:if="${!accessorMode}" th:action="@{/app/expenses/{id}/delete(id=${t.id()})}" method="post" data-confirm="Remover este lançamento?">
+                        <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                        <button type="submit" class="row-action danger" title="Remover">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14M9 7V4h6v3m-7 0v13h8V7"/></svg>
+                        </button>
                     </form>
-                </td>
-            </tr>
-        </tbody>
-    </table>
+                </div>
+            </li>
+        </ul>
+    </div>
 
-    <nav class="pagination" th:if="${view.totalPages() > 1}"
-         aria-label="Paginação">
-        <a class="btn-link"
-           th:if="${view.page() > 0}"
-           th:href="@{/app/expenses(ym=${period}, page=${view.page() - 1}, size=${view.size()},
-                                    paid=${filter.paid()}, fixed=${filter.fixed()},
-                                    accountId=${filter.accountId()}, categoryId=${filter.categoryId()},
-                                    q=${filter.search()})}">← Anterior</a>
-        <span class="pagination-info">
-            Página <strong th:text="${view.page() + 1}">1</strong> de
-            <strong th:text="${view.totalPages()}">1</strong>
-        </span>
-        <a class="btn-link"
-           th:if="${view.page() + 1 < view.totalPages()}"
-           th:href="@{/app/expenses(ym=${period}, page=${view.page() + 1}, size=${view.size()},
-                                    paid=${filter.paid()}, fixed=${filter.fixed()},
-                                    accountId=${filter.accountId()}, categoryId=${filter.categoryId()},
-                                    q=${filter.search()})}">Próxima →</a>
+    <nav class="pagination" th:if="${view.totalPages() > 1}" aria-label="Paginação">
+        <a class="btn" th:if="${view.page() > 0}"
+           th:href="@{/app/expenses(ym=${period}, page=${view.page() - 1}, size=${view.size()}, paid=${filter.paid()}, fixed=${filter.fixed()}, accountId=${filter.accountId()}, categoryId=${filter.categoryId()}, q=${filter.search()})}">← Anterior</a>
+        <span class="pagination-info muted">Página <strong th:text="${view.page() + 1}">1</strong> de <strong th:text="${view.totalPages()}">1</strong></span>
+        <a class="btn" th:if="${view.page() + 1 < view.totalPages()}"
+           th:href="@{/app/expenses(ym=${period}, page=${view.page() + 1}, size=${view.size()}, paid=${filter.paid()}, fixed=${filter.fixed()}, accountId=${filter.accountId()}, categoryId=${filter.categoryId()}, q=${filter.search()})}">Próxima →</a>
     </nav>
 </section>
 </body>
