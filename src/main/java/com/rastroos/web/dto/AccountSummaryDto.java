@@ -21,7 +21,9 @@ public record AccountSummaryDto(
         BigDecimal paid,
         BigDecimal remaining,
         int paidPercent,
-        long entriesCount
+        long entriesCount,
+        /** {@code paid} | {@code overdue} | {@code soon} | {@code open} | {@code none} */
+        String status
 ) {
 
     public boolean isFullyPaid() {
