@@ -43,6 +43,7 @@ import com.rastroos.security.LockoutChecker;
 import com.rastroos.security.LockoutPreAuthFilter;
 import com.rastroos.security.LoginFailureHandler;
 import com.rastroos.security.LoginSuccessHandler;
+import com.rastroos.web.interceptor.TopbarChipsInterceptor;
 import com.rastroos.web.dto.UserAdminListView;
 import com.rastroos.web.dto.UserDetailView;
 import com.rastroos.web.dto.UserRowDto;
@@ -62,7 +63,8 @@ import com.rastroos.web.dto.UserRowDto;
                         LoginSuccessHandler.class,
                         LoginFailureHandler.class,
                         CustomUserDetailsService.class,
-                        AuditLogger.class
+                        AuditLogger.class,
+                        TopbarChipsInterceptor.class
                 }))
 @AutoConfigureMockMvc(addFilters = false)
 class UserAdminRestControllerTest {

@@ -3,11 +3,9 @@
    ───────────────────────────────────────────────────────────── */
 
 .screen-users {
-    padding: 28px 32px;
     display: flex;
     flex-direction: column;
     gap: 20px;
-    max-width: 1180px;
 }
 
 .screen-header {
@@ -91,77 +89,89 @@
 /* ── KPIs ────────────────────────────────────────────────── */
 .user-kpis {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
 }
 
 .user-kpi {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    padding: 14px 16px;
+    position: relative;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto auto;
+    align-items: center;
+    column-gap: 12px;
+    row-gap: 2px;
+    padding: 16px 18px;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+/* brilho suave no canto (glow do protótipo) */
+.user-kpi::after {
+    content: '';
+    position: absolute;
+    top: -30%;
+    right: -10%;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: var(--kpi-glow, transparent);
+    filter: blur(30px);
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.user-kpi-icon {
+    grid-row: 1 / span 2;
+    width: 40px;
+    height: 40px;
+    border-radius: 11px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--kpi-icon-bg, color-mix(in oklch, var(--primary) 16%, transparent));
+    color: var(--kpi-icon-fg, var(--primary));
 }
 
 .user-kpi-val {
+    align-self: end;
     font-family: var(--serif);
-    font-size: 22px;
+    font-size: 24px;
     font-weight: 800;
     font-variant-numeric: tabular-nums;
+    line-height: 1;
 }
 
 .user-kpi-lbl {
+    align-self: start;
     font-size: 11.5px;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
+    font-weight: 600;
     color: var(--text-dim);
 }
 
-/* ── Filter bar ─────────────────────────────────────────── */
+.kpi-tone-primary { --kpi-icon-bg: color-mix(in oklch, var(--primary) 16%, transparent); --kpi-icon-fg: var(--primary-2); --kpi-glow: color-mix(in oklch, var(--primary) 40%, transparent); }
+.kpi-tone-success { --kpi-icon-bg: color-mix(in oklch, #34d399 16%, transparent);   --kpi-icon-fg: #34d399;      --kpi-glow: color-mix(in oklch, #34d399 34%, transparent); }
+.kpi-tone-accent  { --kpi-icon-bg: color-mix(in oklch, var(--accent) 18%, transparent);  --kpi-icon-fg: var(--accent); --kpi-glow: color-mix(in oklch, var(--accent) 34%, transparent); }
+.kpi-tone-danger  { --kpi-icon-bg: color-mix(in oklch, #fb7185 16%, transparent);   --kpi-icon-fg: #fb7185;      --kpi-glow: color-mix(in oklch, #fb7185 32%, transparent); }
+
+/* ── Filter bar (busca + chips de status) ───────────────── */
 .filter-bar {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: 12px;
-    align-items: end;
-    padding: 14px 16px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
 }
 
-.filter-field { display: grid; gap: 6px; min-width: 0; }
-.filter-field-grow { grid-column: span 2; }
+.filter-bar .search { flex: 1 1 320px; min-width: 220px; }
 
-.filter-field label {
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--text-dim);
+.chips {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
 }
-
-.filter-field select,
-.filter-field input {
-    width: 100%;
-    padding: 8px 10px;
-    background: var(--bg-2);
-    color: var(--text);
-    border: 1px solid var(--border-2);
-    border-radius: var(--radius);
-    font-family: inherit;
-    font-size: 13.5px;
-}
-
-.filter-field select:focus,
-.filter-field input:focus {
-    outline: none;
-    border-color: var(--primary-2);
-}
-
-.filter-actions { display: flex; align-items: center; gap: 8px; }
 
 /* ── Tables ──────────────────────────────────────────────── */
 .table-scroll { overflow-x: auto; }
@@ -215,16 +225,24 @@
 
 .user-avatar {
     flex: 0 0 auto;
-    width: 34px;
-    height: 34px;
+    width: 38px;
+    height: 38px;
     display: grid;
     place-items: center;
     border-radius: 99px;
     background: color-mix(in oklch, var(--primary) 20%, transparent);
-    color: var(--primary-2);
+    color: #fff;
     font-weight: 800;
     font-size: 14px;
 }
+
+/* Cores variadas por linha (como o protótipo), sem dado de cor no back-end */
+.user-table tbody tr:nth-child(6n+1) .user-avatar { background: linear-gradient(135deg, #6366f1, #a78bfa); }
+.user-table tbody tr:nth-child(6n+2) .user-avatar { background: linear-gradient(135deg, #fb923c, #f472b6); }
+.user-table tbody tr:nth-child(6n+3) .user-avatar { background: linear-gradient(135deg, #22d3ee, #6366f1); }
+.user-table tbody tr:nth-child(6n+4) .user-avatar { background: linear-gradient(135deg, #34d399, #22d3ee); }
+.user-table tbody tr:nth-child(6n+5) .user-avatar { background: linear-gradient(135deg, #e879f9, #a78bfa); }
+.user-table tbody tr:nth-child(6n)   .user-avatar { background: linear-gradient(135deg, #fbbf24, #fb923c); }
 
 .user-name {
     font-weight: 700;
@@ -267,15 +285,24 @@
     border-color: var(--border-2);
 }
 
-/* ── Status (pill) ───────────────────────────────────────── */
+/* ── Status (pill com bolinha) ──────────────────────────── */
 .st-pill {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     padding: 3px 10px;
     border-radius: 99px;
     font-size: 11.5px;
     font-weight: 700;
     border: 1px solid transparent;
     white-space: nowrap;
+}
+.st-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 99px;
+    background: currentColor;
+    flex-shrink: 0;
 }
 .st-active {
     color: var(--success);
