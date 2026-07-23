@@ -1,191 +1,121 @@
 <!doctype html>
-<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR"
-      th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      lang="pt-BR"
+      th:replace="~{layout/base :: layout(~{::title}, ~{::head/link}, ~{::section}, ~{::head/script})}">
 <head>
     <title>Investimentos · Rastro$</title>
     <link rel="stylesheet" th:href="@{/css/screens/investments.css}">
     <script th:src="@{/js/screens/investments.js}" defer></script>
+    <script th:src="@{/js/screens/investments-charts.js}" defer></script>
+    <script th:src="@{/js/screens/invest-detail.js}" defer></script>
 </head>
 <body>
-<section class="app-content screen screen-investments">
-
-    <header class="screen-header">
-        <div>
-            <h1 class="screen-title">Investimentos</h1>
-            <p class="screen-sub">Cofrinhos com metas e carteira de renda fixa/variável.</p>
-        </div>
-        <div class="screen-actions">
-            <a class="btn btn-primary" th:href="@{/app/investments/new}">+ Novo</a>
-        </div>
-    </header>
+<section class="app-content screen screen-investments investments-screen">
 
     <div th:if="${ok}" class="flash flash-ok" th:text="#{${ok}}">Ok</div>
     <div th:if="${error}" class="flash flash-error" th:text="#{${error}}">Erro</div>
 
-    <section class="inv-summary" aria-label="Resumo">
-        <article class="kpi kpi-primary">
-            <header class="kpi-head">Total investido</header>
-            <p class="kpi-value"
-               th:text="${(maskValues ? '*****' : #numbers.formatDecimal(view.summary().totalInvested(), 1, 'POINT', 2, 'COMMA'))}">0,00</p>
-            <p class="kpi-foot">acumulado</p>
-        </article>
-        <article class="kpi kpi-accent">
-            <header class="kpi-head">Metas dos cofrinhos</header>
-            <p class="kpi-value"
-               th:text="${(maskValues ? '*****' : #numbers.formatDecimal(view.summary().totalGoals(), 1, 'POINT', 2, 'COMMA'))}">0,00</p>
-            <p class="kpi-foot">
-                <span th:if="${view.summary().piggyProgress() != null}">
-                    <strong th:text="${view.summary().piggyProgress()}">0</strong>% alcançado
+    <div class="invest-hero">
+        <div class="invest-hero-main">
+            <div class="invest-hero-label">Total investido</div>
+            <div class="invest-hero-value"
+                 th:data-amount="${maskValues ? '' : view.summary().totalInvested()}"
+                 th:text="${maskValues ? '••••' : 'R$ ' + #numbers.formatDecimal(view.summary().totalInvested(), 1, 'POINT', 2, 'COMMA')}">R$ 0,00</div>
+            <div class="invest-hero-sub">
+                <span class="up" th:if="${view.summary().monthlyReturn() != null}">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5m0 0l-6 6m6-6l6 6"/></svg>
+                    <span th:text="${maskValues ? '••••' : 'R$ ' + #numbers.formatDecimal(view.summary().monthlyReturn(), 1, 'POINT', 2, 'COMMA')}">R$ 0,00</span> rendimento do mês
                 </span>
-                <span th:if="${view.summary().piggyProgress() == null}">sem metas</span>
-            </p>
-        </article>
-        <article class="kpi kpi-success">
-            <header class="kpi-head">Rendimento mensal</header>
-            <p class="kpi-value"
-               th:text="${(maskValues ? '*****' : #numbers.formatDecimal(view.summary().monthlyReturn(), 1, 'POINT', 2, 'COMMA'))}">0,00</p>
-            <p class="kpi-foot">estimado</p>
-        </article>
-    </section>
-
-    <section class="account-section" aria-labelledby="piggies-title">
-        <header class="account-section-header">
-            <h2 class="account-section-title" id="piggies-title">🐷 Cofrinhos</h2>
-            <span class="account-section-count" th:text="${#lists.size(view.piggies())}">0</span>
-        </header>
-        <div th:if="${view.piggies().isEmpty()}" class="empty-state">
-            Nenhum cofrinho cadastrado.
+            </div>
+            <a class="btn btn-primary invest-new-btn" data-modal-url th:href="@{/app/investments/new}" sec:authorize="!hasRole('ACESSOR')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                Novo investimento
+            </a>
         </div>
-        <div class="inv-grid" th:unless="${view.piggies().isEmpty()}">
-            <article class="inv-tile" th:each="p : ${view.piggies()}" th:data-id="${p.id()}">
-                <span class="inv-tile-blob"
-                      th:attr="data-fill=${p.colorHex()}"></span>
-                <div class="inv-tile-head">
-                    <div class="inv-avatar"
-                         th:attr="data-fill=${p.colorHex()}"
-                         th:text="${p.iconText() != null and !p.iconText().isBlank()
-                                   ? p.iconText()
-                                   : #strings.substring(p.name(),0,1)}">·</div>
-                    <span th:if="${p.progressPercent() != null and p.progressPercent() >= 100}"
-                          class="pill pill-success">Meta atingida</span>
+        <div class="invest-hero-chart" th:unless="${maskValues}">
+            <canvas id="investHeroChart" role="img" aria-label="Evolução do patrimônio nos últimos 6 meses"></canvas>
+        </div>
+    </div>
+
+    <!-- Cofrinhos -->
+    <div class="inv-section-title" th:unless="${view.piggies().isEmpty()}">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13a6 6 0 0 1 12 0v2a3 3 0 0 1-3 3h-1l-1 2H8l-1-2H7a2 2 0 0 1-2-2v-3zm10-4l2-3m-9 5h.01"/></svg>
+        <span>Cofrinhos</span><span class="muted" th:text="'— ' + ${#lists.size(view.piggies())}">— 0</span>
+    </div>
+    <div class="piggy-grid" th:unless="${view.piggies().isEmpty()}">
+        <button type="button" class="piggy-card" th:each="p : ${view.piggies()}"
+                th:attr="data-piggy-color=${p.colorHex()},data-invest-detail-url=@{/app/investments/{id}/detail(id=${p.id()})}">
+            <div class="piggy-head">
+                <span class="piggy-icon" th:text="${p.iconText() != null and !p.iconText().isBlank() ? p.iconText() : #strings.substring(p.name(),0,1)}">·</span>
+                <span class="piggy-name" th:text="${p.name()}">Cofrinho</span>
+            </div>
+            <div class="piggy-ring-wrap">
+                <svg class="progress-ring" width="150" height="150" viewBox="0 0 150 150" aria-hidden="true">
+                    <circle class="pr-track" cx="75" cy="75" r="70"/>
+                    <circle class="pr-fill" cx="75" cy="75" r="70"
+                            th:attr="data-percent=${p.progressPercent() != null ? p.progressPercent() : 0},data-color=${p.colorHex()}"/>
+                </svg>
+                <div class="ring-inner">
+                    <div class="piggy-ring-pct" th:text="${(p.progressPercent() != null ? p.progressPercent() : 0)} + '%'">0%</div>
+                    <div class="piggy-ring-lbl">progresso</div>
                 </div>
-                <h3 class="inv-tile-name" th:text="${p.name()}">Cofrinho</h3>
-                <p class="inv-tile-amount"
-                   th:data-amount="${maskValues ? '' : p.amount()}"
-                   th:text="${(maskValues ? '*****' : #numbers.formatDecimal(p.amount(), 1, 'POINT', 2, 'COMMA'))}">0,00</p>
-                <p class="inv-tile-meta" th:if="${p.goal() != null}">
-                    de
-                    <strong th:text="${(maskValues ? '*****' : #numbers.formatDecimal(p.goal(), 1, 'POINT', 2, 'COMMA'))}">0,00</strong>
-                </p>
-                <div class="account-bar" th:if="${p.progressPercent() != null}">
-                    <span th:attr="data-bar-width=${p.progressPercent()}"></span>
-                </div>
-                <div class="inv-tile-actions">
-                    <a class="btn-link"
-                       th:href="@{/app/investments/{id}/edit(id=${p.id()})}">Editar</a>
-                    <button type="button" class="btn-link"
-                            data-history-toggle
-                            th:attr="data-target='#hist-' + ${p.id()}">Histórico</button>
-                    <form class="inline-form" th:if="${!accessorMode}"
-                          th:action="@{/app/investments/{id}/delete(id=${p.id()})}"
-                          method="post"
-                          data-confirm="Remover este cofrinho?">
-                        <input type="hidden"
-                               th:if="${_csrf != null}"
-                               th:name="${_csrf.parameterName}"
-                               th:value="${_csrf.token}">
-                        <button type="submit" class="btn-link btn-link-danger">Remover</button>
-                    </form>
-                </div>
-                <form class="hist-form" hidden th:id="'hist-' + ${p.id()}"
-                      th:action="@{/app/investments/{id}/history(id=${p.id()})}"
-                      method="post"
-                      th:object="${historyForm}">
-                    <input type="hidden"
-                           th:if="${_csrf != null}"
-                           th:name="${_csrf.parameterName}"
-                           th:value="${_csrf.token}">
-                    <label class="hist-field">
-                        <span>Mês (YYYY-MM)</span>
-                        <input type="text" name="yearMonth"
-                               pattern="\d{4}-\d{2}"
-                               th:value="*{yearMonth}" required>
-                    </label>
-                    <label class="hist-field">
-                        <span>Saldo (R$)</span>
-                        <input type="number" step="0.01" min="0" name="amount" required>
-                    </label>
-                    <button type="submit" class="btn">Salvar</button>
+            </div>
+            <div class="piggy-stats">
+                <div><span class="muted">Atual</span><span class="money"
+                     th:text="${maskValues ? '••••' : 'R$ ' + #numbers.formatDecimal(p.amount(), 1, 'POINT', 2, 'COMMA')}">R$ 0,00</span></div>
+                <div><span class="muted">Meta</span><span class="money"
+                     th:text="${p.goal() != null ? (maskValues ? '••••' : 'R$ ' + #numbers.formatDecimal(p.goal(), 1, 'POINT', 2, 'COMMA')) : '—'}">R$ 0,00</span></div>
+            </div>
+        </button>
+    </div>
+
+    <!-- Carteira -->
+    <div class="inv-section-title inv-section-title-gap" th:unless="${view.portfolio().isEmpty()}">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8M21 7v6m0-6h-6"/></svg>
+        <span>Carteira</span><span class="muted" th:text="'— ' + ${#lists.size(view.portfolio())}">— 0</span>
+    </div>
+    <div class="wallet-list" th:unless="${view.portfolio().isEmpty()}">
+        <div class="wallet-row" th:each="p : ${view.portfolio()}"
+             th:attr="data-invest-detail-url=@{/app/investments/{id}/detail(id=${p.id()})}">
+            <span class="wallet-icon" th:attr="data-fill=${p.colorHex()}"
+                  th:text="${#strings.substring(p.name(),0,1)}">C</span>
+            <div class="wallet-name">
+                <div th:text="${p.name()}">CDB Banco Inter</div>
+                <div class="muted" th:text="${p.rateLabel() != null ? p.rateLabel() : ''}">110% CDI</div>
+            </div>
+            <div class="wallet-spark" th:unless="${maskValues}">
+                <canvas th:attr="data-spark-id=${p.id()},data-spark-color=${p.colorHex()}" aria-hidden="true"></canvas>
+            </div>
+            <div class="wallet-val">
+                <span class="money money-sm"
+                      th:text="${maskValues ? '••••' : 'R$ ' + #numbers.formatDecimal(p.amount(), 1, 'POINT', 2, 'COMMA')}">R$ 0,00</span>
+                <span class="up" th:if="${p.monthlyReturn() != null}">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5m0 0l-6 6m6-6l6 6"/></svg>
+                    <span th:text="${maskValues ? '••••' : 'R$ ' + #numbers.formatDecimal(p.monthlyReturn(), 1, 'POINT', 2, 'COMMA')}">R$ 0,00</span>
+                </span>
+            </div>
+            <div class="wallet-actions" sec:authorize="!hasRole('ACESSOR')">
+                <a class="row-action" data-modal-url th:href="@{/app/investments/{id}/edit(id=${p.id()})}" title="Editar">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l11-11-4-4L4 16v4z"/></svg>
+                </a>
+                <form th:action="@{/app/investments/{id}/delete(id=${p.id()})}" method="post" data-confirm="Remover este investimento?">
+                    <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                    <button type="submit" class="row-action danger" title="Remover">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14M9 7V4h6v3m-7 0v13h8V7"/></svg>
+                    </button>
                 </form>
-            </article>
+            </div>
         </div>
-    </section>
+    </div>
 
-    <section class="account-section" aria-labelledby="portfolio-title">
-        <header class="account-section-header">
-            <h2 class="account-section-title" id="portfolio-title">💼 Carteira</h2>
-            <span class="account-section-count" th:text="${#lists.size(view.portfolio())}">0</span>
-        </header>
-        <div th:if="${view.portfolio().isEmpty()}" class="empty-state">
-            Nenhum investimento na carteira ainda.
-        </div>
-        <table class="inv-table" th:unless="${view.portfolio().isEmpty()}">
-            <thead>
-                <tr>
-                    <th>Nome</th>
-                    <th>Tipo</th>
-                    <th>Taxa</th>
-                    <th class="num">Saldo</th>
-                    <th class="num">Rend./mês</th>
-                    <th class="actions">Ações</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr th:each="p : ${view.portfolio()}">
-                    <td class="inv-name">
-                        <span class="inv-dot"
-                              th:attr="data-fill=${p.colorHex()}"></span>
-                        <span th:text="${p.name()}">Nome</span>
-                    </td>
-                    <td>
-                        <span class="inv-chip"
-                              th:text="${p.kind().name() == 'CDI' ? 'CDI'
-                                      : (p.kind().name() == 'TREASURY' ? 'Tesouro'
-                                      : (p.kind().name() == 'LCI' ? 'LCI'
-                                      : (p.kind().name() == 'LIMITE_GARANTIDO' ? 'Limite garantido'
-                                      : (p.kind().name() == 'STOCK' ? 'Ações' : p.kind().name()))))}">Tipo</span>
-                    </td>
-                    <td>
-                        <span th:text="${p.rateLabel() != null ? p.rateLabel() : '—'}">—</span>
-                    </td>
-                    <td class="num">
-                        <span th:data-amount="${maskValues ? '' : p.amount()}"
-                              th:text="${(maskValues ? '*****' : #numbers.formatDecimal(p.amount(), 1, 'POINT', 2, 'COMMA'))}">0,00</span>
-                    </td>
-                    <td class="num">
-                        <span th:if="${p.monthlyReturn() != null}"
-                              class="inv-return"
-                              th:text="${(maskValues ? '*****' : #numbers.formatDecimal(p.monthlyReturn(), 1, 'POINT', 2, 'COMMA'))}">0,00</span>
-                        <span th:if="${p.monthlyReturn() == null}">—</span>
-                    </td>
-                    <td class="actions">
-                        <a class="btn-link"
-                           th:href="@{/app/investments/{id}/edit(id=${p.id()})}">Editar</a>
-                        <form class="inline-form" th:if="${!accessorMode}"
-                              th:action="@{/app/investments/{id}/delete(id=${p.id()})}"
-                              method="post"
-                              data-confirm="Remover este investimento?">
-                            <input type="hidden"
-                                   th:if="${_csrf != null}"
-                                   th:name="${_csrf.parameterName}"
-                                   th:value="${_csrf.token}">
-                            <button type="submit" class="btn-link btn-link-danger">Remover</button>
-                        </form>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-    </section>
+    <div class="empty-sm muted" th:if="${view.piggies().isEmpty() and view.portfolio().isEmpty()}">
+        Nenhum investimento cadastrado ainda.
+    </div>
+
+    <script type="application/json" id="investChartData" th:text="${investChartJson}">
+        {"labels":[],"total":[],"sparklines":{}}
+    </script>
 </section>
 </body>
 </html>
