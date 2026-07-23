@@ -49,7 +49,7 @@ public class InvestmentForm {
     /** Cor sólida (#aabbcc) ou expressão CSS aceita pelo banco. */
     @Size(max = 80)
     @Schema(description = "Cor de destaque (hex ou expressão CSS)", example = "#22c55e")
-    private String colorHex;
+    private String colorHex = "#6366f1";
 
     @Pattern(regexp = "^[\\p{Alnum}\\p{Punct}\\s]{0,8}$", message = "investment.iconInvalid")
     @Size(max = 8)

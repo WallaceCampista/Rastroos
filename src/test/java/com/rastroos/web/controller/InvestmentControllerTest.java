@@ -4,6 +4,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -40,6 +41,8 @@ import com.rastroos.security.LockoutChecker;
 import com.rastroos.security.LockoutPreAuthFilter;
 import com.rastroos.security.LoginFailureHandler;
 import com.rastroos.security.LoginSuccessHandler;
+import com.rastroos.web.interceptor.TopbarChipsInterceptor;
+import com.rastroos.web.dto.InvestmentChartData;
 import com.rastroos.web.dto.InvestmentsView;
 import com.rastroos.web.dto.PortfolioSummaryDto;
 import com.rastroos.web.form.InvestmentForm;
@@ -60,7 +63,8 @@ import com.rastroos.web.form.InvestmentHistoryForm;
                         LoginSuccessHandler.class,
                         LoginFailureHandler.class,
                         CustomUserDetailsService.class,
-                        AuditLogger.class
+                        AuditLogger.class,
+                        TopbarChipsInterceptor.class
                 }))
 @AutoConfigureMockMvc(addFilters = false)
 class InvestmentControllerTest {
@@ -75,6 +79,12 @@ class InvestmentControllerTest {
     @BeforeEach
     void setUp() {
         when(currentUser.requireEffectiveId()).thenReturn(userId);
+        // O modal de criação carrega a lista de investimentos existentes.
+        lenient().when(service.load(userId)).thenReturn(new InvestmentsView(
+                List.of(), List.of(),
+                new PortfolioSummaryDto(BigDecimal.ZERO, BigDecimal.ZERO, null, BigDecimal.ZERO,
+                        new EnumMap<>(InvestmentKind.class)),
+                new InvestmentChartData(List.of(), List.of(), java.util.Map.of())));
     }
 
     @Test
@@ -82,7 +92,8 @@ class InvestmentControllerTest {
         InvestmentsView empty = new InvestmentsView(
                 List.of(), List.of(),
                 new PortfolioSummaryDto(BigDecimal.ZERO, BigDecimal.ZERO, null, BigDecimal.ZERO,
-                        new EnumMap<>(InvestmentKind.class)));
+                        new EnumMap<>(InvestmentKind.class)),
+                new InvestmentChartData(List.of(), List.of(), java.util.Map.of()));
         when(service.load(userId)).thenReturn(empty);
 
         mvc.perform(get("/app/investments"))
