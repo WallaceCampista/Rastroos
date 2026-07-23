@@ -36,6 +36,7 @@ import com.rastroos.security.LockoutChecker;
 import com.rastroos.security.LockoutPreAuthFilter;
 import com.rastroos.security.LoginFailureHandler;
 import com.rastroos.security.LoginSuccessHandler;
+import com.rastroos.web.interceptor.TopbarChipsInterceptor;
 import com.rastroos.web.dto.ChatDetailDto;
 import com.rastroos.web.dto.ChatMessageDto;
 import com.rastroos.web.dto.ChatSummaryDto;
@@ -56,7 +57,8 @@ import com.rastroos.web.dto.ManagerView;
                         LoginSuccessHandler.class,
                         LoginFailureHandler.class,
                         CustomUserDetailsService.class,
-                        AuditLogger.class
+                        AuditLogger.class,
+                        TopbarChipsInterceptor.class
                 }))
 @AutoConfigureMockMvc(addFilters = false)
 class ManagerControllerTest {

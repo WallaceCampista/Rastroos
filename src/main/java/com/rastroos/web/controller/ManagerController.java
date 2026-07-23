@@ -52,6 +52,12 @@ public class ManagerController {
         return "app/manager";
     }
 
+    @PostMapping("/start")
+    public String startEmpty() {
+        UUID chatId = service.startEmpty(currentUser.requireId());
+        return "redirect:/app/manager?chat=" + chatId;
+    }
+
     @PostMapping("/new")
     public String start(@Valid @ModelAttribute("promptForm") ChatPromptForm form,
                         BindingResult binding,
