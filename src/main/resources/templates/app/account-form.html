@@ -1,10 +1,9 @@
 <!doctype html>
 <html xmlns:th="http://www.thymeleaf.org" lang="pt-BR"
-      th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+      th:replace="~{layout/base :: layout(~{::title}, ~{::head/link}, ~{::section}, ~{::head/script})}">
 <head>
     <title th:text="${editing ? 'Editar conta · Rastro$' : 'Nova conta · Rastro$'}">Conta · Rastro$</title>
     <link rel="stylesheet" th:href="@{/css/screens/cards.css}">
-    <script th:src="@{/js/screens/account-form.js}" defer></script>
 </head>
 <body>
 <section class="app-content screen screen-cards screen-account-form">
@@ -12,87 +11,73 @@
         <div>
             <h1 class="screen-title"
                 th:text="${editing ? 'Editar conta' : 'Nova conta'}">Nova conta</h1>
-            <p class="screen-sub">
-                Cartão, boleto fixo ou conta recorrente.
-            </p>
+            <p class="screen-sub">Cartão, boleto fixo ou conta recorrente.</p>
         </div>
         <div class="screen-actions">
             <a class="btn" th:href="@{/app/cards}">Voltar</a>
         </div>
     </header>
 
-    <form class="account-form card"
+    <form class="form account-form"
           th:action="${editing ? '/app/cards/' + accountId + '/edit' : '/app/cards/new'}"
           method="post"
           th:object="${accountForm}">
-        <input type="hidden"
-               th:if="${_csrf != null}"
-               th:name="${_csrf.parameterName}"
-               th:value="${_csrf.token}">
+        <input type="hidden" th:if="${_csrf != null}"
+               th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
 
-        <div class="account-form-grid">
-            <div class="field">
-                <label for="kind">Tipo</label>
-                <select id="kind" th:field="*{kind}" data-account-kind>
-                    <option th:each="k : ${kinds}"
-                            th:value="${k}"
-                            th:text="${k.name() == 'CARD' ? 'Cartão de crédito'
-                                    : (k.name() == 'BILL' ? 'Conta / boleto' : 'Recorrente')}">Tipo</option>
-                </select>
-                <p class="field-error" th:if="${#fields.hasErrors('kind')}"
-                   th:errors="*{kind}">erro</p>
-            </div>
+        <label>
+            <span>Tipo</span>
+            <select class="input" th:field="*{kind}" data-account-kind>
+                <option th:each="k : ${kinds}" th:value="${k}"
+                        th:text="${k.name() == 'CARD' ? 'Cartão de crédito'
+                                : (k.name() == 'BILL' ? 'Conta / boleto' : 'Recorrente')}">Tipo</option>
+            </select>
+            <small th:if="${#fields.hasErrors('kind')}" th:errors="*{kind}" class="form-hint form-hint-err"></small>
+        </label>
 
-            <div class="field field-wide">
-                <label for="name">Nome</label>
-                <input type="text" id="name" th:field="*{name}"
-                       maxlength="80" autocomplete="off" required>
-                <p class="field-error" th:if="${#fields.hasErrors('name')}"
-                   th:errors="*{name}">erro</p>
-            </div>
+        <label>
+            <span>Nome</span>
+            <input class="input" type="text" th:field="*{name}"
+                   maxlength="80" autocomplete="off" required placeholder="Ex: Nubank, Aluguel">
+            <small th:if="${#fields.hasErrors('name')}" th:errors="*{name}" class="form-hint form-hint-err"></small>
+        </label>
 
-            <div class="field">
-                <label for="colorHex">Cor</label>
-                <input type="color" id="colorHex" th:field="*{colorHex}"
-                       value="#6366f1">
-                <p class="field-error" th:if="${#fields.hasErrors('colorHex')}"
-                   th:errors="*{colorHex}">erro</p>
-            </div>
-
-            <div class="field">
-                <label for="iconText">Ícone (texto)</label>
-                <input type="text" id="iconText" th:field="*{iconText}"
+        <div class="form-row">
+            <label>
+                <span>Cor</span>
+                <input class="input input-color" type="color" th:field="*{colorHex}" value="#6366f1">
+                <small th:if="${#fields.hasErrors('colorHex')}" th:errors="*{colorHex}" class="form-hint form-hint-err"></small>
+            </label>
+            <label>
+                <span>Ícone (texto)</span>
+                <input class="input" type="text" th:field="*{iconText}"
                        maxlength="8" placeholder="ex.: BB">
-            </div>
-
-            <div class="field" data-only-kind="CARD">
-                <label for="closeDay">Dia de fechamento</label>
-                <input type="number" id="closeDay" th:field="*{closeDay}"
-                       min="1" max="31">
-                <p class="field-error" th:if="${#fields.hasErrors('closeDay')}"
-                   th:errors="*{closeDay}">erro</p>
-            </div>
-
-            <div class="field" data-only-kind="CARD">
-                <label for="dueDay">Dia de vencimento</label>
-                <input type="number" id="dueDay" th:field="*{dueDay}"
-                       min="1" max="31">
-                <p class="field-error" th:if="${#fields.hasErrors('dueDay')}"
-                   th:errors="*{dueDay}">erro</p>
-            </div>
-
-            <div class="field field-checkbox" data-only-kind="BILL,RECURRENT">
-                <label>
-                    <input type="checkbox" th:field="*{fixed}">
-                    Conta fixa
-                </label>
-            </div>
+            </label>
         </div>
 
-        <footer class="account-form-foot">
+        <div class="form-row" data-only-kind="CARD">
+            <label>
+                <span>Dia de fechamento</span>
+                <input class="input" type="number" th:field="*{closeDay}" min="1" max="31" placeholder="1–31">
+                <small th:if="${#fields.hasErrors('closeDay')}" th:errors="*{closeDay}" class="form-hint form-hint-err"></small>
+            </label>
+            <label>
+                <span>Dia de vencimento</span>
+                <input class="input" type="number" th:field="*{dueDay}" min="1" max="31" placeholder="1–31">
+                <small th:if="${#fields.hasErrors('dueDay')}" th:errors="*{dueDay}" class="form-hint form-hint-err"></small>
+            </label>
+        </div>
+
+        <label class="check-row" data-only-kind="BILL,RECURRENT">
+            <input type="checkbox" th:field="*{fixed}">
+            <span>Conta fixa</span>
+        </label>
+
+        <div class="form-actions">
+            <a class="btn btn-ghost" data-modal-close th:href="@{/app/cards}">Cancelar</a>
             <button type="submit" class="btn btn-primary"
-                    th:text="${editing ? 'Salvar' : 'Criar conta'}">Salvar</button>
-        </footer>
+                    th:text="${editing ? 'Salvar alterações' : 'Criar conta'}">Criar conta</button>
+        </div>
     </form>
 </section>
 </body>

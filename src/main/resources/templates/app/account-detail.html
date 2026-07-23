@@ -1,0 +1,122 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security" lang="pt-BR">
+<head><title>Detalhe da conta · Rastro$</title></head>
+<body>
+<!-- O cards-detail.js extrai .acct-detail e injeta abaixo do card clicado. -->
+<div class="acct-detail" th:with="a=${detail.account()}">
+
+    <div class="acct-detail-head" th:attr="data-detail-tint=${a.colorHex()}">
+        <span class="acc-chip acct-detail-chip" th:attr="data-fill=${a.colorHex()}"
+              th:text="${a.iconText() != null and !a.iconText().isBlank() ? a.iconText() : #strings.substring(a.name(),0,1)}">·</span>
+        <div class="acct-detail-meta">
+            <div class="acct-detail-name" th:text="${a.name()}">Conta</div>
+            <div class="acct-detail-sub muted">
+                <span th:switch="${a.kind().name()}">
+                    <th:block th:case="'CARD'">Fatura</th:block>
+                    <th:block th:case="'BILL'">Fixo</th:block>
+                    <th:block th:case="*">mensal</th:block>
+                </span>
+                <span th:text="${detail.year()}">2026</span> · Vence dia
+                <span th:text="${a.dueDay() != null ? a.dueDay() : '—'}">15</span>
+            </div>
+        </div>
+        <div class="acct-detail-actions" sec:authorize="!hasRole('ACESSOR')">
+            <a class="icon-btn" data-modal-url th:href="@{/app/cards/{id}/edit(id=${a.id()})}" title="Editar" aria-label="Editar">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l11-11-4-4L4 16v4z"/></svg>
+            </a>
+            <form th:action="@{/app/cards/{id}/delete(id=${a.id()})}" method="post" data-confirm="Remover esta conta?" class="inline-form">
+                <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <button type="submit" class="icon-btn danger" title="Remover" aria-label="Remover">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14M9 7V4h6v3m-7 0v13h8V7"/></svg>
+                </button>
+            </form>
+        </div>
+        <button type="button" class="icon-btn acct-detail-close" data-account-detail-close aria-label="Fechar">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M6 18L18 6"/></svg>
+        </button>
+    </div>
+
+    <div class="detail-summary">
+        <div>
+            <span class="muted">Total gasto</span>
+            <span class="money money-lg" th:text="${(maskValues ? '••••' : 'R$ ' + #numbers.formatDecimal(a.total(), 1, 'POINT', 2, 'COMMA'))}">R$ 0,00</span>
+        </div>
+        <div>
+            <span class="muted">Pago</span>
+            <span class="money money-md detail-paid" th:text="${(maskValues ? '••••' : 'R$ ' + #numbers.formatDecimal(a.paid(), 1, 'POINT', 2, 'COMMA'))}">R$ 0,00</span>
+        </div>
+        <div>
+            <span class="muted">Falta pagar</span>
+            <span class="money money-md" th:classappend="${a.remaining().signum() > 0 ? 'detail-remaining' : 'muted'}"
+                  th:text="${(maskValues ? '••••' : 'R$ ' + #numbers.formatDecimal(a.remaining(), 1, 'POINT', 2, 'COMMA'))}">R$ 0,00</span>
+        </div>
+        <form th:if="${a.kind().name() == 'CARD' and a.total().signum() > 0}" sec:authorize="!hasRole('ACESSOR')"
+              class="pay-invoice-form" method="post" th:action="@{/app/cards/{id}/pay(id=${a.id()})}">
+            <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+            <input type="hidden" name="ym" th:value="${period}">
+            <button type="submit" class="pay-invoice" th:classappend="${a.isFullyPaid()} ? 'is-paid' : ''">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>
+                <span th:text="${a.isFullyPaid() ? 'Reabrir' : 'Pagar fatura'}">Pagar fatura</span>
+            </button>
+        </form>
+    </div>
+
+    <div class="detail-cats" th:if="${detail.categories().size() > 1}">
+        <h4>Gastos por categoria</h4>
+        <div class="hbars" th:with="maxCat=${detail.categories()[0].amount()}">
+            <div class="hbar" th:each="c : ${detail.categories()}">
+                <span class="hbar-lbl">
+                    <span class="cat-dot" th:attr="data-fill=${c.colorHex()}"></span>
+                    <span th:text="${c.name()}">Categoria</span>
+                </span>
+                <div class="hbar-track">
+                    <span class="hbar-fill" th:attr="data-fill=${c.colorHex()},
+                          data-bar-width=${maxCat.doubleValue() > 0 ? #numbers.formatDecimal(c.amount().doubleValue() * 100 / maxCat.doubleValue(), 1, 'NONE', 1, 'POINT') : '0'}"></span>
+                </div>
+                <span class="hbar-val money money-sm"
+                      th:text="${(maskValues ? '••••' : 'R$ ' + #numbers.formatDecimal(c.amount(), 1, 'POINT', 2, 'COMMA'))}">R$ 0,00</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="detail-tx">
+        <h4>Lançamentos <span class="muted">(<span th:text="${#lists.size(detail.transactions())}">0</span>)</span></h4>
+        <ul class="tx-list" th:unless="${detail.transactions().isEmpty()}">
+            <li class="tx-row" th:each="t : ${detail.transactions()}">
+                <span class="acc-chip" th:attr="data-fill=${t.accountColorHex()}"
+                      th:text="${t.accountName() != null and !t.accountName().isBlank() ? #strings.substring(t.accountName(),0,1) : '·'}">·</span>
+                <div class="tx-mid">
+                    <div class="tx-top">
+                        <span class="tx-desc" th:text="${t.description()}">Lançamento</span>
+                        <span class="money money-sm" th:classappend="${t.paid()} ? 'tx-paid' : ''"
+                              th:text="${(maskValues ? '••••' : 'R$ ' + #numbers.formatDecimal(t.amount(), 1, 'POINT', 2, 'COMMA'))}">R$ 0,00</span>
+                    </div>
+                    <div class="tx-bot">
+                        <span class="tx-cat"><span class="cat-dot" th:attr="data-fill=${t.categoryColorHex()}"></span><span th:text="${t.categoryName()}">Categoria</span></span>
+                        <span class="tx-acct" th:text="${t.accountName()}">Conta</span>
+                        <span th:if="${t.isInstallment()}" class="pill pill-xs" th:text="${t.installmentLabel()}">1/3</span>
+                        <span th:if="${t.paid()}" class="pill pill-success pill-xs">Pago</span>
+                        <span th:unless="${t.paid()}" class="pill pill-warn pill-xs">Em aberto</span>
+                    </div>
+                </div>
+                <div class="tx-actions" sec:authorize="!hasRole('ACESSOR')" th:unless="${a.kind().name() == 'CARD'}">
+                    <form th:action="@{/app/expenses/{id}/toggle-paid(id=${t.id()})}" method="post">
+                        <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                        <input type="hidden" name="redirect" th:value="@{/app/cards(ym=${period})}">
+                        <button type="submit" class="paid-toggle" th:classappend="${t.paid()} ? 'is-paid' : ''"
+                                th:title="${t.paid()} ? 'Reabrir' : 'Marcar como pago'">
+                            <svg th:if="${t.paid()}" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>
+                            <svg th:unless="${t.paid()}" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M16.5 7.5c0-1.93-1.79-3.5-4-3.5h-1c-2.21 0-4 1.57-4 3.5S9.29 11 11.5 11h1c2.21 0 4 1.57 4 3.5S14.71 18 12.5 18h-1c-2.21 0-4-1.57-4-3.5"/></svg>
+                        </button>
+                    </form>
+                </div>
+            </li>
+        </ul>
+        <div class="acct-tx-empty muted" th:if="${detail.transactions().isEmpty()}">
+            Sem lançamentos neste mês.
+        </div>
+    </div>
+</div>
+</body>
+</html>
