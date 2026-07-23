@@ -19,6 +19,7 @@ import com.rastroos.domain.entity.enums.UserStatus;
 public class CustomUserDetails implements UserDetails {
 
     private final UUID id;
+    private final String name;
     private final String email;
     private final String passwordHash;
     private final UserStatus status;
@@ -34,6 +35,7 @@ public class CustomUserDetails implements UserDetails {
 
     public CustomUserDetails(User user, String targetName) {
         this.id = user.getId();
+        this.name = user.getName();
         this.email = user.getEmail();
         this.passwordHash = user.getPasswordHash();
         this.status = user.getStatus();
@@ -47,6 +49,7 @@ public class CustomUserDetails implements UserDetails {
     }
 
     public UUID getId() { return id; }
+    public String getName() { return name; }
     public String getEmail() { return email; }
     public String getPasswordHash() { return passwordHash; }
     public UserStatus getStatus() { return status; }

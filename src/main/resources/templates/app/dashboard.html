@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
       lang="pt-BR"
-      th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+      th:replace="~{layout/base :: layout(~{::title}, ~{::head/link}, ~{::section}, ~{::head/script})}">
 <head>
     <title>Visão geral · Rastro$</title>
     <link rel="stylesheet" th:href="@{/css/screens/dashboard.css}">
@@ -10,178 +10,182 @@
     <script th:src="@{/js/screens/dashboard-charts.js}" defer></script>
 </head>
 <body>
-<section class="app-content screen screen-dashboard"
-         th:data-period="${period}">
+<section class="app-content screen screen-dashboard dash" th:data-period="${period}">
 
-    <header class="screen-header">
-        <div>
-            <h1 class="screen-title">Visão geral</h1>
-            <p class="screen-sub">
-                <span th:text="${data.entriesCount()}">0</span> lançamentos em
-                <span th:text="${data.accountsCount()}">0</span> contas
-                no mês selecionado.
-            </p>
-        </div>
-        <div class="screen-actions">
-            <a class="btn" th:href="@{/app/income}">+ Receita</a>
-            <a class="btn btn-primary" th:href="@{/app/expenses}">+ Lançamento</a>
-        </div>
-    </header>
-
-    <section class="kpi-grid" aria-label="Indicadores do mês">
-        <article class="kpi kpi-success">
-            <header class="kpi-head">Recebido</header>
-            <p class="kpi-value"
+    <!-- KPIs ─────────────────────────────────────────────── -->
+    <section class="dash-kpis" aria-label="Indicadores do mês">
+        <a class="kpi-card kpi-accent kpi-big is-clickable" th:href="@{/app/income}">
+            <div class="kpi-head">
+                <span class="kpi-label">Total recebido</span>
+                <span class="kpi-icon kpi-icon-accent">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14m0 0l-6-6m6 6l6-6"/></svg>
+                </span>
+            </div>
+            <p class="kpi-value money money-xl"
                th:data-amount="${maskValues ? '' : data.kpis().received()}"
-               th:text="${(maskValues ? '*****' : #numbers.formatDecimal(data.kpis().received(), 1, 'POINT', 2, 'COMMA'))}">0,00</p>
-            <p class="kpi-foot">no mês</p>
-        </article>
-        <article class="kpi kpi-danger">
-            <header class="kpi-head">Gasto</header>
-            <p class="kpi-value"
+               th:text="${(maskValues ? '••••' : 'R$ ' + #numbers.formatDecimal(data.kpis().received(), 1, 'POINT', 2, 'COMMA'))}">R$ 0,00</p>
+            <span class="kpi-chev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
+        </a>
+
+        <a class="kpi-card is-clickable" th:href="@{/app/expenses}">
+            <div class="kpi-head">
+                <span class="kpi-label">Total gasto</span>
+                <span class="kpi-icon kpi-icon-rose">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5m0 0l-6 6m6-6l6 6"/></svg>
+                </span>
+            </div>
+            <p class="kpi-value money money-lg"
                th:data-amount="${maskValues ? '' : data.kpis().spent()}"
-               th:text="${(maskValues ? '*****' : #numbers.formatDecimal(data.kpis().spent(), 1, 'POINT', 2, 'COMMA'))}">0,00</p>
-            <p class="kpi-foot">total lançado</p>
-        </article>
-        <article class="kpi kpi-primary">
-            <header class="kpi-head">Pago</header>
-            <p class="kpi-value"
-               th:data-amount="${maskValues ? '' : data.kpis().paid()}"
-               th:text="${(maskValues ? '*****' : #numbers.formatDecimal(data.kpis().paid(), 1, 'POINT', 2, 'COMMA'))}">0,00</p>
-            <p class="kpi-foot">já quitado</p>
-        </article>
-        <article class="kpi kpi-accent">
-            <header class="kpi-head">A pagar</header>
-            <p class="kpi-value"
+               th:text="${(maskValues ? '••••' : 'R$ ' + #numbers.formatDecimal(data.kpis().spent(), 1, 'POINT', 2, 'COMMA'))}">R$ 0,00</p>
+            <span class="kpi-chev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
+        </a>
+
+        <a class="kpi-card is-clickable" th:href="@{/app/investments}">
+            <div class="kpi-head">
+                <span class="kpi-label">Total investido</span>
+                <span class="kpi-icon kpi-icon-primary">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12c0-3.3 3.1-6 7-6 3.3 0 6 1.8 6.7 4.5l2 .5v3l-2 .5c-.3 1.1-1 2-1.7 2.7V20h-3v-1.4c-.6.2-1.3.4-2 .4s-1.4-.2-2-.4V20H7v-2.7C5.8 16.2 5 14.7 5 12z"/><path d="M15 11h.01"/></svg>
+                </span>
+            </div>
+            <p class="kpi-value money money-lg"
+               th:data-amount="${maskValues ? '' : data.kpis().invested()}"
+               th:text="${(maskValues ? '••••' : 'R$ ' + #numbers.formatDecimal(data.kpis().invested(), 1, 'POINT', 2, 'COMMA'))}">R$ 0,00</p>
+            <span class="kpi-chev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
+        </a>
+
+        <a class="kpi-card warn is-clickable" th:href="@{/app/cards}">
+            <div class="kpi-head">
+                <span class="kpi-label">Falta pagar</span>
+                <span class="kpi-icon kpi-icon-warn">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16V11a6 6 0 1 1 12 0v5l2 2H4l2-2zm4 4a2 2 0 0 0 4 0"/></svg>
+                </span>
+            </div>
+            <p class="kpi-value money money-lg"
                th:data-amount="${maskValues ? '' : data.kpis().toPay()}"
-               th:text="${(maskValues ? '*****' : #numbers.formatDecimal(data.kpis().toPay(), 1, 'POINT', 2, 'COMMA'))}">0,00</p>
-            <p class="kpi-foot">
-                <span th:text="${#lists.size(data.upcoming())}">0</span> em aberto
-            </p>
-        </article>
-        <article class="kpi kpi-balance">
-            <header class="kpi-head">Saldo</header>
-            <p class="kpi-value"
+               th:text="${(maskValues ? '••••' : 'R$ ' + #numbers.formatDecimal(data.kpis().toPay(), 1, 'POINT', 2, 'COMMA'))}">R$ 0,00</p>
+            <span class="kpi-chev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
+        </a>
+
+        <a class="kpi-card kpi-accent kpi-big is-clickable" th:href="@{/app/compare}">
+            <div class="kpi-head">
+                <span class="kpi-label">Saldo disponível</span>
+                <span class="kpi-icon kpi-icon-accent">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h12v4"/><rect x="3" y="7" width="18" height="13" rx="2.5"/><circle cx="17" cy="13.5" r="1.4" fill="currentColor" stroke="none"/></svg>
+                </span>
+            </div>
+            <p class="kpi-value money money-xl"
                th:data-amount="${maskValues ? '' : data.kpis().balance()}"
-               th:text="${(maskValues ? '*****' : #numbers.formatDecimal(data.kpis().balance(), 1, 'POINT', 2, 'COMMA'))}">0,00</p>
-            <p class="kpi-foot">recebido − pago</p>
-        </article>
+               th:text="${(maskValues ? '••••' : 'R$ ' + #numbers.formatDecimal(data.kpis().balance(), 1, 'POINT', 2, 'COMMA'))}">R$ 0,00</p>
+            <span class="kpi-chev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
+        </a>
     </section>
 
-    <section class="charts-grid">
-        <article class="card chart-card">
-            <header class="card-header">
-                <h2 class="card-title">Evolução do saldo</h2>
-                <span class="card-link"
-                      th:text="${#temporals.format(period.atDay(1), 'MMMM yyyy')}">mês</span>
-            </header>
+    <!-- Painéis ──────────────────────────────────────────── -->
+    <div class="dash-grid">
+
+        <section class="panel panel-wide">
+            <div class="panel-head">
+                <h3>Gastos no mês</h3>
+                <span class="panel-sub muted">Dia a dia</span>
+            </div>
             <div class="chart-wrap">
-                <canvas id="balanceChart"
-                        role="img"
+                <canvas id="spendChart" role="img"
                         th:classappend="${maskValues} ? 'is-hidden' : ''"
-                        aria-label="Saldo acumulado por dia"></canvas>
+                        aria-label="Gasto lançado por dia do mês"></canvas>
                 <p class="chart-masked" th:if="${maskValues}">🔒 Valores ocultos pelo titular</p>
             </div>
-        </article>
+        </section>
 
-        <article class="card chart-card">
-            <header class="card-header">
-                <h2 class="card-title">Gastos por categoria</h2>
-                <a class="card-link" th:href="@{/app/reports}">ver relatório →</a>
-            </header>
-            <div class="donut-wrap">
+        <section class="panel">
+            <div class="panel-head">
+                <h3>Gastos por categoria</h3>
+                <a class="link" th:href="@{/app/reports}">Ver tudo</a>
+            </div>
+            <div class="donut-stack">
                 <div class="donut-canvas-wrap">
-                    <canvas id="categoryDonut"
-                            role="img"
+                    <canvas id="categoryDonut" role="img"
                             th:classappend="${maskValues} ? 'is-hidden' : ''"
                             aria-label="Distribuição de gastos por categoria"></canvas>
-                    <p class="chart-masked" th:if="${maskValues}">🔒 Valores ocultos pelo titular</p>
+                    <p class="chart-masked" th:if="${maskValues}">🔒 Ocultos</p>
                 </div>
-                <ul class="donut-legend">
-                    <li th:each="c : ${data.byCategory()}">
-                        <span class="donut-dot"
-                              th:attr="data-fill=${c.colorHex()}"></span>
-                        <span class="donut-name" th:text="${c.name()}">categoria</span>
-                        <span class="donut-amount"
-                              th:text="${(maskValues ? '*****' : #numbers.formatDecimal(c.amount(), 1, 'POINT', 2, 'COMMA'))}">0,00</span>
-                    </li>
-                    <li th:if="${data.byCategory().isEmpty()}" class="donut-empty">
-                        Sem gastos lançados no mês.
-                    </li>
-                </ul>
-            </div>
-        </article>
-    </section>
-
-    <section class="dashboard-grid">
-        <article class="card">
-            <header class="card-header">
-                <h2 class="card-title">Próximos vencimentos</h2>
-                <a class="card-link" th:href="@{/app/expenses}">ver todos →</a>
-            </header>
-            <div th:if="${data.upcoming().isEmpty()}" class="empty-state">
-                Tudo pago por aqui.
-            </div>
-            <ul class="entry-list" th:unless="${data.upcoming().isEmpty()}">
-                <li class="entry-row" th:each="t : ${data.upcoming()}">
-                    <div class="entry-avatar"
-                         th:text="${t.accountName() != null and !t.accountName().isBlank()
-                                   ? #strings.substring(t.accountName(),0,1) : '·'}">·</div>
-                    <div class="entry-main">
-                        <p class="entry-title" th:text="${t.description()}">Lançamento</p>
-                        <p class="entry-sub">
-                            <span th:text="${t.accountName()}">Conta</span>
-                            <span th:if="${t.fixed()}" class="pill pill-accent">fixo</span>
-                        </p>
-                    </div>
-                    <div class="entry-meta">
-                        <p class="entry-amount"
-                           th:data-amount="${maskValues ? '' : t.amount()}"
-                           th:text="${(maskValues ? '*****' : #numbers.formatDecimal(t.amount(), 1, 'POINT', 2, 'COMMA'))}">0,00</p>
-                        <p class="entry-date"
-                           th:text="${#temporals.format(t.dueDate(), 'dd/MM')}">--/--</p>
-                    </div>
-                </li>
-            </ul>
-        </article>
-
-        <article class="card">
-            <header class="card-header">
-                <h2 class="card-title">Top cartões &amp; contas</h2>
-                <a class="card-link" th:href="@{/app/cards}">ver todos →</a>
-            </header>
-            <div th:if="${data.topAccounts().isEmpty()}" class="empty-state">
-                Sem contas com lançamentos.
-            </div>
-            <ul class="account-list" th:unless="${data.topAccounts().isEmpty()}">
-                <li class="account-row" th:each="a : ${data.topAccounts()}">
-                    <div class="account-avatar"
-                         th:attr="data-fill=${a.colorHex()}"
-                         th:text="${a.iconText() != null and !a.iconText().isBlank()
-                                   ? a.iconText()
-                                   : #strings.substring(a.name(),0,1)}">·</div>
-                    <div class="account-main">
-                        <p class="account-name" th:text="${a.name()}">Conta</p>
-                        <p class="account-sub">
-                            <span th:text="${a.entriesCount()}">0</span> lançamentos ·
-                            <span th:text="${a.paidPercent()}">0</span>% pago
-                        </p>
-                        <div class="account-bar">
-                            <span th:attr="data-bar-width=${a.paidPercent()}"></span>
+                <div class="cat-top-grid" th:unless="${data.byCategory().isEmpty()}">
+                    <div class="cat-top" th:each="c, cStat : ${data.byCategory()}" th:if="${cStat.index < 4}">
+                        <span class="cat-top-bar" th:attr="data-fill=${c.colorHex()}"></span>
+                        <div class="cat-top-info">
+                            <div class="cat-top-name" th:text="${c.name()}">categoria</div>
+                            <div class="cat-top-val">
+                                <span class="money money-sm"
+                                      th:text="${(maskValues ? '••••' : #numbers.formatDecimal(c.amount(), 1, 'POINT', 2, 'COMMA'))}">0,00</span>
+                                <span class="muted" th:if="${data.kpis().spent() != null and data.kpis().spent().signum() > 0}"
+                                      th:text="' · ' + ${#numbers.formatDecimal(c.amount().doubleValue() * 100 / data.kpis().spent().doubleValue(), 0, 0)} + '%'"> · 0%</span>
+                            </div>
                         </div>
                     </div>
-                    <div class="account-meta">
-                        <p class="account-total"
-                           th:data-amount="${maskValues ? '' : a.total()}"
-                           th:text="${(maskValues ? '*****' : #numbers.formatDecimal(a.total(), 1, 'POINT', 2, 'COMMA'))}">0,00</p>
-                        <p class="account-kind"
-                           th:text="${a.kind().name() == 'CARD' ? 'fatura'
-                                   : (a.kind().name() == 'BILL' ? 'conta' : 'recorrente')}">conta</p>
+                </div>
+                <div class="empty-sm muted" th:if="${data.byCategory().isEmpty()}">Sem gastos lançados no mês.</div>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-head">
+                <h3>Cartões &amp; Contas</h3>
+                <a class="link" th:href="@{/app/cards}">Ver tudo</a>
+            </div>
+            <div class="account-mini-list" th:unless="${data.topAccounts().isEmpty()}">
+                <a class="acc-mini" th:each="a : ${data.topAccounts()}" th:href="@{/app/cards}">
+                    <span class="acc-chip" th:attr="data-fill=${a.colorHex()}"
+                          th:text="${a.iconText() != null and !a.iconText().isBlank() ? a.iconText() : #strings.substring(a.name(),0,1)}">·</span>
+                    <div class="acc-mini-info">
+                        <div class="acc-mini-top">
+                            <span class="acc-mini-name" th:text="${a.name()}">Conta</span>
+                            <span class="acc-mini-val money money-sm"
+                                  th:text="${(maskValues ? '••••' : #numbers.formatDecimal(a.total(), 1, 'POINT', 2, 'COMMA'))}">0,00</span>
+                        </div>
+                        <div class="acc-mini-meta">
+                            <div class="acc-mini-bar pb-wrap">
+                                <span class="pb-fill" th:attr="data-bar-width=${a.paidPercent()},data-fill=${a.colorHex()}"></span>
+                            </div>
+                            <span class="acc-mini-parc"><span th:text="${a.paidPercent()}">0</span>%</span>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            <div class="empty-sm muted" th:if="${data.topAccounts().isEmpty()}">Sem contas com lançamentos.</div>
+        </section>
+
+        <section class="panel panel-wide">
+            <div class="panel-head">
+                <h3>Próximos vencimentos</h3>
+                <a class="link" th:href="@{/app/expenses}">Ver tudo</a>
+            </div>
+            <ul class="tx-list" th:unless="${data.upcoming().isEmpty()}">
+                <li class="tx-row" th:each="t : ${data.upcoming()}">
+                    <span class="acc-chip"
+                          th:text="${t.accountName() != null and !t.accountName().isBlank() ? #strings.substring(t.accountName(),0,1) : '·'}">·</span>
+                    <div class="tx-mid">
+                        <div class="tx-top">
+                            <span class="tx-desc" th:text="${t.description()}">Lançamento</span>
+                            <span class="money money-sm"
+                                  th:data-amount="${maskValues ? '' : t.amount()}"
+                                  th:text="${(maskValues ? '••••' : #numbers.formatDecimal(t.amount(), 1, 'POINT', 2, 'COMMA'))}">0,00</span>
+                        </div>
+                        <div class="tx-bot">
+                            <span class="tx-acct" th:text="${t.accountName()}">Conta</span>
+                            <span class="pill pill-accent pill-xs" th:if="${t.fixed()}">fixo</span>
+                            <span class="tx-date" th:text="${#temporals.format(t.dueDate(), 'dd/MM')}">--/--</span>
+                        </div>
                     </div>
                 </li>
             </ul>
-        </article>
-    </section>
+            <div class="empty-sm muted" th:if="${data.upcoming().isEmpty()}">Tudo pago por aqui. 🎉</div>
+        </section>
+
+    </div>
 
     <script type="application/json" id="chartData" th:text="${chartDataJson}">
         {"balance":[],"byCategory":[]}

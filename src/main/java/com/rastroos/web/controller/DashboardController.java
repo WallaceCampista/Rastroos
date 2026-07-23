@@ -62,7 +62,8 @@ public class DashboardController {
         model.addAttribute("data", data);
         // Acessor com valores mascarados: não emitir a série real (vazaria no view-source).
         model.addAttribute("chartDataJson",
-                currentUser.isMaskActive() ? "{\"balance\":[],\"byCategory\":[]}" : buildChartJson(data));
+                currentUser.isMaskActive() ? "{\"balance\":[],\"dailySpend\":[],\"byCategory\":[]}"
+                        : buildChartJson(data));
         return "app/dashboard";
     }
 
@@ -78,6 +79,10 @@ public class DashboardController {
                     "y", p.balance().doubleValue()
             ));
         }
+        List<Double> dailySpend = new ArrayList<>(data.dailySpend().size());
+        for (java.math.BigDecimal v : data.dailySpend()) {
+            dailySpend.add(v.doubleValue());
+        }
         List<Map<String, Object>> byCategory = new ArrayList<>(data.byCategory().size());
         for (CategoryBreakdownDto c : data.byCategory()) {
             byCategory.add(Map.of(
@@ -88,10 +93,11 @@ public class DashboardController {
         try {
             return objectMapper.writeValueAsString(Map.of(
                     "balance", balance,
+                    "dailySpend", dailySpend,
                     "byCategory", byCategory
             ));
         } catch (JsonProcessingException e) {
-            return "{\"balance\":[],\"byCategory\":[]}";
+            return "{\"balance\":[],\"dailySpend\":[],\"byCategory\":[]}";
         }
     }
 

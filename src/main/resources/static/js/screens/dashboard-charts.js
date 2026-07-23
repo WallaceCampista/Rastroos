@@ -15,10 +15,20 @@
     function readJson(id) {
         var el = document.getElementById(id);
         if (!el) return null;
+        var text = el.textContent || el.innerText || "";
         try {
-            return JSON.parse(el.textContent || el.innerText || "null");
+            return JSON.parse(text);
         } catch (e) {
-            return null;
+            // <script> não decodifica entidades HTML; th:text escapa aspas
+            // (&quot;). Decodificamos as 5 entidades padrão antes de parsear.
+            try {
+                return JSON.parse(text
+                    .replace(/&quot;/g, "\"").replace(/&#39;/g, "'")
+                    .replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+                    .replace(/&amp;/g, "&"));
+            } catch (e2) {
+                return null;
+            }
         }
     }
 
@@ -44,39 +54,39 @@
         return String(Math.round(value));
     }
 
-    // ── Line chart (saldo do mês) ────────────────────────────
+    // ── Line chart (gasto do mês, "onda" suave) ──────────────
+    // Espelha o LineChart do protótipo: curva cubic-bézier, área
+    // chapada (0.15), grade tracejada, ponto só no último dia,
+    // rótulos apenas no eixo X (sem eixo Y), base fixa em 0.
     function drawLineChart(canvas, points) {
         if (!canvas || !points || points.length === 0) return;
         var fit = fitCanvas(canvas);
-        var ctx = fit.ctx;
-        var w = fit.w;
-        var h = fit.h;
+        var ctx = fit.ctx, w = fit.w, h = fit.h;
 
-        var padL = 36, padR = 12, padT = 14, padB = 22;
+        var padL = 8, padR = 8, padT = 10, padB = 22;
         var innerW = w - padL - padR;
         var innerH = h - padT - padB;
 
-        var minY = points[0].y;
-        var maxY = points[0].y;
-        for (var i = 1; i < points.length; i++) {
+        var minY = 0, maxY = 1;
+        for (var i = 0; i < points.length; i++) {
             if (points[i].y < minY) minY = points[i].y;
             if (points[i].y > maxY) maxY = points[i].y;
         }
-        if (minY === maxY) { minY -= 1; maxY += 1; }
-        var range = maxY - minY;
+        var range = (maxY - minY) || 1;
 
-        function x(i) {
-            return padL + (i / (points.length - 1)) * innerW;
+        function X(i) {
+            return padL + (points.length === 1 ? innerW / 2 : (i / (points.length - 1)) * innerW);
         }
-        function y(v) {
+        function Y(v) {
             return padT + innerH - ((v - minY) / range) * innerH;
         }
 
         ctx.clearRect(0, 0, w, h);
 
-        // grid horizontal
+        // grade horizontal tracejada (4 divisões, sem rótulo Y)
         ctx.strokeStyle = cssVar("--border", "rgba(255,255,255,0.09)");
         ctx.lineWidth = 1;
+        ctx.setLineDash([3, 3]);
         ctx.beginPath();
         for (var g = 0; g <= 4; g++) {
             var gy = padT + (g / 4) * innerH;
@@ -84,134 +94,158 @@
             ctx.lineTo(padL + innerW, gy);
         }
         ctx.stroke();
+        ctx.setLineDash([]);
 
-        // y axis labels
-        ctx.fillStyle = cssVar("--text-dim", "rgba(244,244,248,0.62)");
-        ctx.font = "10px 'Plus Jakarta Sans', system-ui, sans-serif";
-        ctx.textAlign = "right";
-        ctx.textBaseline = "middle";
-        for (var k = 0; k <= 4; k++) {
-            var v = maxY - (k / 4) * range;
-            ctx.fillText(shortMoney(v), padL - 6, padT + (k / 4) * innerH);
+        var primary = cssVar("--primary", "#6366f1");
+
+        function tracePath() {
+            ctx.beginPath();
+            ctx.moveTo(X(0), Y(points[0].y));
+            for (var k = 1; k < points.length; k++) {
+                var px = X(k - 1), py = Y(points[k - 1].y);
+                var x = X(k), y = Y(points[k].y);
+                var cx1 = px + (x - px) * 0.5;
+                var cx2 = x - (x - px) * 0.5;
+                ctx.bezierCurveTo(cx1, py, cx2, y, x, y);
+            }
         }
 
-        // line area fill
-        var grad = ctx.createLinearGradient(0, padT, 0, padT + innerH);
-        var primary = cssVar("--primary", "#6366f1");
-        grad.addColorStop(0, primary + "55");
-        grad.addColorStop(1, primary + "00");
-        ctx.fillStyle = grad;
-        ctx.beginPath();
-        ctx.moveTo(x(0), y(points[0].y));
-        for (var n = 1; n < points.length; n++) ctx.lineTo(x(n), y(points[n].y));
-        ctx.lineTo(x(points.length - 1), padT + innerH);
-        ctx.lineTo(x(0), padT + innerH);
+        // área chapada sob a curva
+        tracePath();
+        ctx.lineTo(X(points.length - 1), padT + innerH);
+        ctx.lineTo(X(0), padT + innerH);
         ctx.closePath();
+        ctx.globalAlpha = 0.15;
+        ctx.fillStyle = primary;
         ctx.fill();
+        ctx.globalAlpha = 1;
 
-        // line stroke
+        // traço da curva
+        tracePath();
         ctx.strokeStyle = primary;
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 2.2;
         ctx.lineJoin = "round";
-        ctx.beginPath();
-        ctx.moveTo(x(0), y(points[0].y));
-        for (var p = 1; p < points.length; p++) ctx.lineTo(x(p), y(points[p].y));
+        ctx.lineCap = "round";
         ctx.stroke();
 
-        // x axis sparse labels (every ~5 days)
+        // ponto no último dia
+        ctx.beginPath();
+        ctx.arc(X(points.length - 1), Y(points[points.length - 1].y), 3, 0, Math.PI * 2);
+        ctx.fillStyle = primary;
+        ctx.fill();
+
+        // rótulos do eixo X (esparsos: 1, 6, 11, …, último)
         ctx.fillStyle = cssVar("--text-dim", "rgba(244,244,248,0.62)");
+        ctx.font = "10px 'Plus Jakarta Sans', system-ui, sans-serif";
         ctx.textAlign = "center";
         ctx.textBaseline = "top";
         for (var j = 0; j < points.length; j++) {
             var lbl = points[j].x;
             if (j === 0 || j === points.length - 1 || lbl % 5 === 0) {
-                ctx.fillText(String(lbl), x(j), padT + innerH + 4);
+                ctx.fillText(String(lbl), X(j), padT + innerH + 6);
             }
         }
     }
 
     // ── Donut chart (gastos por categoria) ───────────────────
-    function drawDonutChart(canvas, segments) {
+    // Espelha o Donut do protótipo: anéis com traço + folga entre
+    // fatias + trilho, com animação de revelação (progress 0→1).
+    function drawDonutChart(canvas, segments, progress) {
         if (!canvas) return;
+        if (progress == null) progress = 1;
         var fit = fitCanvas(canvas);
-        var ctx = fit.ctx;
-        var w = fit.w;
-        var h = fit.h;
+        var ctx = fit.ctx, w = fit.w, h = fit.h;
 
-        var cx = w / 2;
-        var cy = h / 2;
-        var outerR = Math.min(w, h) / 2 - 6;
-        var innerR = outerR - 22;
+        var cx = w / 2, cy = h / 2;
+        var thickness = Math.max(14, Math.min(w, h) * 0.16);
+        var radius = Math.min(w, h) / 2 - thickness / 2 - 2;
 
         ctx.clearRect(0, 0, w, h);
 
+        // trilho de fundo
+        ctx.strokeStyle = cssVar("--surface-3", "#232c47");
+        ctx.lineWidth = thickness;
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+        ctx.stroke();
+
         var total = 0;
         for (var s = 0; s < segments.length; s++) total += segments[s].value;
-        if (total <= 0) {
-            // donut vazio
-            ctx.strokeStyle = cssVar("--border", "rgba(255,255,255,0.09)");
-            ctx.lineWidth = outerR - innerR;
-            ctx.beginPath();
-            ctx.arc(cx, cy, (outerR + innerR) / 2, 0, Math.PI * 2);
-            ctx.stroke();
-            return;
+
+        if (total > 0) {
+            var gap = 0.015 * Math.PI * 2;   // folga entre fatias (rad)
+            var acc = -Math.PI / 2;          // começa no topo
+            for (var i = 0; i < segments.length; i++) {
+                var frac = (segments[i].value / total) * progress;
+                var ang = frac * Math.PI * 2;
+                if (ang > gap) {
+                    ctx.strokeStyle = segments[i].color || cssVar("--primary", "#6366f1");
+                    ctx.lineWidth = thickness;
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, radius, acc + gap / 2, acc + ang - gap / 2);
+                    ctx.stroke();
+                }
+                acc += ang;
+            }
         }
 
-        var start = -Math.PI / 2;
-        for (var i = 0; i < segments.length; i++) {
-            var slice = (segments[i].value / total) * Math.PI * 2;
-            ctx.fillStyle = segments[i].color || cssVar("--primary", "#6366f1");
-            ctx.beginPath();
-            ctx.moveTo(cx, cy);
-            ctx.arc(cx, cy, outerR, start, start + slice);
-            ctx.closePath();
-            ctx.fill();
-            start += slice;
-        }
-
-        // hollow center
-        ctx.globalCompositeOperation = "destination-out";
-        ctx.beginPath();
-        ctx.arc(cx, cy, innerR, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.globalCompositeOperation = "source-over";
-
-        // center label
-        ctx.fillStyle = cssVar("--text", "#f4f4f8");
-        ctx.font = "700 13px 'Plus Jakarta Sans', system-ui, sans-serif";
+        // centro: valor (grande) + rótulo (pequeno)
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillText("Total", cx, cy - 8);
-        ctx.font = "800 16px 'Plus Jakarta Sans', system-ui, sans-serif";
-        ctx.fillText("R$ " + shortMoney(total), cx, cy + 10);
+        ctx.fillStyle = cssVar("--text", "#f4f4f8");
+        ctx.font = "800 17px 'Plus Jakarta Sans', system-ui, sans-serif";
+        ctx.fillText("R$ " + shortMoney(total), cx, cy - 6);
+        ctx.fillStyle = cssVar("--text-dim", "#98a2c7");
+        ctx.font = "600 10px 'Plus Jakarta Sans', system-ui, sans-serif";
+        ctx.fillText("total gasto", cx, cy + 13);
+    }
+
+    // Anima o donut (revelação 0→1, easeOutCubic ~900ms).
+    function animateDonut(canvas, segments) {
+        var reduce = window.matchMedia
+            && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        if (reduce) { drawDonutChart(canvas, segments, 1); return; }
+        var start = null;
+        function tick(now) {
+            if (start === null) start = now;
+            var t = Math.min(1, (now - start) / 900);
+            var eased = 1 - Math.pow(1 - t, 3);
+            drawDonutChart(canvas, segments, eased);
+            if (t < 1) requestAnimationFrame(tick);
+        }
+        requestAnimationFrame(tick);
     }
 
     function init() {
         var data = readJson("chartData");
         if (!data) return;
 
-        var balanceCanvas = document.getElementById("balanceChart");
-        if (balanceCanvas && Array.isArray(data.balance)) {
-            drawLineChart(balanceCanvas, data.balance);
+        // "Gastos no mês · Dia a dia": série de gasto lançado por dia (1..N).
+        var spendCanvas = document.getElementById("spendChart");
+        var spendPoints = Array.isArray(data.dailySpend)
+            ? data.dailySpend.map(function (v, i) { return { x: i + 1, y: v }; })
+            : [];
+        if (spendCanvas && spendPoints.length) {
+            drawLineChart(spendCanvas, spendPoints);
         }
 
         var donutCanvas = document.getElementById("categoryDonut");
         if (donutCanvas && Array.isArray(data.byCategory)) {
-            drawDonutChart(donutCanvas, data.byCategory);
+            animateDonut(donutCanvas, data.byCategory);
+        }
+
+        function redraw() {
+            if (spendCanvas && spendPoints.length) drawLineChart(spendCanvas, spendPoints);
+            if (donutCanvas && Array.isArray(data.byCategory)) drawDonutChart(donutCanvas, data.byCategory, 1);
         }
 
         var pending;
         window.addEventListener("resize", function () {
             if (pending) cancelAnimationFrame(pending);
-            pending = requestAnimationFrame(function () {
-                if (balanceCanvas && Array.isArray(data.balance)) {
-                    drawLineChart(balanceCanvas, data.balance);
-                }
-                if (donutCanvas && Array.isArray(data.byCategory)) {
-                    drawDonutChart(donutCanvas, data.byCategory);
-                }
-            });
+            pending = requestAnimationFrame(redraw);
         });
+        // redesenha ao trocar a paleta/tema (canvas não reage a var(--primary))
+        window.addEventListener("rastroos:themechange", redraw);
     }
 
     if (document.readyState === "loading") {
