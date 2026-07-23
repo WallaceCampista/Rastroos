@@ -45,6 +45,7 @@ import com.rastroos.security.LockoutChecker;
 import com.rastroos.security.LockoutPreAuthFilter;
 import com.rastroos.security.LoginFailureHandler;
 import com.rastroos.security.LoginSuccessHandler;
+import com.rastroos.web.interceptor.TopbarChipsInterceptor;
 import com.rastroos.web.dto.IncomeDto;
 import com.rastroos.web.dto.IncomesPageView;
 import com.rastroos.web.form.IncomeForm;
@@ -64,7 +65,8 @@ import com.rastroos.web.form.IncomeForm;
                         LoginSuccessHandler.class,
                         LoginFailureHandler.class,
                         CustomUserDetailsService.class,
-                        AuditLogger.class
+                        AuditLogger.class,
+                        TopbarChipsInterceptor.class
                 }))
 @AutoConfigureMockMvc(addFilters = false)
 @Import(IncomeRestControllerTest.Config.class)

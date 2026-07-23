@@ -2,8 +2,12 @@ package com.rastroos.web.controller;
 
 import java.time.Clock;
 import java.time.YearMonth;
+import java.time.format.TextStyle;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
+
+import org.springframework.context.i18n.LocaleContextHolder;
 
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
@@ -21,6 +25,7 @@ import com.rastroos.domain.entity.Category;
 import com.rastroos.domain.entity.Income;
 import com.rastroos.domain.repository.CategoryRepository;
 import com.rastroos.domain.service.IncomeService;
+import com.rastroos.domain.service.MonthlyFinanceAggregator;
 import com.rastroos.security.CurrentUser;
 import com.rastroos.web.dto.IncomeFilter;
 import com.rastroos.web.dto.IncomesPageView;
@@ -41,16 +46,39 @@ public class IncomeController {
     private final CurrentUser currentUser;
     private final IncomeService service;
     private final CategoryRepository categories;
+    private final MonthlyFinanceAggregator aggregator;
     private final Clock clock;
 
     public IncomeController(CurrentUser currentUser,
                             IncomeService service,
                             CategoryRepository categories,
+                            MonthlyFinanceAggregator aggregator,
                             Clock clock) {
         this.currentUser = currentUser;
         this.service = service;
         this.categories = categories;
+        this.aggregator = aggregator;
         this.clock = clock;
+    }
+
+    /** Série dos últimos 6 meses de receita (para o gráfico do topo). */
+    private String buildIncomeChartJson(UUID userId, YearMonth period) {
+        Locale locale = LocaleContextHolder.getLocale();
+        StringBuilder sb = new StringBuilder("{\"points\":[");
+        List<YearMonth> months = MonthlyFinanceAggregator.trailingAxis(period, 6);
+        for (int i = 0; i < months.size(); i++) {
+            YearMonth m = months.get(i);
+            double v = aggregator.summarize(userId, m, 0L, false).received().doubleValue();
+            String lbl = m.getMonth().getDisplayName(TextStyle.SHORT, locale).replace(".", "");
+            if (!lbl.isEmpty()) {
+                lbl = Character.toUpperCase(lbl.charAt(0)) + lbl.substring(1);
+            }
+            if (i > 0) {
+                sb.append(",");
+            }
+            sb.append("{\"x\":\"").append(lbl).append("\",\"y\":").append(v).append("}");
+        }
+        return sb.append("]}").toString();
     }
 
     @GetMapping
@@ -71,6 +99,8 @@ public class IncomeController {
         model.addAttribute("filter", filter);
         model.addAttribute("view", view);
         model.addAttribute("categories", categories.findAllByOrderBySortOrderAsc());
+        model.addAttribute("incomeChartJson",
+                currentUser.isMaskActive() ? "{\"points\":[]}" : buildIncomeChartJson(userId, period));
         return "app/income";
     }
 

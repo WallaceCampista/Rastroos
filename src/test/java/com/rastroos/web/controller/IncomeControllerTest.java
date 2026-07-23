@@ -1,6 +1,8 @@
 package com.rastroos.web.controller;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -38,6 +40,7 @@ import com.rastroos.domain.entity.Income;
 import com.rastroos.domain.exception.ResourceNotFoundException;
 import com.rastroos.domain.repository.CategoryRepository;
 import com.rastroos.domain.service.IncomeService;
+import com.rastroos.domain.service.MonthlyFinanceAggregator;
 import com.rastroos.security.AuditLogger;
 import com.rastroos.security.BruteForceFilter;
 import com.rastroos.security.CurrentUser;
@@ -46,7 +49,9 @@ import com.rastroos.security.LockoutChecker;
 import com.rastroos.security.LockoutPreAuthFilter;
 import com.rastroos.security.LoginFailureHandler;
 import com.rastroos.security.LoginSuccessHandler;
+import com.rastroos.web.interceptor.TopbarChipsInterceptor;
 import com.rastroos.web.dto.IncomesPageView;
+import com.rastroos.web.dto.MonthSummaryDto;
 import com.rastroos.web.form.IncomeForm;
 
 @WebMvcTest(controllers = IncomeController.class,
@@ -64,7 +69,8 @@ import com.rastroos.web.form.IncomeForm;
                         LoginSuccessHandler.class,
                         LoginFailureHandler.class,
                         CustomUserDetailsService.class,
-                        AuditLogger.class
+                        AuditLogger.class,
+                        TopbarChipsInterceptor.class
                 }))
 @AutoConfigureMockMvc(addFilters = false)
 @Import(IncomeControllerTest.Config.class)
@@ -75,6 +81,7 @@ class IncomeControllerTest {
     @MockitoBean private IncomeService service;
     @MockitoBean private CurrentUser currentUser;
     @MockitoBean private CategoryRepository categories;
+    @MockitoBean private MonthlyFinanceAggregator monthlyFinanceAggregator;
 
     private final UUID userId = UUID.randomUUID();
 
@@ -90,6 +97,12 @@ class IncomeControllerTest {
     void setUp() {
         when(currentUser.requireEffectiveId()).thenReturn(userId);
         when(categories.findAllByOrderBySortOrderAsc()).thenReturn(List.of());
+        // O gráfico de receitas monta 6 meses via aggregator.summarize(...).received();
+        // stub all-zero evita NPE ao renderizar a tela de listagem.
+        when(monthlyFinanceAggregator.summarize(any(), any(), anyLong(), anyBoolean()))
+                .thenReturn(new MonthSummaryDto("2026-05", "Mai",
+                        BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
+                        BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, 0, false));
     }
 
     @Test

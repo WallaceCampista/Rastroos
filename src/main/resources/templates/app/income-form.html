@@ -1,8 +1,8 @@
 <!doctype html>
 <html xmlns:th="http://www.thymeleaf.org" lang="pt-BR"
-      th:replace="~{layout/base :: layout(~{::title}, ~{::section})}">
+      th:replace="~{layout/base :: layout(~{::title}, ~{::head/link}, ~{::section}, ~{::head/script})}">
 <head>
-    <title th:text="${editing ? 'Editar receita · Rastro$' : 'Nova receita · Rastro$'}">Receita · Rastro$</title>
+    <title th:text="${editing ? 'Editar receita · Rastro$' : 'Lançar receita · Rastro$'}">Receita · Rastro$</title>
     <link rel="stylesheet" th:href="@{/css/screens/income.css}">
 </head>
 <body>
@@ -10,7 +10,7 @@
     <header class="screen-header">
         <div>
             <h1 class="screen-title"
-                th:text="${editing ? 'Editar receita' : 'Nova receita'}">Nova receita</h1>
+                th:text="${editing ? 'Editar receita' : 'Lançar receita'}">Lançar receita</h1>
             <p class="screen-sub">Salário, freelas, vendas, dividendos…</p>
         </div>
         <div class="screen-actions">
@@ -18,64 +18,62 @@
         </div>
     </header>
 
-    <form class="income-form card"
+    <form class="form income-form"
           th:action="${editing ? '/app/income/' + incomeId + '/edit' : '/app/income/new'}"
           method="post"
           th:object="${incomeForm}">
-        <input type="hidden"
-               th:if="${_csrf != null}"
-               th:name="${_csrf.parameterName}"
-               th:value="${_csrf.token}">
+        <input type="hidden" th:if="${_csrf != null}"
+               th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
 
-        <div class="income-form-grid">
-            <div class="field field-wide">
-                <label for="source">Fonte</label>
-                <input id="source" type="text" th:field="*{source}"
-                       maxlength="120" required autocomplete="off">
-                <p class="field-error" th:if="${#fields.hasErrors('source')}"
-                   th:errors="*{source}">erro</p>
-            </div>
+        <label>
+            <span>Origem</span>
+            <input class="input" type="text" th:field="*{source}"
+                   maxlength="120" required autocomplete="off" placeholder="Ex: Salário PJ">
+            <small th:if="${#fields.hasErrors('source')}" th:errors="*{source}"
+                   class="form-hint form-hint-err"></small>
+        </label>
 
-            <div class="field">
-                <label for="amount">Valor (R$)</label>
-                <input id="amount" type="number" step="0.01" min="0.01"
-                       th:field="*{amount}" required>
-                <p class="field-error" th:if="${#fields.hasErrors('amount')}"
-                   th:errors="*{amount}">erro</p>
-            </div>
-
-            <div class="field">
-                <label for="incomeDate">Data</label>
-                <input id="incomeDate" type="date" th:field="*{incomeDate}" required>
-                <p class="field-error" th:if="${#fields.hasErrors('incomeDate')}"
-                   th:errors="*{incomeDate}">erro</p>
-            </div>
-
-            <div class="field">
-                <label for="categoryId">Categoria (opcional)</label>
-                <select id="categoryId" th:field="*{categoryId}">
-                    <option value="">—</option>
-                    <option th:each="c : ${categoryOptions}"
-                            th:value="${c.id}"
-                            th:text="${c.namePt}">Categoria</option>
-                </select>
-                <p class="field-error" th:if="${#fields.hasErrors('categoryId')}"
-                   th:errors="*{categoryId}">erro</p>
-            </div>
-
-            <div class="field field-wide">
-                <label for="note">Observação</label>
-                <input id="note" type="text" th:field="*{note}"
-                       maxlength="200" placeholder="ex.: bônus de fim de ano">
-                <p class="field-error" th:if="${#fields.hasErrors('note')}"
-                   th:errors="*{note}">erro</p>
-            </div>
+        <div class="form-row">
+            <label>
+                <span>Valor (R$)</span>
+                <input class="input" type="number" step="0.01" min="0.01"
+                       th:field="*{amount}" required placeholder="0,00">
+                <small th:if="${#fields.hasErrors('amount')}" th:errors="*{amount}"
+                       class="form-hint form-hint-err"></small>
+            </label>
+            <label>
+                <span>Data</span>
+                <input class="input" type="date" th:field="*{incomeDate}" required>
+                <small th:if="${#fields.hasErrors('incomeDate')}" th:errors="*{incomeDate}"
+                       class="form-hint form-hint-err"></small>
+            </label>
         </div>
 
-        <footer class="income-form-foot">
+        <label>
+            <span>Categoria</span>
+            <div class="cat-grid" data-cat-grid>
+                <button type="button" class="cat-btn" th:each="c : ${categoryOptions}"
+                        th:attr="data-cat=${c.id},data-color=${c.colorHex}">
+                    <span class="cat-dot"></span>
+                    <span th:text="${c.namePt}">Categoria</span>
+                </button>
+            </div>
+            <input type="hidden" th:field="*{categoryId}" data-cat-input>
+            <small th:if="${#fields.hasErrors('categoryId')}" th:errors="*{categoryId}"
+                   class="form-hint form-hint-err"></small>
+        </label>
+
+        <label>
+            <span>Observação (opcional)</span>
+            <input class="input" type="text" th:field="*{note}"
+                   maxlength="200" placeholder="ex.: bônus de fim de ano">
+        </label>
+
+        <div class="form-actions">
+            <a class="btn btn-ghost" data-modal-close th:href="@{/app/income}">Cancelar</a>
             <button type="submit" class="btn btn-primary"
-                    th:text="${editing ? 'Salvar' : 'Criar receita'}">Salvar</button>
-        </footer>
+                    th:text="${editing ? 'Salvar alterações' : 'Lançar receita'}">Lançar receita</button>
+        </div>
     </form>
 </section>
 </body>
