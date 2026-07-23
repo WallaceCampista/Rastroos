@@ -3,20 +3,83 @@
 <body>
 
 <div class="period-selector" th:fragment="period">
-    <button type="button" class="period-nav" data-period-prev aria-label="Mês anterior">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-             stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M15 18l-6-6 6-6"/>
-        </svg>
-    </button>
-    <span class="period-label"
-          th:text="${periodLabel != null ? periodLabel : '—'}">—</span>
-    <button type="button" class="period-nav" data-period-next aria-label="Próximo mês">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-             stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M9 6l6 6-6 6"/>
-        </svg>
-    </button>
+
+    <!-- Seletor completo: 12 chips do ano vigente (quando o interceptor alimenta monthChips) -->
+    <th:block th:if="${monthChips != null}">
+        <div class="ps-year">
+            <a class="ps-year-arrow" th:href="@{/app/{nav}(nav=${activeNav}, ym=${period.minusYears(1)})}"
+               aria-label="Ano anterior">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M15 6l-6 6 6 6"/>
+                </svg>
+            </a>
+            <div class="ps-year-value" th:text="${period.year}">2026</div>
+            <a class="ps-year-arrow" th:href="@{/app/{nav}(nav=${activeNav}, ym=${period.plusYears(1)})}"
+               aria-label="Próximo ano">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M9 6l6 6-6 6"/>
+                </svg>
+            </a>
+        </div>
+
+        <div class="ps-divider"></div>
+
+        <a class="icon-btn ps-arrow" th:href="@{/app/{nav}(nav=${activeNav}, ym=${period.minusMonths(1)})}"
+           aria-label="Mês anterior">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M15 6l-6 6 6 6"/>
+            </svg>
+        </a>
+
+        <div class="ps-track" data-ps-track>
+            <div class="ps-indicator" data-ps-indicator></div>
+            <a th:each="chip : ${monthChips}"
+               th:href="@{/app/{nav}(nav=${activeNav}, ym=${chip.ym()})}"
+               th:class="${'ps-chip ps-' + chip.status() + (chip.active() ? ' on' : '')}"
+               th:title="${chip.label()}">
+                <span th:if="${chip.status() == 'paid'}" class="ps-chip-badge ps-chip-badge-up"
+                      title="No controle" aria-hidden="true">👍</span>
+                <span th:if="${chip.status() == 'negative'}" class="ps-chip-badge ps-chip-badge-down"
+                      title="Fora do controle" aria-hidden="true">👎</span>
+                <span class="ps-chip-mon" th:text="${chip.label()}">Jan</span>
+                <span th:if="${chip.status() != 'empty'}"
+                      th:class="${'ps-chip-dot ps-dot-' + chip.status()}"></span>
+            </a>
+        </div>
+
+        <a class="icon-btn ps-arrow" th:href="@{/app/{nav}(nav=${activeNav}, ym=${period.plusMonths(1)})}"
+           aria-label="Próximo mês">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M9 6l6 6-6 6"/>
+            </svg>
+        </a>
+    </th:block>
+
+    <!-- Fallback simples (sem o interceptor / sem período) -->
+    <th:block th:if="${monthChips == null}">
+        <button type="button" class="period-nav" data-period-prev aria-label="Mês anterior">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M15 18l-6-6 6-6"/>
+            </svg>
+        </button>
+        <span class="period-label"
+              th:text="${periodLabel != null ? periodLabel
+                         : (period != null
+                            ? #strings.capitalize(#temporals.format(period.atDay(1), 'MMMM')) + ' ' + period.year
+                            : '—')}">—</span>
+        <button type="button" class="period-nav" data-period-next aria-label="Próximo mês">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M9 6l6 6-6 6"/>
+            </svg>
+        </button>
+    </th:block>
+
 </div>
 
 </body>

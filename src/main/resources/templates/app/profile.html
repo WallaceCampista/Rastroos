@@ -1,0 +1,61 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Editar perfil · Rastro$</title>
+    <link rel="stylesheet" th:href="@{/css/tokens.css}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/auth.css}">
+    <link rel="stylesheet" th:href="@{/css/components.css}">
+</head>
+<body>
+<main class="auth-shell">
+    <a class="auth-brand" th:href="@{/app/dashboard}">
+        <span class="auth-brand-mark">R<span class="accent">$</span></span>
+        <span>Rastro<span class="accent">$</span></span>
+    </a>
+
+    <section class="auth-card">
+        <h1 class="auth-title">Editar perfil</h1>
+        <p class="auth-sub">Atualize seu nome de exibição.</p>
+
+        <form th:action="@{/app/profile}" method="post"
+              th:object="${profileForm}" class="form" novalidate>
+            <input type="hidden"
+                   th:name="${_csrf.parameterName}"
+                   th:value="${_csrf.token}">
+
+            <div class="profile-preview">
+                <div class="profile-preview-avatar"
+                     th:text="${userInitial != null ? userInitial : '·'}">·</div>
+                <div>
+                    <div class="profile-preview-name"
+                         th:text="${userDisplayName != null ? userDisplayName : 'Você'}">Você</div>
+                    <div class="profile-preview-email muted" th:text="${profileEmail}">conta@rastro.app</div>
+                </div>
+            </div>
+
+            <label>
+                <span>Nome completo</span>
+                <input class="input" type="text" th:field="*{name}"
+                       autocomplete="name" required maxlength="120" placeholder="Seu nome">
+                <small th:if="${#fields.hasErrors('name')}"
+                       th:errors="*{name}" class="form-hint form-hint-err"></small>
+            </label>
+            <label>
+                <span>E-mail</span>
+                <input class="input" type="email" th:value="${profileEmail}" readonly
+                       autocomplete="email">
+                <small class="form-hint">Para trocar o e-mail, fale com o suporte.</small>
+            </label>
+
+            <div class="form-actions">
+                <a class="btn btn-ghost" data-modal-close th:href="@{/app/dashboard}">Cancelar</a>
+                <button type="submit" class="btn btn-primary">Salvar alterações</button>
+            </div>
+        </form>
+    </section>
+</main>
+</body>
+</html>
