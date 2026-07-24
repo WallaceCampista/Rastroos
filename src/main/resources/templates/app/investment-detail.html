@@ -63,7 +63,7 @@
             <label>
                 <span>Valor a resgatar · Disponível
                     <span th:text="${'R$ ' + #numbers.formatDecimal(i.amount(), 1, 'POINT', 2, 'COMMA')}">R$ 0,00</span></span>
-                <input class="input" type="number" step="0.01" min="0.01" name="amount" placeholder="0,00">
+                <input class="input" type="text" inputmode="numeric" name="amount" data-money-mask placeholder="0,00">
             </label>
             <div class="form-actions">
                 <button type="button" class="btn btn-ghost" data-inv-withdraw-cancel>Cancelar</button>

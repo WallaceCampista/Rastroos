@@ -21,7 +21,7 @@
 }
 .invest-hero > * { position: relative; z-index: 1; }
 .invest-hero-main { flex: 0 1 auto; min-width: 0; }
-.invest-hero-chart { flex: 1 1 52%; min-width: 0; align-self: stretch; height: 130px; }
+.invest-hero-chart { flex: 0 1 44%; min-width: 0; align-self: center; height: 88px; }
 .invest-hero-chart canvas { width: 100%; height: 100%; display: block; }
 .invest-hero-label { font-size: 13px; color: var(--text-dim); }
 .invest-hero-value { font-size: 44px; font-weight: 800; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; margin: 4px 0 8px; line-height: 1.1; }
@@ -65,6 +65,12 @@
 .piggy-stats > div { display: flex; flex-direction: column; gap: 2px; }
 .piggy-stats .muted { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; }
 .piggy-stats .money { font-size: 14px; }
+.piggy-meta { display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 8px; }
+.up.tiny { font-size: 11px; }
+
+/* Modal: Cor e Ícone lado a lado */
+.form-row-swatches { align-items: start; }
+.form-row-swatches .swatch-grid { gap: 6px; }
 .piggy-actions { display: flex; gap: 12px; width: 100%; padding-top: 8px; font-size: 12.5px; }
 .piggy-actions .link { padding: 0; }
 .piggy-actions form { margin: 0; }
@@ -78,6 +84,7 @@
     padding: 14px 18px;
     background: var(--surface); border: 1px solid var(--border);
     border-radius: 14px; transition: all .15s;
+    cursor: pointer;
 }
 
 .wallet-spark { height: 40px; min-width: 0; }
@@ -87,7 +94,7 @@
     .wallet-row { grid-template-columns: auto 1fr auto auto; }
     .wallet-spark { display: none; }
     .invest-hero { flex-direction: column; align-items: stretch; }
-    .invest-hero-chart { height: 100px; }
+    .invest-hero-chart { flex: 1 1 auto; height: 72px; }
 }
 .wallet-row:hover { border-color: color-mix(in oklch, var(--primary) 40%, var(--border)); transform: translateY(-1px); box-shadow: 0 8px 20px -12px rgba(0, 0, 0, 0.35); }
 .wallet-icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; background: var(--primary); flex-shrink: 0; }

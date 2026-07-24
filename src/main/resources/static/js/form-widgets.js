@@ -13,6 +13,49 @@
         fixed: 'Conta recorrente — se repete automaticamente nos próximos meses.',
     };
 
+    // "1.234,56" → "1234.56" (BigDecimal). Aceita também "1234.56" (edição).
+    function unmaskMoney(str) {
+        if (str == null) return '';
+        const s = String(str).trim();
+        if (!s) return '';
+        return /,/.test(s) ? s.replace(/\./g, '').replace(',', '.') : s;
+    }
+
+    // Máscara de moeda pt-BR (acumula centavos da direita p/ esquerda).
+    // Guarda o valor bruto (BigDecimal) só na hora do submit, sem inline.
+    function initMoneyMask(input) {
+        if (input.dataset.maskInit) return;
+        input.dataset.maskInit = '1';
+        const fmt = (digits) => {
+            digits = (digits || '').replace(/^0+/, '') || '0';
+            while (digits.length < 3) digits = '0' + digits;
+            const cents = digits.slice(-2);
+            const intp = digits.slice(0, -2).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+            return intp + ',' + cents;
+        };
+        const reformat = () => {
+            const digits = input.value.replace(/\D/g, '');
+            input.value = digits ? fmt(digits) : '';
+        };
+        input.addEventListener('input', reformat);
+        // valor pré-preenchido (edição vem como "1234.56") → formata p/ exibição
+        if (input.value.trim()) {
+            const num = parseFloat(unmaskMoney(input.value));
+            input.value = isNaN(num) ? '' : fmt(String(Math.round(num * 100)));
+        }
+        // no submit, converte todos os campos mascarados p/ decimal antes do envio.
+        // Fase de captura → roda antes do handler de submit do modal (fase de bolha).
+        const form = input.closest('form');
+        if (form && !form.dataset.moneyMaskSubmit) {
+            form.dataset.moneyMaskSubmit = '1';
+            form.addEventListener('submit', () => {
+                form.querySelectorAll('[data-money-mask]').forEach((el) => {
+                    if (!el.disabled) el.value = unmaskMoney(el.value);
+                });
+            }, true);
+        }
+    }
+
     function initTabs(tabs) {
         if (tabs.dataset.init) return;
         tabs.dataset.init = '1';
@@ -185,7 +228,7 @@
         const money = (n) => 'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         const recalc = () => {
             const pct = parseFloat(pctEl.value) || 0;
-            const val = valEl ? (parseFloat(String(valEl.value).replace(',', '.')) || 0) : 0;
+            const val = valEl ? (parseFloat(unmaskMoney(valEl.value)) || 0) : 0;
             const monthly = Math.pow(1 + CDI_ANNUAL * pct / 100, 1 / 12) - 1;
             const ret = val * monthly;
             if (pctLabel) pctLabel.textContent = pct + '%';
@@ -208,6 +251,7 @@
             scope.querySelectorAll('[data-swatch-group]').forEach(initSwatches);
             scope.querySelectorAll('[data-inv-mode-tabs]').forEach(initInvMode);
             scope.querySelectorAll('[data-inv-withdraw-toggle]').forEach(initInvWithdraw);
+            scope.querySelectorAll('[data-money-mask]').forEach(initMoneyMask);
             scope.querySelectorAll('[data-inv-form]').forEach(initCdiCalc);
         },
     };
