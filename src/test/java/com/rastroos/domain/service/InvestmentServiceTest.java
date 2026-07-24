@@ -118,9 +118,9 @@ class InvestmentServiceTest {
         assertThat(created.getUserId()).isEqualTo(alice);
         assertThat(created.getKind()).isEqualTo(InvestmentKind.PIGGY);
         assertThat(created.getGoalCents()).isEqualTo(100_000L);
-        // PIGGY não tem rate/monthly:
-        assertThat(created.getRateLabel()).isNull();
-        assertThat(created.getMonthlyReturnCents()).isNull();
+        // Cofrinho agora também guarda taxa/rendimento (como no protótipo):
+        assertThat(created.getRateLabel()).isEqualTo("ignorado");
+        assertThat(created.getMonthlyReturnCents()).isEqualTo(9_999L);
     }
 
     @Test

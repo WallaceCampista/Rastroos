@@ -349,14 +349,9 @@ public class InvestmentService {
         inv.setGoalCents(form.getKind() == InvestmentKind.PIGGY
                 ? toCentsOrNull(form.getGoal())
                 : null);
-        // rate/monthly só para a carteira
-        if (form.getKind() == InvestmentKind.PIGGY) {
-            inv.setRateLabel(null);
-            inv.setMonthlyReturnCents(null);
-        } else {
-            inv.setRateLabel(blankToNull(form.getRateLabel()));
-            inv.setMonthlyReturnCents(toCentsOrNull(form.getMonthlyReturn()));
-        }
+        // Taxa/rendimento valem para todos (inclusive cofrinho, como no protótipo).
+        inv.setRateLabel(blankToNull(form.getRateLabel()));
+        inv.setMonthlyReturnCents(toCentsOrNull(form.getMonthlyReturn()));
         inv.setColorHex(blankToNull(form.getColorHex()));
         inv.setIconText(blankToNull(form.getIconText()));
     }
