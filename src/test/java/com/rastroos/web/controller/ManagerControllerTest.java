@@ -12,7 +12,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
+import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
 
@@ -21,6 +25,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -28,6 +34,9 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import com.rastroos.domain.entity.enums.ChatMessageRole;
 import com.rastroos.domain.service.ChatService;
+import com.rastroos.domain.service.DashboardService;
+import com.rastroos.web.dto.DashboardKpisDto;
+import com.rastroos.web.dto.DashboardModel;
 import com.rastroos.security.AuditLogger;
 import com.rastroos.security.BruteForceFilter;
 import com.rastroos.security.CurrentUser;
@@ -67,12 +76,29 @@ class ManagerControllerTest {
 
     @MockitoBean private ChatService service;
     @MockitoBean private CurrentUser currentUser;
+    @MockitoBean private DashboardService dashboard;
 
     private final UUID userId = UUID.randomUUID();
+
+    @TestConfiguration
+    static class ClockConfig {
+        @Bean
+        Clock testClock() {
+            return Clock.fixed(Instant.parse("2026-05-15T12:00:00Z"), ZoneId.of("UTC"));
+        }
+    }
 
     @BeforeEach
     void setUp() {
         when(currentUser.requireId()).thenReturn(userId);
+    }
+
+    private static DashboardModel emptySnapshot() {
+        return new DashboardModel(
+                LocalDate.of(2026, 5, 1), LocalDate.of(2026, 6, 1), 0L, 0L,
+                new DashboardKpisDto(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
+                        BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO),
+                List.of(), List.of(), List.of(), List.of(), List.of());
     }
 
     @Test
@@ -91,10 +117,12 @@ class ManagerControllerTest {
     void managerRenderizaConversaAtiva() throws Exception {
         UUID chatId = UUID.randomUUID();
         when(service.load(eq(userId), eq(chatId))).thenReturn(activeView(chatId));
+        when(dashboard.load(eq(userId), any())).thenReturn(emptySnapshot());
 
         mvc.perform(get("/app/manager").param("chat", chatId.toString()))
                 .andExpect(status().isOk())
-                .andExpect(view().name("app/manager"));
+                .andExpect(view().name("app/manager"))
+                .andExpect(model().attributeExists("canvasKpis", "canvasCats"));
     }
 
     @Test

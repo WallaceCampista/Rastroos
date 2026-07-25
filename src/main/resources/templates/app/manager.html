@@ -85,7 +85,8 @@
     </div>
 
     <!-- ── Conversa ativa ───────────────────────────────────────── -->
-    <div th:if="${view.hasActiveChat()}" class="mgr-chat-pane">
+    <div th:if="${view.hasActiveChat()}" class="mgr-chat-screen">
+      <div class="mgr-chat-pane">
         <header class="mgr-chat-header">
             <a class="mgr-back" th:href="@{/app/manager}" aria-label="Voltar às conversas">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -126,6 +127,63 @@
                      stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
             </button>
         </form>
+      </div>
+
+      <!-- ── Quadro financeiro (snapshot do mês) ─────────────────── -->
+      <aside class="mgr-canvas">
+        <div class="mgr-canvas-head">
+          <div class="mgr-canvas-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8M21 7v6m0-6h-6"/></svg>
+            <span>Quadro financeiro</span>
+          </div>
+        </div>
+        <div class="mgr-canvas-body">
+          <div class="canvas-summary" th:if="${canvasKpis != null}">
+            <div class="canvas-kpi-grid">
+              <div class="canvas-kpi accent">
+                <div class="ckpi-label">Recebido</div>
+                <div class="ckpi-value money money-md" th:data-amount="${canvasKpis.received()}"
+                     th:text="${'R$ ' + #numbers.formatDecimal(canvasKpis.received(), 1, 'POINT', 2, 'COMMA')}">R$ 0,00</div>
+              </div>
+              <div class="canvas-kpi">
+                <div class="ckpi-label">Gasto</div>
+                <div class="ckpi-value money money-md" th:data-amount="${canvasKpis.spent()}"
+                     th:text="${'R$ ' + #numbers.formatDecimal(canvasKpis.spent(), 1, 'POINT', 2, 'COMMA')}">R$ 0,00</div>
+              </div>
+              <div class="canvas-kpi">
+                <div class="ckpi-label">Falta pagar</div>
+                <div class="ckpi-value money money-md ckpi-warn" th:data-amount="${canvasKpis.toPay()}"
+                     th:text="${'R$ ' + #numbers.formatDecimal(canvasKpis.toPay(), 1, 'POINT', 2, 'COMMA')}">R$ 0,00</div>
+              </div>
+              <div class="canvas-kpi accent">
+                <div class="ckpi-label">Saldo</div>
+                <div class="ckpi-value money money-md" th:data-amount="${canvasKpis.balance()}"
+                     th:text="${'R$ ' + #numbers.formatDecimal(canvasKpis.balance(), 1, 'POINT', 2, 'COMMA')}">R$ 0,00</div>
+              </div>
+            </div>
+
+            <div class="canvas-section">
+              <div class="canvas-section-title">Top gastos por categoria</div>
+              <div class="canvas-cats" th:unless="${#lists.isEmpty(canvasCats)}"
+                   th:with="spent=${canvasKpis.spent().doubleValue()}">
+                <div class="canvas-cat" th:each="c : ${canvasCats}"
+                     th:with="pct=${spent > 0 ? c.amount().doubleValue() * 100.0 / spent : 0}">
+                  <div class="canvas-cat-top">
+                    <span class="canvas-cat-dot" th:attr="data-fill=${c.colorHex()}"></span>
+                    <span class="canvas-cat-lbl" th:text="${c.name()}">categoria</span>
+                    <span class="canvas-cat-val money money-sm" th:data-amount="${c.amount()}"
+                          th:text="${'R$ ' + #numbers.formatDecimal(c.amount(), 1, 'POINT', 2, 'COMMA')}">R$ 0,00</span>
+                  </div>
+                  <div class="canvas-cat-bar">
+                    <div th:attr="data-bar-width=${pct},data-fill=${c.colorHex()}"></div>
+                  </div>
+                </div>
+              </div>
+              <p class="canvas-cats-empty muted" th:if="${#lists.isEmpty(canvasCats)}">Sem gastos lançados no mês.</p>
+            </div>
+          </div>
+        </div>
+      </aside>
     </div>
 </section>
 </body>

@@ -1,5 +1,7 @@
 package com.rastroos.web.controller;
 
+import java.time.Clock;
+import java.time.YearMonth;
 import java.util.UUID;
 
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -15,7 +17,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.rastroos.domain.service.ChatService;
+import com.rastroos.domain.service.DashboardService;
 import com.rastroos.security.CurrentUser;
+import com.rastroos.web.dto.DashboardModel;
 import com.rastroos.web.dto.ManagerView;
 import com.rastroos.web.form.ChatPromptForm;
 
@@ -33,21 +37,33 @@ public class ManagerController {
 
     private final CurrentUser currentUser;
     private final ChatService service;
+    private final DashboardService dashboard;
+    private final Clock clock;
 
-    public ManagerController(CurrentUser currentUser, ChatService service) {
+    public ManagerController(CurrentUser currentUser, ChatService service,
+                             DashboardService dashboard, Clock clock) {
         this.currentUser = currentUser;
         this.service = service;
+        this.dashboard = dashboard;
+        this.clock = clock;
     }
 
     @GetMapping
     public String manager(@RequestParam(value = "chat", required = false) String chat,
                           Model model) {
-        ManagerView view = service.load(currentUser.requireId(), parseUuid(chat));
+        UUID userId = currentUser.requireId();
+        ManagerView view = service.load(userId, parseUuid(chat));
 
         model.addAttribute("activeNav", "manager");
         model.addAttribute("view", view);
         if (!model.containsAttribute("promptForm")) {
             model.addAttribute("promptForm", new ChatPromptForm());
+        }
+        // Quadro financeiro (canvas à direita): snapshot do mês atual.
+        if (view.hasActiveChat()) {
+            DashboardModel snap = dashboard.load(userId, YearMonth.now(clock));
+            model.addAttribute("canvasKpis", snap.kpis());
+            model.addAttribute("canvasCats", snap.byCategory().stream().limit(5).toList());
         }
         return "app/manager";
     }
