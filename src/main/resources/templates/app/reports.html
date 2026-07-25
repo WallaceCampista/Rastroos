@@ -81,7 +81,7 @@
                           th:text="${(maskValues ? '••••' : 'R$ ' + #numbers.formatDecimal(data.current().toPay(), 1, 'POINT', 2, 'COMMA'))}">R$ 0,00</span>
                 </li>
             </ul>
-            <div class="pb-wrap" style="margin-top:6px"><span class="pb-fill" th:attr="data-bar-width=${paidPct},data-fill='#34d399'"></span></div>
+            <div class="pb-wrap pb-wrap-gap"><span class="pb-fill" th:attr="data-bar-width=${paidPct},data-fill='#34d399'"></span></div>
             <p class="hbar-foot muted">Você já pagou <b th:text="${#numbers.formatDecimal(paidPct, 1, 0) + '%'}">0%</b> das contas deste mês.</p>
         </section>
 
@@ -107,16 +107,10 @@
         <!-- Peso de cada gasto -->
         <section class="panel panel-wide">
             <div class="panel-head"><h3>Peso de cada gasto</h3><span class="panel-sub muted">participação de cada categoria no total</span></div>
-            <ul class="weight-list" th:unless="${data.byCategory().isEmpty()}">
-                <li class="weight-row" th:each="c : ${data.byCategory()}"
-                    th:with="pct=${data.current().spent().signum() > 0 ? c.amount().doubleValue() * 100.0 / data.current().spent().doubleValue() : 0}">
-                    <span class="weight-name" th:text="${c.name()}">categoria</span>
-                    <span class="weight-track"><span class="weight-fill" th:attr="data-bar-width=${pct},data-fill=${c.colorHex()}"></span></span>
-                    <span class="weight-pct muted" th:text="${#numbers.formatDecimal(pct, 1, 1) + '%'}">0%</span>
-                    <span class="weight-val money money-sm" th:data-amount="${maskValues ? '' : c.amount()}"
-                          th:text="${(maskValues ? '••••' : 'R$ ' + #numbers.formatDecimal(c.amount(), 1, 'POINT', 2, 'COMMA'))}">R$ 0,00</span>
-                </li>
-            </ul>
+            <div class="treemap-wrap" th:unless="${data.byCategory().isEmpty()}">
+                <div id="weightTreemap" th:classappend="${maskValues} ? 'is-hidden' : ''" aria-label="Peso de cada gasto"></div>
+                <p class="chart-masked" th:if="${maskValues}">🔒 Valores ocultos</p>
+            </div>
             <div th:if="${data.byCategory().isEmpty()}" class="empty-sm muted">Sem gastos lançados no mês.</div>
         </section>
 

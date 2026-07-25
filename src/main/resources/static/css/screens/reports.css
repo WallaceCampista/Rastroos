@@ -197,54 +197,28 @@
 }
 
 /* ── Peso de cada gasto ──────────────────────────────────── */
-.weight-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+/* ── Treemap: "Peso de cada gasto" ───────────────────────── */
+.treemap-wrap {
+    position: relative;
+    height: 280px;
+    width: 100%;
 }
 
-.weight-row {
-    display: grid;
-    grid-template-columns: minmax(90px, 160px) 1fr 52px auto;
-    align-items: center;
-    gap: 12px;
-    font-size: 12.5px;
-}
-
-.weight-name {
-    color: var(--text);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.weight-track {
-    height: 10px;
-    border-radius: 99px;
-    background: var(--surface-2);
-    overflow: hidden;
-}
-
-.weight-fill {
+.treemap {
     display: block;
+    width: 100%;
     height: 100%;
-    border-radius: 99px;
-    transition: width 0.3s ease;
 }
 
-.weight-pct {
-    color: var(--text-dim);
-    font-variant-numeric: tabular-nums;
-    text-align: right;
+.tm-label {
+    font: 700 13px var(--font);
+    letter-spacing: -0.01em;
 }
 
-.weight-val {
+.tm-value {
+    font: 600 12px var(--font);
     font-variant-numeric: tabular-nums;
-    font-weight: 600;
-    text-align: right;
+    opacity: 0.88;
 }
 
 /* ── Linha (canvas) ──────────────────────────────────────── */
@@ -294,3 +268,5 @@
     filter: blur(7px);
     user-select: none;
 }
+
+.pb-wrap-gap { margin-top: 6px; }

@@ -95,6 +95,7 @@ public class ReportController {
         List<Map<String, Object>> out = new ArrayList<>(items.size());
         for (CategoryBreakdownDto c : items) {
             out.add(Map.of(
+                    "label", c.name() == null ? "" : c.name(),
                     "color", c.colorHex() == null ? "#6366f1" : c.colorHex(),
                     "value", c.amount().doubleValue()));
         }

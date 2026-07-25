@@ -15,6 +15,7 @@
         var catCanvas = document.getElementById("categoryDonut");
         var accCanvas = document.getElementById("accountDonut");
         var lineCanvas = document.getElementById("fixedVarLine");
+        var weightEl = document.getElementById("weightTreemap");
 
         function draw() {
             if (catCanvas && Array.isArray(data.byCategory)) {
@@ -22,6 +23,9 @@
             }
             if (accCanvas && Array.isArray(data.byAccount)) {
                 C.donut(accCanvas, data.byAccount, { centerLabel: "gasto" });
+            }
+            if (weightEl && Array.isArray(data.byCategory)) {
+                C.treemap(weightEl, data.byCategory);
             }
             if (lineCanvas && data.fixedVar) {
                 C.multiLine(lineCanvas, {
