@@ -51,9 +51,9 @@
                 <span class="piggy-name" th:text="${p.name()}">Cofrinho</span>
             </div>
             <div class="piggy-ring-wrap">
-                <svg class="progress-ring" width="150" height="150" viewBox="0 0 150 150" aria-hidden="true">
-                    <circle class="pr-track" cx="75" cy="75" r="70"/>
-                    <circle class="pr-fill" cx="75" cy="75" r="70"
+                <svg class="progress-ring" width="120" height="120" viewBox="0 0 120 120" aria-hidden="true">
+                    <circle class="pr-track" cx="60" cy="60" r="55"/>
+                    <circle class="pr-fill" cx="60" cy="60" r="55"
                             th:attr="data-percent=${p.progressPercent() != null ? p.progressPercent() : 0},data-color=${p.colorHex()}"/>
                 </svg>
                 <div class="ring-inner">

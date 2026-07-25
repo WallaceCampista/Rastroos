@@ -12,7 +12,7 @@
             if (c) el.style.setProperty("--c", c);
         });
 
-        var CIRC = 2 * Math.PI * 70; // r = 70
+        var CIRC = 2 * Math.PI * 55; // r = 55 (anel 120px, igual ao protótipo)
         var reduce = window.matchMedia
             && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
         document.querySelectorAll(".pr-fill").forEach(function (ring) {
