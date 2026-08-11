@@ -21,6 +21,8 @@ import org.springframework.transaction.annotation.Transactional;
 import com.rastroos.domain.entity.SupportTicket;
 import com.rastroos.domain.entity.SupportTicketComment;
 import com.rastroos.domain.entity.User;
+import com.rastroos.domain.entity.enums.SupportTicketCategory;
+import com.rastroos.domain.entity.enums.SupportTicketPriority;
 import com.rastroos.domain.entity.enums.SupportTicketStatus;
 import com.rastroos.domain.entity.enums.UserRole;
 import com.rastroos.domain.exception.ResourceNotFoundException;
@@ -67,35 +69,41 @@ public class SupportService {
 
     @Transactional(readOnly = true)
     public SupportListView list(UUID currentUserId, boolean admin,
-                                String statusStr, String search,
+                                String statusStr, String priorityStr, String categoryStr,
+                                boolean mine, String search,
                                 int page, int size) {
         int safeSize = Math.max(1, Math.min(size, MAX_PAGE_SIZE));
         int safePage = Math.max(0, page);
         Pageable pageable = PageRequest.of(safePage, safeSize);
 
         SupportTicketStatus status = parseStatus(statusStr);
-        // "" = sem filtro de título (sentinela tipado; ver adminSearch)
+        SupportTicketPriority priority = parsePriority(priorityStr);
+        SupportTicketCategory category = parseCategory(categoryStr);
+        // "" = sem filtro de título (sentinela tipado; ver search)
         String q = (search == null || search.isBlank()) ? "" : search.trim();
 
-        Page<SupportTicket> result;
-        long open;
-        long inProgress;
-        long done;
-        if (admin) {
-            result = tickets.adminSearch(q, status, pageable);
+        // Não-admin sempre vê só os próprios; admin pode alternar (mine = "Meus chamados").
+        boolean scopedToUser = !admin || mine;
+        UUID scopeUserId = scopedToUser ? currentUserId : null;
+
+        Page<SupportTicket> result = tickets.search(scopeUserId, status, priority, category, q, pageable);
+
+        long open, inProgress, done, canceled;
+        if (scopeUserId == null) {
             open = tickets.countByStatus(SupportTicketStatus.OPEN);
             inProgress = tickets.countByStatus(SupportTicketStatus.IN_PROGRESS);
             done = tickets.countByStatus(SupportTicketStatus.DONE);
+            canceled = tickets.countByStatus(SupportTicketStatus.CANCELED);
         } else {
-            result = (status == null)
-                    ? tickets.findAllByUserIdOrderByCreatedAtDesc(currentUserId, pageable)
-                    : tickets.findAllByUserIdAndStatusOrderByCreatedAtDesc(currentUserId, status, pageable);
-            open = tickets.countByUserIdAndStatus(currentUserId, SupportTicketStatus.OPEN);
-            inProgress = tickets.countByUserIdAndStatus(currentUserId, SupportTicketStatus.IN_PROGRESS);
-            done = tickets.countByUserIdAndStatus(currentUserId, SupportTicketStatus.DONE);
+            open = tickets.countByUserIdAndStatus(scopeUserId, SupportTicketStatus.OPEN);
+            inProgress = tickets.countByUserIdAndStatus(scopeUserId, SupportTicketStatus.IN_PROGRESS);
+            done = tickets.countByUserIdAndStatus(scopeUserId, SupportTicketStatus.DONE);
+            canceled = tickets.countByUserIdAndStatus(scopeUserId, SupportTicketStatus.CANCELED);
         }
 
-        Map<UUID, String> emails = admin ? resolveRequesterEmails(result.getContent()) : Map.of();
+        // Coluna "Solicitante" só na visão global (admin vendo tudo).
+        boolean showRequester = admin && !scopedToUser;
+        Map<UUID, String> emails = showRequester ? resolveRequesterEmails(result.getContent()) : Map.of();
 
         List<TicketSummaryDto> items = result.getContent().stream()
                 .map(t -> new TicketSummaryDto(
@@ -107,12 +115,12 @@ public class SupportService {
                         t.getCreatedAt(),
                         t.getUpdatedAt(),
                         comments.countByTicketId(t.getId()),
-                        admin ? emails.get(t.getUserId()) : null))
+                        showRequester ? emails.get(t.getUserId()) : null))
                 .toList();
 
         return new SupportListView(items, safePage, safeSize,
                 result.getTotalElements(), result.getTotalPages(),
-                open, inProgress, done, admin);
+                open, inProgress, done, canceled, admin);
     }
 
     @Transactional(readOnly = true)
@@ -259,6 +267,24 @@ public class SupportService {
         if (s == null || s.isBlank()) return null;
         try {
             return SupportTicketStatus.valueOf(s.trim().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
+
+    private static SupportTicketPriority parsePriority(String s) {
+        if (s == null || s.isBlank()) return null;
+        try {
+            return SupportTicketPriority.valueOf(s.trim().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
+
+    private static SupportTicketCategory parseCategory(String s) {
+        if (s == null || s.isBlank()) return null;
+        try {
+            return SupportTicketCategory.valueOf(s.trim().toUpperCase());
         } catch (IllegalArgumentException e) {
             return null;
         }

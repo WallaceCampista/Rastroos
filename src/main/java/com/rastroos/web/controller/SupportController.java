@@ -47,16 +47,21 @@ public class SupportController {
 
     @GetMapping
     public String list(@RequestParam(value = "status", required = false) String status,
+                       @RequestParam(value = "priority", required = false) String priority,
+                       @RequestParam(value = "category", required = false) String category,
+                       @RequestParam(value = "scope", required = false) String scope,
                        @RequestParam(value = "q", required = false) String q,
                        @RequestParam(value = "page", required = false, defaultValue = "0") int page,
                        @RequestParam(value = "size", required = false, defaultValue = "20") int size,
                        Model model) {
         boolean admin = currentUser.isAdmin();
-        SupportListView view = service.list(currentUser.requireId(), admin, status, q, page, size);
+        SupportFilter filter = new SupportFilter(status, priority, category, scope, q);
+        SupportListView view = service.list(currentUser.requireId(), admin,
+                status, priority, category, filter.isMine(), q, page, size);
 
         model.addAttribute("activeNav", "support");
         model.addAttribute("view", view);
-        model.addAttribute("filter", new SupportFilter(status, q));
+        model.addAttribute("filter", filter);
         model.addAttribute("statuses", SupportTicketStatus.values());
         return "app/support";
     }

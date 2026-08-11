@@ -75,14 +75,14 @@ class SupportServiceTest {
     @Test
     void listComoUsuarioUsaContadoresProprioSemVazarEmail() {
         SupportTicket t = ticket("T-AAA111", alice, SupportTicketStatus.OPEN);
-        when(tickets.findAllByUserIdOrderByCreatedAtDesc(eq(alice), any(Pageable.class)))
+        when(tickets.search(eq(alice), any(), any(), any(), eq(""), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(t), PageRequest.of(0, 20), 1));
         when(comments.countByTicketId("T-AAA111")).thenReturn(3L);
         when(tickets.countByUserIdAndStatus(alice, SupportTicketStatus.OPEN)).thenReturn(2L);
         when(tickets.countByUserIdAndStatus(alice, SupportTicketStatus.IN_PROGRESS)).thenReturn(1L);
         when(tickets.countByUserIdAndStatus(alice, SupportTicketStatus.DONE)).thenReturn(4L);
 
-        SupportListView view = service.list(alice, false, null, null, 0, 20);
+        SupportListView view = service.list(alice, false, null, null, null, false, null, 0, 20);
 
         assertThat(view.admin()).isFalse();
         assertThat(view.items()).hasSize(1);
@@ -96,15 +96,15 @@ class SupportServiceTest {
     @Test
     void listComoAdminUsaBuscaGlobalEResolveEmailDoSolicitante() {
         SupportTicket t = ticket("T-BBB222", bob, SupportTicketStatus.OPEN);
-        // sem filtro de título → sentinela "" (não null); status null = todos
-        when(tickets.adminSearch(eq(""), eq(null), any(Pageable.class)))
+        // sem filtro de título → sentinela "" (não null); userId null = busca global
+        when(tickets.search(any(), any(), any(), any(), eq(""), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(t), PageRequest.of(0, 20), 1));
         when(comments.countByTicketId("T-BBB222")).thenReturn(0L);
         when(tickets.countByStatus(any())).thenReturn(0L);
         User bobUser = user(bob, "bob@example.com");
         when(users.findAllById(any())).thenReturn(List.of(bobUser));
 
-        SupportListView view = service.list(alice, true, null, null, 0, 20);
+        SupportListView view = service.list(alice, true, null, null, null, false, null, 0, 20);
 
         assertThat(view.admin()).isTrue();
         assertThat(view.items().get(0).requesterEmail()).isEqualTo("bob@example.com");

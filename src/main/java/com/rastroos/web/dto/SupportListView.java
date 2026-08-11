@@ -15,6 +15,7 @@ public record SupportListView(
         long openCount,
         long inProgressCount,
         long doneCount,
+        long canceledCount,
         boolean admin
 ) {
 }

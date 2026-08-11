@@ -83,7 +83,7 @@ class SupportControllerTest {
 
     @Test
     void listRenderizaTabelaComoUsuario() throws Exception {
-        when(service.list(eq(userId), eq(false), any(), any(), eq(0), eq(20)))
+        when(service.list(eq(userId), eq(false), any(), any(), any(), anyBoolean(), any(), eq(0), eq(20)))
                 .thenReturn(listView(false));
 
         mvc.perform(get("/app/support"))
@@ -96,7 +96,7 @@ class SupportControllerTest {
     @Test
     void listRenderizaColunaSolicitanteComoAdmin() throws Exception {
         when(currentUser.isAdmin()).thenReturn(true);
-        when(service.list(eq(userId), eq(true), any(), any(), eq(0), eq(20)))
+        when(service.list(eq(userId), eq(true), any(), any(), any(), anyBoolean(), any(), eq(0), eq(20)))
                 .thenReturn(listView(true));
 
         mvc.perform(get("/app/support"))
@@ -201,7 +201,7 @@ class SupportControllerTest {
                 SupportTicketPriority.HIGH, SupportTicketStatus.OPEN,
                 Instant.parse("2026-05-01T10:00:00Z"), Instant.parse("2026-05-02T10:00:00Z"),
                 2L, admin ? "bob@example.com" : null);
-        return new SupportListView(List.of(row), 0, 20, 1, 1, 1, 0, 0, admin);
+        return new SupportListView(List.of(row), 0, 20, 1, 1, 1, 0, 0, 0, admin);
     }
 
     private TicketDetailView detailView(boolean admin, boolean open) {
