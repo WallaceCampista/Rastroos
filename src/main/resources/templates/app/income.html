@@ -27,7 +27,7 @@
         </a>
     </div>
 
-    <div class="panel" th:if="${!maskValues}" style="margin-bottom:20px">
+    <div class="panel income-chart-panel" th:if="${!maskValues}">
         <div class="panel-head"><h3>Últimos 6 meses</h3></div>
         <div class="income-chart-wrap"><canvas id="incomeChart" aria-label="Receita nos últimos 6 meses"></canvas></div>
         <script type="application/json" id="incomeChartData" th:text="${incomeChartJson}">{"points":[]}</script>

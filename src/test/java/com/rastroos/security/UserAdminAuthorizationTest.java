@@ -41,7 +41,7 @@ class UserAdminAuthorizationTest {
     void anonimoEhRedirecionadoParaLoginNaTelaDeUsuarios() throws Exception {
         mvc.perform(get("/app/users"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrlPattern("**/auth/login"));
+                .andExpect(redirectedUrlPattern("**openLogin=login"));
     }
 
     @Test

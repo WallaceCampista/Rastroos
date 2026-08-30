@@ -16,7 +16,7 @@ import jakarta.servlet.http.HttpServletResponse;
 /**
  * Anti brute force camada 2 — bloqueia POST /auth/login se o email
  * está em lockout (5 falhas em 15 min por default). Redireciona para
- * /auth/login?error=locked. Roda antes do filtro de autenticação.
+ * a landing (drawer de login) com error=locked. Roda antes do filtro de autenticação.
  */
 @Component
 public class LockoutPreAuthFilter extends OncePerRequestFilter {
@@ -40,7 +40,7 @@ public class LockoutPreAuthFilter extends OncePerRequestFilter {
         String email = request.getParameter("username");
         if (email != null && !email.isBlank() && lockout.isLocked(email)) {
             String encoded = URLEncoder.encode(email, StandardCharsets.UTF_8);
-            response.sendRedirect("/auth/login?error=locked&email=" + encoded);
+            response.sendRedirect("/?openLogin=login&error=locked&email=" + encoded);
             return;
         }
         chain.doFilter(request, response);

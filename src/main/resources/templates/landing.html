@@ -503,6 +503,17 @@
         <h2 class="login-title" id="loginTitle">Bem-vindo de volta.</h2>
         <p class="login-sub">Entre na sua conta pra continuar no controle.</p>
 
+        <div class="login-alert login-alert-error" role="alert"
+             th:if="${loginError == 'invalid'}">Email ou senha inválidos. Tente novamente.</div>
+        <div class="login-alert login-alert-error" role="alert"
+             th:if="${loginError == 'locked'}">Muitas tentativas. Acesso bloqueado por alguns minutos.</div>
+        <div class="login-alert login-alert-ok" role="status"
+             th:if="${resetOk}">Senha redefinida! Entre com a nova senha.</div>
+        <div class="login-alert login-alert-ok" role="status"
+             th:if="${passwordChanged}">Senha alterada! Entre novamente.</div>
+        <div class="login-alert login-alert-ok" role="status"
+             th:if="${loggedOut}">Você saiu da sua conta.</div>
+
         <form class="login-form" data-form="login"
               th:action="@{/auth/login}" method="post" novalidate>
           <input type="hidden"
@@ -514,7 +525,7 @@
             <div class="login-input-wrap">
               <input class="login-input" type="email" id="loginEmail" name="username"
                      placeholder="voce@exemplo.com" autocomplete="email"
-                     required maxlength="180">
+                     th:value="${prefillEmail}" required maxlength="180">
               <svg class="login-input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="3" y="5" width="18" height="14" rx="2"/>
                 <path d="M3 7l9 6 9-6"/>

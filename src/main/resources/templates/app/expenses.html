@@ -22,15 +22,15 @@
         </form>
         <div class="chip-filters">
             <a class="chip" th:classappend="${filter.paid().name() == 'ALL' and filter.fixed().name() == 'ALL' and filter.search() == null} ? 'on' : ''"
-               th:href="@{/app/expenses(ym=${period})}">Todos</a>
+               th:href="@{/app/expenses(ym=${period})}">Todos <span class="chip-count" th:text="${counts.total()}">0</span></a>
             <a class="chip" th:classappend="${filter.paid().name() == 'UNPAID'} ? 'on' : ''"
-               th:href="@{/app/expenses(ym=${period}, paid='UNPAID')}">Em aberto</a>
+               th:href="@{/app/expenses(ym=${period}, paid='UNPAID')}">Em aberto <span class="chip-count" th:text="${counts.unpaid()}">0</span></a>
             <a class="chip" th:classappend="${filter.paid().name() == 'PAID'} ? 'on' : ''"
-               th:href="@{/app/expenses(ym=${period}, paid='PAID')}">Pago</a>
+               th:href="@{/app/expenses(ym=${period}, paid='PAID')}">Pago <span class="chip-count" th:text="${counts.paid()}">0</span></a>
             <a class="chip" th:classappend="${filter.fixed().name() == 'FIXED'} ? 'on' : ''"
-               th:href="@{/app/expenses(ym=${period}, fixed='FIXED')}">Fixo</a>
+               th:href="@{/app/expenses(ym=${period}, fixed='FIXED')}">Fixo <span class="chip-count" th:text="${counts.fixed()}">0</span></a>
             <a class="chip" th:classappend="${filter.fixed().name() == 'ONE_OFF'} ? 'on' : ''"
-               th:href="@{/app/expenses(ym=${period}, fixed='ONE_OFF')}">Pontual</a>
+               th:href="@{/app/expenses(ym=${period}, fixed='ONE_OFF')}">Pontual <span class="chip-count" th:text="${counts.oneOff()}">0</span></a>
         </div>
     </div>
 

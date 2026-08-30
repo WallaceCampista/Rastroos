@@ -87,7 +87,10 @@ public class SecurityConfig {
                 .maxSessionsPreventsLogin(false)
             )
             .formLogin(form -> form
-                .loginPage("/auth/login")
+                // O login mora na landing (drawer). loginPage = URL de redirect
+                // quando exige auth: abre o drawer de login na LP. O POST de
+                // processamento continua em /auth/login (BruteForce/Lockout casam nele).
+                .loginPage("/?openLogin=login")
                 .loginProcessingUrl("/auth/login")
                 .usernameParameter("username")
                 .passwordParameter("password")
@@ -97,7 +100,7 @@ public class SecurityConfig {
             )
             .logout(logout -> logout
                 .logoutUrl("/auth/logout")
-                .logoutSuccessUrl("/auth/login?logout")
+                .logoutSuccessUrl("/?logout")
                 .invalidateHttpSession(true)
                 .deleteCookies("JSESSIONID")
                 .permitAll()

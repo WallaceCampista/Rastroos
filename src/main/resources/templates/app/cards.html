@@ -33,7 +33,7 @@
         </article>
         <article class="kpi-card">
             <div class="kpi-head"><span class="kpi-label">Contas</span><span class="kpi-icon kpi-icon-primary"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16v13H4V7zm0 0V5h16v2M8 3v4m8-4v4M4 11h16"/></svg></span></div>
-            <p class="kpi-value money money-lg" th:text="${'R$ ' + #numbers.formatDecimal(view.fixedCount(), 1, 'POINT', 2, 'COMMA')}">R$ 0,00</p>
+            <p class="kpi-value money money-lg" th:text="${view.fixedCount()}">0</p>
         </article>
     </section>
 

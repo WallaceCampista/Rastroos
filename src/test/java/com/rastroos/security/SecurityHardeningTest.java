@@ -50,7 +50,7 @@ class SecurityHardeningTest {
 
     @Test
     void cspEhEstritaSemUnsafeInlineNemUnsafeEval() throws Exception {
-        MvcResult res = mvc.perform(get("/auth/login")).andExpect(status().isOk()).andReturn();
+        MvcResult res = mvc.perform(get("/")).andExpect(status().isOk()).andReturn();
         String csp = res.getResponse().getHeader("Content-Security-Policy");
 
         assertThat(csp).isNotBlank();
@@ -67,7 +67,7 @@ class SecurityHardeningTest {
     void headersDeSegurancaPresentes() throws Exception {
         // secure(true) simula HTTPS — necessário para o header HSTS ser emitido
         // (o Spring Security só envia Strict-Transport-Security em conexões seguras).
-        mvc.perform(get("/auth/login").secure(true))
+        mvc.perform(get("/").secure(true))
                 .andExpect(header().string("X-Content-Type-Options", "nosniff"))
                 .andExpect(header().string("X-Frame-Options", "DENY"))
                 .andExpect(header().exists("Strict-Transport-Security"))

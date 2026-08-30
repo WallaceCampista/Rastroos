@@ -21,7 +21,7 @@ import jakarta.servlet.http.HttpServletResponse;
  * <ul>
  *   <li>registra {@link LoginAttempt} com success=false (alimenta o lockout)</li>
  *   <li>audita o evento (resource_id = email tentado)</li>
- *   <li>redireciona para /auth/login?error=invalid (mensagem uniforme)</li>
+ *   <li>redireciona para a landing (drawer de login) com error=invalid (mensagem uniforme)</li>
  * </ul>
  */
 @Component
@@ -54,7 +54,8 @@ public class LoginFailureHandler extends SimpleUrlAuthenticationFailureHandler {
         String emailParam = email == null
                 ? ""
                 : URLEncoder.encode(email, StandardCharsets.UTF_8);
-        response.sendRedirect("/auth/login?error=invalid&email=" + emailParam);
+        // Login mora na landing: reabre o drawer de login com a mensagem de erro.
+        response.sendRedirect("/?openLogin=login&error=invalid&email=" + emailParam);
     }
 
     private static String clientIp(HttpServletRequest request) {

@@ -48,7 +48,7 @@ class SecurityFlowTest {
     // ── rotas públicas ───────────────────────────────────────────────────────
     @Test
     void rotasPublicasNaoExigemAuth() throws Exception {
-        mvc.perform(get("/auth/login")).andExpect(status().isOk());
+        mvc.perform(get("/")).andExpect(status().isOk());          // login mora na landing
         mvc.perform(get("/auth/signup")).andExpect(status().isOk());
         mvc.perform(get("/auth/forgot")).andExpect(status().isOk());
         mvc.perform(get("/actuator/health")).andExpect(status().isOk());
@@ -58,13 +58,13 @@ class SecurityFlowTest {
     void rotaPrivadaSemAuthRedirecionaParaLogin() throws Exception {
         mvc.perform(get("/app/dashboard"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrlPattern("**/auth/login"));
+                .andExpect(redirectedUrlPattern("**openLogin=login"));   // landing c/ drawer de login
     }
 
     // ── headers de segurança ─────────────────────────────────────────────────
     @Test
     void headersDeSegurancaAplicados() throws Exception {
-        mvc.perform(get("/auth/login"))
+        mvc.perform(get("/"))
                 .andExpect(header().exists("Content-Security-Policy"))
                 .andExpect(header().string("X-Content-Type-Options", "nosniff"))
                 .andExpect(header().string("X-Frame-Options", "DENY"))
@@ -98,7 +98,7 @@ class SecurityFlowTest {
                         .param("username", "admin@rastroos.local")
                         .param("password", "WrongPass!2026"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrlPattern("/auth/login?error=invalid**"));
+                .andExpect(redirectedUrlPattern("**error=invalid**"));
     }
 
     // ── lockout após 5 falhas ────────────────────────────────────────────────
@@ -116,6 +116,6 @@ class SecurityFlowTest {
                         .param("username", victim)
                         .param("password", "still-wrong"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrlPattern("/auth/login?error=locked**"));
+                .andExpect(redirectedUrlPattern("**error=locked**"));
     }
 }

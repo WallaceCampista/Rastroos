@@ -13,6 +13,11 @@ spring:
       minimum-idle: 2
       connection-timeout: 10000
 
+  liquibase:
+    # DEV usa um master próprio que adiciona o seed de demonstração (005).
+    # Prod/test continuam em db.changelog-master.xml (sem o usuário demo).
+    change-log: classpath:/db/changelog/db.changelog-dev.xml
+
   jpa:
     properties:
       hibernate:

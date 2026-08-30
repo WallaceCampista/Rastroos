@@ -13,7 +13,6 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import com.rastroos.domain.service.AuthService;
 import com.rastroos.domain.service.AuthService.SignupOutcome;
 import com.rastroos.web.form.ForgotForm;
-import com.rastroos.web.form.LoginForm;
 import com.rastroos.web.form.ResetForm;
 import com.rastroos.web.form.SignupForm;
 import com.rastroos.web.form.VerifyForm;
@@ -21,9 +20,9 @@ import com.rastroos.web.form.VerifyForm;
 import jakarta.validation.Valid;
 
 /**
- * Páginas e POSTs dos fluxos de autenticação. O POST de /auth/login é
- * processado pelo Spring Security (formLogin), não por este controller —
- * aqui só renderizamos o formulário e tratamos erros via query string.
+ * Páginas e POSTs dos fluxos de autenticação (signup, verify, forgot, reset).
+ * O login NÃO tem página própria: mora no drawer da landing ({@code /}), que
+ * faz POST em /auth/login (processado pelo Spring Security via formLogin).
  */
 @Controller
 @RequestMapping("/auth")
@@ -33,19 +32,6 @@ public class AuthController {
 
     public AuthController(AuthService auth) {
         this.auth = auth;
-    }
-
-    // ── LOGIN (renderização) ────────────────────────────────────────────────
-    @GetMapping("/login")
-    public String loginPage(@RequestParam(required = false) String error,
-                            @RequestParam(required = false) String logout,
-                            @RequestParam(required = false) String email,
-                            Model model) {
-        model.addAttribute("loginForm", new LoginForm());
-        model.addAttribute("error", error);
-        model.addAttribute("logout", logout != null);
-        model.addAttribute("prefillEmail", email);
-        return "auth/login";
     }
 
     // ── SIGNUP ──────────────────────────────────────────────────────────────
@@ -143,6 +129,6 @@ public class AuthController {
             });
             return "auth/reset";
         }
-        return "redirect:/auth/login?reset=ok";
+        return "redirect:/?openLogin=login&reset=ok";
     }
 }

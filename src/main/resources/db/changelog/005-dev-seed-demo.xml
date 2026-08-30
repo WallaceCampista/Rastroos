@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ─────────────────────────────────────────────────────────────
+  005 — Seed de DEMONSTRAÇÃO (APENAS perfil dev)
+  ─────────────────────────────────────────────────────────────
+  Cria o usuário demo@rastroos.local (senha pública "ChangeMe!2026",
+  password_must_change=false) e popula dados financeiros espelhando o
+  protótipo, para QA visual com telas cheias.
+
+  ‼  ISOLAMENTO: este arquivo é referenciado SOMENTE por
+     db.changelog-dev.xml (usado quando spring.profiles.active=dev).
+     O master de prod/test (db.changelog-master.xml) NÃO o inclui, então
+     o usuário demo NUNCA é criado em produção/teste.
+
+  Datas são relativas ao mês corrente (date_trunc(CURRENT_DATE)), então o
+  "mês atual" da app sempre tem lançamentos. Idempotente: cria o usuário
+  só se faltar e semeia só se ele ainda não tiver contas.
+-->
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.27.xsd">
+
+    <changeSet id="005-01-dev-seed-demo" author="rastroos" context="dev">
+        <comment>Dados de demonstração (perfil dev). Espelha o protótipo Rastro$.</comment>
+        <sql splitStatements="false"><![CDATA[
+DO $$
+DECLARE
+  uid uuid;
+  base date := date_trunc('month', CURRENT_DATE)::date;   -- 1º dia do mês corrente
+  a_mae uuid; a_nu uuid; a_vic uuid; a_mec uuid;
+  a_aluguel uuid; a_energia uuid; a_faculdade uuid; a_casamento uuid;
+  a_das uuid; a_internet uuid; a_claro uuid;
+  inv_cas uuid; inv_emerg uuid; inv_viagem uuid; inv_cdb uuid; inv_tesouro uuid; inv_lci uuid;
+  m date; ym text; k int;
+BEGIN
+  SELECT id INTO uid FROM users WHERE email = 'demo@rastroos.local';
+  IF uid IS NULL THEN
+    uid := gen_random_uuid();
+    INSERT INTO users(id, name, email, email_verified, password_hash, password_must_change,
+                      role, status, preferred_locale, theme, palette_index, density)
+    VALUES (uid, 'Você (demo)', 'demo@rastroos.local', true,
+            '$2a$12$8vt9ODctuNYuCFIkcxwg8.4nx/iyBMYItRe5QzNEt5Ch54kZugHwO', false,
+            'ADMIN', 'ACTIVE', 'pt-BR', 'dark', 0, 'regular');
+  END IF;
+
+  IF EXISTS (SELECT 1 FROM accounts WHERE user_id = uid) THEN
+    RETURN;   -- já semeado
+  END IF;
+
+  -- ── Contas: cartões, contas fixas, recorrentes ──
+  a_mae := gen_random_uuid();       INSERT INTO accounts(id,user_id,name,kind,color_hex,icon_text,due_day,is_fixed) VALUES (a_mae,uid,'Cartão da Mãe','CARD','#f472b6','CM',15,false);
+  a_nu := gen_random_uuid();        INSERT INTO accounts(id,user_id,name,kind,color_hex,icon_text,due_day,is_fixed) VALUES (a_nu,uid,'Meu cartão (Nubank)','CARD','#a78bfa','CN',10,false);
+  a_vic := gen_random_uuid();       INSERT INTO accounts(id,user_id,name,kind,color_hex,icon_text,due_day,is_fixed) VALUES (a_vic,uid,'Cartão da Victoria','CARD','#22d3ee','CV',8,false);
+  a_mec := gen_random_uuid();       INSERT INTO accounts(id,user_id,name,kind,color_hex,icon_text,due_day,is_fixed) VALUES (a_mec,uid,'Cartão do Mecânico','CARD','#fbbf24','CG',20,false);
+  a_aluguel := gen_random_uuid();   INSERT INTO accounts(id,user_id,name,kind,color_hex,icon_text,due_day,is_fixed,category_id) VALUES (a_aluguel,uid,'Aluguel','BILL','#6366f1','AL',5,true,'moradia');
+  a_energia := gen_random_uuid();   INSERT INTO accounts(id,user_id,name,kind,color_hex,icon_text,due_day,is_fixed,category_id) VALUES (a_energia,uid,'Energia','BILL','#fbbf24','EN',18,true,'moradia');
+  a_faculdade := gen_random_uuid(); INSERT INTO accounts(id,user_id,name,kind,color_hex,icon_text,due_day,is_fixed,category_id) VALUES (a_faculdade,uid,'Faculdade','BILL','#a78bfa','FA',7,true,'educacao');
+  a_casamento := gen_random_uuid(); INSERT INTO accounts(id,user_id,name,kind,color_hex,icon_text,due_day,is_fixed,category_id) VALUES (a_casamento,uid,'Casamento','BILL','#e879f9','CA',5,true,'casamento');
+  a_das := gen_random_uuid();       INSERT INTO accounts(id,user_id,name,kind,color_hex,icon_text,due_day,is_fixed,category_id) VALUES (a_das,uid,'DAS / MEI','RECURRENT','#fb923c','§',20,true,'impostos');
+  a_internet := gen_random_uuid();  INSERT INTO accounts(id,user_id,name,kind,color_hex,icon_text,due_day,is_fixed,category_id) VALUES (a_internet,uid,'Vivo Fibra 600MB','RECURRENT','#a3e635','@',12,true,'servicos');
+  a_claro := gen_random_uuid();     INSERT INTO accounts(id,user_id,name,kind,color_hex,icon_text,due_day,is_fixed,category_id) VALUES (a_claro,uid,'Plano Claro 30GB','RECURRENT','#fb7185','C',7,true,'servicos');
+
+  -- ── Transações do mês corrente ──
+  INSERT INTO transactions(id,user_id,account_id,category_id,description,amount_cents,due_date,is_fixed,is_paid,paid_at,installment_current,installment_total) VALUES
+   (gen_random_uuid(),uid,a_internet,'servicos','Vivo Fibra 600MB',9990,  base+11,true, true, now(),null,null),
+   (gen_random_uuid(),uid,a_das,'impostos','DAS do mês',7500,             base+19,true, false,null,null,null),
+   (gen_random_uuid(),uid,a_energia,'moradia','Conta de energia',18742,   base+17,true, false,null,null,null),
+   (gen_random_uuid(),uid,a_mec,'transporte','Alinhamento',9000,          base+13,false,false,null,null,null),
+   (gen_random_uuid(),uid,a_nu,'lazer','Amazon Prime',1490,               base+8, true, false,null,null,null),
+   (gen_random_uuid(),uid,a_nu,'alimentacao','Padaria',1850,              base+10,false,false,null,null,null),
+   (gen_random_uuid(),uid,a_mae,'alimentacao','Restaurante família',14500,base+12,false,false,null,null,null),
+   (gen_random_uuid(),uid,a_claro,'servicos','Plano Claro 30GB',5990,     base+6, true, true, now(),null,null),
+   (gen_random_uuid(),uid,a_nu,'alimentacao','Supermercado Pão de Açúcar',41218,base+5,false,false,null,null,null),
+   (gen_random_uuid(),uid,a_aluguel,'moradia','Aluguel',220000,           base+4, true, true, now(),null,null),
+   (gen_random_uuid(),uid,a_casamento,'casamento','Buffet (parcela)',120000,base+4,true, true, now(),6,10),
+   (gen_random_uuid(),uid,a_faculdade,'educacao','Mensalidade faculdade',84700,base+6,true,false,null,null,null),
+   (gen_random_uuid(),uid,a_mae,'saude','Farmácia',8940,                  base+15,false,false,null,null,null),
+   (gen_random_uuid(),uid,a_nu,'transporte','Uber',3680,                  base+18,false,false,null,3,3),
+   (gen_random_uuid(),uid,a_vic,'lazer','Cinema',7000,                    base+14,false,false,null,null,null),
+   (gen_random_uuid(),uid,a_vic,'familia','Presente sobrinho',21000,      base+7, false,false,null,null,null),
+   (gen_random_uuid(),uid,a_mec,'transporte','Troca de óleo',49500,       base+13,false,false,null,2,4),
+   (gen_random_uuid(),uid,a_mae,'alimentacao','iFood',6790,               base+20,false,false,null,null,null),
+   (gen_random_uuid(),uid,a_nu,'educacao','Curso online',9900,            base+2, false,true, now(),null,null),
+   (gen_random_uuid(),uid,a_nu,'outros','Diversos',3540,                  base+21,false,false,null,null,null);
+
+  -- ── Gasto pago espalhado nos 5 meses anteriores (gráficos de 6 meses) ──
+  FOR m IN SELECT generate_series(base - interval '5 months', base - interval '1 month', interval '1 month')::date LOOP
+    k := (12*(EXTRACT(YEAR FROM base)-EXTRACT(YEAR FROM m)) + (EXTRACT(MONTH FROM base)-EXTRACT(MONTH FROM m)))::int; -- 1..5
+    INSERT INTO transactions(id,user_id,account_id,category_id,description,amount_cents,due_date,is_fixed,is_paid,paid_at) VALUES
+     (gen_random_uuid(),uid,a_aluguel,'moradia','Aluguel',220000,          m+4,  true, true, m+4),
+     (gen_random_uuid(),uid,a_energia,'moradia','Energia',(16000+k*1200),   m+17, true, true, m+17),
+     (gen_random_uuid(),uid,a_nu,'alimentacao','Mercado',(38000+k*2500),    m+9,  false,true, m+9),
+     (gen_random_uuid(),uid,a_mae,'lazer','Lazer',(9000+k*1500),            m+12, false,true, m+12),
+     (gen_random_uuid(),uid,a_faculdade,'educacao','Faculdade',84700,       m+6,  true, true, m+6),
+     (gen_random_uuid(),uid,a_casamento,'casamento','Casamento parcela',120000, m+4, true, true, m+4);
+  END LOOP;
+
+  -- ── Receitas (6 meses) ──
+  FOR m IN SELECT generate_series(base - interval '5 months', base, interval '1 month')::date LOOP
+    k := (12*(EXTRACT(YEAR FROM base)-EXTRACT(YEAR FROM m)) + (EXTRACT(MONTH FROM base)-EXTRACT(MONTH FROM m)))::int; -- 0..5
+    INSERT INTO incomes(id,user_id,source,amount_cents,income_date,category) VALUES
+     (gen_random_uuid(),uid,'Salário PJ',850000,             m+4,  'Salário'),
+     (gen_random_uuid(),uid,'Freela design',(160000+k*12000),m+14, 'Extra');
+  END LOOP;
+  INSERT INTO incomes(id,user_id,source,amount_cents,income_date,category) VALUES
+   (gen_random_uuid(),uid,'Reembolso',24000, base+17,'Extra');
+
+  -- ── Investimentos: 3 cofrinhos (PIGGY) + 3 carteira ──
+  inv_cas := gen_random_uuid();    INSERT INTO investments(id,user_id,name,kind,amount_cents,goal_cents,rate_label,monthly_return_cents,color_hex,icon_text) VALUES (inv_cas,uid,'Casamento — reserva','PIGGY',1480000,2500000,'102% CDI',14230,'#e879f9','P');
+  inv_emerg := gen_random_uuid();  INSERT INTO investments(id,user_id,name,kind,amount_cents,goal_cents,rate_label,monthly_return_cents,color_hex,icon_text) VALUES (inv_emerg,uid,'Reserva de emergência','PIGGY',1840000,3000000,'100% CDI',17820,'#34d399','R');
+  inv_viagem := gen_random_uuid(); INSERT INTO investments(id,user_id,name,kind,amount_cents,goal_cents,rate_label,monthly_return_cents,color_hex,icon_text) VALUES (inv_viagem,uid,'Viagem Bariloche','PIGGY',320000,850000,'CDB Liquidez Diária',3080,'#22d3ee','V');
+  inv_cdb := gen_random_uuid();    INSERT INTO investments(id,user_id,name,kind,amount_cents,rate_label,monthly_return_cents,color_hex,icon_text) VALUES (inv_cdb,uid,'CDB Banco Inter','CDI',1250000,'110% CDI',10420,'#6366f1','C');
+  inv_tesouro := gen_random_uuid();INSERT INTO investments(id,user_id,name,kind,amount_cents,rate_label,monthly_return_cents,color_hex,icon_text) VALUES (inv_tesouro,uid,'Tesouro Selic 2029','TREASURY',980000,'Selic + 0,10%',7850,'#fbbf24','T');
+  inv_lci := gen_random_uuid();    INSERT INTO investments(id,user_id,name,kind,amount_cents,rate_label,monthly_return_cents,color_hex,icon_text) VALUES (inv_lci,uid,'LCI Imobiliária','LCI',602574,'95% CDI',4180,'#a3e635','L');
+
+  FOR m IN SELECT generate_series(base - interval '5 months', base, interval '1 month')::date LOOP
+    ym := to_char(m,'YYYY-MM');
+    k := (12*(EXTRACT(YEAR FROM base)-EXTRACT(YEAR FROM m)) + (EXTRACT(MONTH FROM base)-EXTRACT(MONTH FROM m)))::int; -- 0..5
+    INSERT INTO investment_history(investment_id,year_month,amount_cents) VALUES
+     (inv_cas,    ym, 1480000 - k*90000),
+     (inv_emerg,  ym, 1840000 - k*70000),
+     (inv_viagem, ym, 320000  - k*40000),
+     (inv_cdb,    ym, 1250000 - k*55000),
+     (inv_tesouro,ym, 980000  - k*30000),
+     (inv_lci,    ym, 602574  - k*20000);
+  END LOOP;
+
+  -- ── Chamados de suporte ──
+  INSERT INTO support_tickets(id,user_id,category,title,description,priority,status) VALUES
+   ('T-1018',uid,'BUG','App fecha ao trocar de mês rapidamente','Ao clicar rápido nas setas de mês o app trava.','HIGH','OPEN'),
+   ('T-1008',uid,'COMPLAINT','Não recebo notificação de vencimento','Esperava um lembrete e não chegou.','MEDIUM','OPEN'),
+   ('T-1001',uid,'FEATURE','Importar fatura do Nubank automaticamente','Seria ótimo importar via OFX.','MEDIUM','OPEN'),
+   ('T-1000',uid,'BUG','Erro ao salvar cofrinho com valor decimal','Valores com centavos dão erro.','HIGH','IN_PROGRESS'),
+   ('T-0995',uid,'FEATURE','Modo escuro no relatório PDF','PDF sai sempre claro.','LOW','DONE'),
+   ('T-0990',uid,'COMPLAINT','Demora no carregamento do dashboard','Leva alguns segundos.','LOW','CANCELED');
+END $$;
+        ]]></sql>
+
+        <rollback>
+            <sql>DELETE FROM users WHERE email = 'demo@rastroos.local';</sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

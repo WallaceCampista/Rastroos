@@ -29,6 +29,7 @@ import com.rastroos.domain.repository.TransactionRepository;
 import com.rastroos.web.dto.MoneyDto;
 import com.rastroos.web.dto.TransactionDto;
 import com.rastroos.web.dto.TransactionFilter;
+import com.rastroos.web.dto.TransactionFilterCounts;
 import com.rastroos.web.dto.TransactionsPageView;
 import com.rastroos.web.form.TransactionForm;
 
@@ -127,6 +128,34 @@ public class TransactionService {
                 MoneyDto.fromCents(totalAmountCents),
                 MoneyDto.fromCents(totalPaidCents)
         );
+    }
+
+    /**
+     * Contagens por bucket (total/pago/aberto/fixo/pontual) do mês, para os
+     * badges dos chips de filtro. Respeita conta/categoria/busca do contexto,
+     * mas ignora os filtros de pago/fixo (que são os próprios chips contados).
+     */
+    @Transactional(readOnly = true)
+    public TransactionFilterCounts countsForMonth(UUID userId, YearMonth ym, TransactionFilter filter) {
+        LocalDate start = ym.atDay(1);
+        LocalDate end = ym.plusMonths(1).atDay(1);
+
+        TransactionFilter f = filter == null ? TransactionFilter.empty() : filter;
+        String categoryId = blankToNull(f.categoryId());
+        String search = (f.search() == null) ? "" : f.search().trim();
+
+        List<Object[]> rows = transactions.countsByFilters(
+                userId, start, end, f.accountId(), categoryId, search);
+        if (rows.isEmpty()) {
+            return TransactionFilterCounts.empty();
+        }
+        Object[] r = rows.get(0);
+        return new TransactionFilterCounts(
+                ((Number) r[0]).longValue(),
+                ((Number) r[1]).longValue(),
+                ((Number) r[2]).longValue(),
+                ((Number) r[3]).longValue(),
+                ((Number) r[4]).longValue());
     }
 
     @Transactional(readOnly = true)

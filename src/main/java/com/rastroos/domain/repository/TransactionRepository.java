@@ -165,4 +165,29 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
                                    @Param("accountId") UUID accountId,
                                    @Param("categoryId") String categoryId,
                                    @Param("search") String search);
+
+    /**
+     * Contagem por bucket dentro do contexto (conta/categoria/busca), ignorando
+     * os filtros de bucket (pago/fixo) — alimenta os badges dos chips da tela de
+     * gastos. Linha: {@code [total, paid, unpaid, fixed, oneOff]} (todos long).
+     */
+    @Query("""
+            SELECT COUNT(t),
+                   COALESCE(SUM(CASE WHEN t.paid  = true  THEN 1 ELSE 0 END), 0),
+                   COALESCE(SUM(CASE WHEN t.paid  = false THEN 1 ELSE 0 END), 0),
+                   COALESCE(SUM(CASE WHEN t.fixed = true  THEN 1 ELSE 0 END), 0),
+                   COALESCE(SUM(CASE WHEN t.fixed = false THEN 1 ELSE 0 END), 0)
+              FROM Transaction t
+             WHERE t.userId = :userId
+               AND t.dueDate >= :start AND t.dueDate < :endExclusive
+               AND (:accountId IS NULL OR t.accountId = :accountId)
+               AND (:categoryId IS NULL OR t.categoryId = :categoryId)
+               AND (:search = '' OR LOWER(t.description) LIKE LOWER(CONCAT('%', :search, '%')))
+            """)
+    List<Object[]> countsByFilters(@Param("userId") UUID userId,
+                                   @Param("start") LocalDate start,
+                                   @Param("endExclusive") LocalDate endExclusive,
+                                   @Param("accountId") UUID accountId,
+                                   @Param("categoryId") String categoryId,
+                                   @Param("search") String search);
 }

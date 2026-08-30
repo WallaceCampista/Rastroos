@@ -83,6 +83,6 @@ public class ProfileController {
             });
             return "app/change-password";
         }
-        return "redirect:/auth/login?passwordChanged";
+        return "redirect:/?openLogin=login&passwordChanged";
     }
 }

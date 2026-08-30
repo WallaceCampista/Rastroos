@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ─────────────────────────────────────────────────────────────
+  Rastro$ — Liquibase master do perfil DEV
+  ─────────────────────────────────────────────────────────────
+  Reaproveita o master de produção (mesmos changesets, mesmos
+  filenames/checksums) e acrescenta APENAS o seed de demonstração.
+
+  Usado só quando spring.profiles.active=dev (via
+  spring.liquibase.change-log em application-dev.yml). Prod/test
+  continuam apontando para db.changelog-master.xml, que NÃO inclui o
+  seed — o usuário demo nunca chega a produção.
+-->
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.27.xsd">
+
+    <include file="db/changelog/db.changelog-master.xml"/>
+    <include file="db/changelog/005-dev-seed-demo.xml"/>
+
+</databaseChangeLog>

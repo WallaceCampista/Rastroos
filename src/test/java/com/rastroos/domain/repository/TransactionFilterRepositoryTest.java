@@ -160,6 +160,33 @@ class TransactionFilterRepositoryTest extends RepositoryTestBase {
         assertThat(((Number) aliceTotals[0]).longValue()).isEqualTo(1_000L);
     }
 
+    @Test
+    void countsByFiltersRetornaBucketsDoMesIsoladoPorUsuario() {
+        User alice = users.saveAndFlush(newUser("a-counts@example.com"));
+        User bob   = users.saveAndFlush(newUser("b-counts@example.com"));
+        Account ac = newAccount(alice, "Card", AccountKind.CARD);
+        Account bc = newAccount(bob,   "Card", AccountKind.CARD);
+
+        // Alice no mês: 4 lançamentos → 2 pagos / 2 abertos, 1 fixo / 3 pontuais
+        saveFull(alice, ac, "Paga fixa",     1_000L, LocalDate.of(2026, 5, 3), true,  true,  "outros");
+        saveFull(alice, ac, "Paga pontual",    500L, LocalDate.of(2026, 5, 5), true,  false, "outros");
+        saveFull(alice, ac, "Aberta 1",        300L, LocalDate.of(2026, 5, 7), false, false, "outros");
+        saveFull(alice, ac, "Aberta 2",        200L, LocalDate.of(2026, 5, 9), false, false, "outros");
+        saveFull(alice, ac, "Mês anterior",    999L, LocalDate.of(2026, 4, 9), false, false, "outros"); // fora do mês
+        saveFull(bob,   bc, "Bob",           9_000L, LocalDate.of(2026, 5, 3), true,  true,  "outros"); // outro user
+
+        Object[] r = tx.countsByFilters(
+                alice.getId(),
+                LocalDate.of(2026, 5, 1), LocalDate.of(2026, 6, 1),
+                null, null, "").get(0);
+
+        assertThat(((Number) r[0]).longValue()).isEqualTo(4L);  // total
+        assertThat(((Number) r[1]).longValue()).isEqualTo(2L);  // pagos
+        assertThat(((Number) r[2]).longValue()).isEqualTo(2L);  // abertos
+        assertThat(((Number) r[3]).longValue()).isEqualTo(1L);  // fixos
+        assertThat(((Number) r[4]).longValue()).isEqualTo(3L);  // pontuais
+    }
+
     // ── helpers ──────────────────────────────────────────────
 
     private static Pageable pageable(int page, int size) {
@@ -196,6 +223,20 @@ class TransactionFilterRepositoryTest extends RepositoryTestBase {
         t.setAmountCents(cents);
         t.setDueDate(due);
         t.setPaid(paid);
+        tx.saveAndFlush(t);
+    }
+
+    private void saveFull(User user, Account account, String desc, long cents,
+                          LocalDate due, boolean paid, boolean fixed, String categoryId) {
+        Transaction t = new Transaction();
+        t.setUserId(user.getId());
+        t.setAccountId(account.getId());
+        t.setCategoryId(categoryId);
+        t.setDescription(desc);
+        t.setAmountCents(cents);
+        t.setDueDate(due);
+        t.setPaid(paid);
+        t.setFixed(fixed);
         tx.saveAndFlush(t);
     }
 

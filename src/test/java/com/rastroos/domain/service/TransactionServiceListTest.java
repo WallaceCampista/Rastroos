@@ -30,6 +30,7 @@ import com.rastroos.domain.repository.TransactionRepository;
 import com.rastroos.web.dto.TransactionFilter;
 import com.rastroos.web.dto.TransactionFilter.FixedFilter;
 import com.rastroos.web.dto.TransactionFilter.PaidFilter;
+import com.rastroos.web.dto.TransactionFilterCounts;
 import com.rastroos.web.dto.TransactionsPageView;
 
 /**
@@ -130,6 +131,39 @@ class TransactionServiceListTest {
 
         assertThat(view.items()).isEmpty();
         assertThat(view.totalElements()).isZero();
+    }
+
+    @Test
+    void countsForMonthMapeiaBucketsDaLinhaDoRepositorio() {
+        when(transactions.countsByFilters(eq(userId), any(), any(), any(), eq("food"), eq("mercado")))
+                .thenReturn(List.<Object[]>of(new Object[] { 20L, 5L, 15L, 8L, 12L }));
+
+        TransactionFilter filter = new TransactionFilter(
+                PaidFilter.PAID, null, "food", FixedFilter.FIXED, "  mercado  ");
+        TransactionFilterCounts counts = service().countsForMonth(userId, YearMonth.of(2026, 8), filter);
+
+        assertThat(counts.total()).isEqualTo(20);
+        assertThat(counts.paid()).isEqualTo(5);
+        assertThat(counts.unpaid()).isEqualTo(15);
+        assertThat(counts.fixed()).isEqualTo(8);
+        assertThat(counts.oneOff()).isEqualTo(12);
+        // buckets se fecham: pago + aberto = total; fixo + pontual = total
+        assertThat(counts.paid() + counts.unpaid()).isEqualTo(counts.total());
+        assertThat(counts.fixed() + counts.oneOff()).isEqualTo(counts.total());
+    }
+
+    @Test
+    void countsForMonthSemLinhaRetornaZeros() {
+        when(transactions.countsByFilters(any(), any(), any(), any(), any(), any()))
+                .thenReturn(List.of());
+
+        TransactionFilterCounts counts = service().countsForMonth(userId, YearMonth.of(2026, 8), null);
+
+        assertThat(counts.total()).isZero();
+        assertThat(counts.paid()).isZero();
+        assertThat(counts.unpaid()).isZero();
+        assertThat(counts.fixed()).isZero();
+        assertThat(counts.oneOff()).isZero();
     }
 
     // ── fixtures ─────────────────────────────────────────────

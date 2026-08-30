@@ -84,6 +84,7 @@ public class TransactionController {
         model.addAttribute("period", period);
         model.addAttribute("filter", filter);
         model.addAttribute("view", view);
+        model.addAttribute("counts", service.countsForMonth(userId, period, filter));
         model.addAttribute("accounts", accounts.findAllByUserIdOrderByNameAsc(userId));
         model.addAttribute("categories", categories.findAllByOrderBySortOrderAsc());
         return "app/expenses";
