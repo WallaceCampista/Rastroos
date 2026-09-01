@@ -93,13 +93,14 @@
 
         if (opts.animate && !reduce) {
             var startTs = null;
-            (function tick(now) {
+            var tick = function (now) {
                 if (startTs === null) startTs = now;
                 var t = Math.min(1, (now - startTs) / 720);
                 var eased = 1 - Math.pow(1 - t, 3);   // easeOutCubic
                 draw(eased);
                 if (t < 1) requestAnimationFrame(tick);
-            })();
+            };
+            requestAnimationFrame(tick);   // 1º frame precisa vir do rAF (timestamp real)
         } else {
             draw(1);
         }
