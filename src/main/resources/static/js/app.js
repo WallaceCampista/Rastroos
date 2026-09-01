@@ -254,4 +254,10 @@
         apply();
         roleSelect.addEventListener('change', apply);
     }
+
+    // ── Admin "ver como usuário": submete ao trocar a seleção ──
+    const viewAsSelect = document.querySelector('[data-view-as-select]');
+    if (viewAsSelect && viewAsSelect.form) {
+        viewAsSelect.addEventListener('change', () => viewAsSelect.form.submit());
+    }
 })();

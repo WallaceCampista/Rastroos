@@ -78,20 +78,25 @@
                 <span class="inv-detail-count" th:text="${#lists.size(detail.movements())}">0</span>
             </div>
             <ul class="inv-mov-list" th:unless="${detail.movements().isEmpty()}">
-                <li class="inv-mov-row is-dep" th:each="m : ${detail.movements()}">
+                <li class="inv-mov-row" th:each="m : ${detail.movements()}"
+                    th:classappend="${m.kind() == 'WITHDRAW'} ? 'is-wd' : 'is-dep'">
                     <span class="inv-mov-icon">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14m0 0l6-6m-6 6l-6-6"/></svg>
+                        <svg th:if="${m.kind() != 'WITHDRAW'}" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14m0 0l6-6m-6 6l-6-6"/></svg>
+                        <svg th:if="${m.kind() == 'WITHDRAW'}" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5m0 0l-6 6m6-6l6 6"/></svg>
                     </span>
                     <div class="inv-mov-info">
-                        <div class="inv-mov-label">Depósito
-                            <span class="muted" th:text="'· ' + ${m.monthLabel()}">· Mai 2026</span></div>
-                        <div class="inv-mov-yield" th:if="${m.income() != null and m.income().signum() > 0}">
-                            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5m0 0l-6 6m6-6l6 6"/></svg>
-                            <span th:text="${'R$ ' + #numbers.formatDecimal(m.income(), 1, 'POINT', 2, 'COMMA')}">R$ 0,00</span> rendimento
+                        <div class="inv-mov-label">
+                            <span th:switch="${m.kind()}">
+                                <th:block th:case="'WITHDRAW'">Resgate</th:block>
+                                <th:block th:case="'INITIAL'">Aporte inicial</th:block>
+                                <th:block th:case="*">Depósito</th:block>
+                            </span>
+                            <span class="muted" th:text="'· ' + ${m.dateLabel()}">· 01/05/2026</span>
                         </div>
                     </div>
                     <div class="inv-mov-value">
-                        <span class="up">+ <span th:text="${'R$ ' + #numbers.formatDecimal(m.deposit(), 1, 'POINT', 2, 'COMMA')}">R$ 0,00</span></span>
+                        <span th:classappend="${m.kind() == 'WITHDRAW'} ? 'down' : 'up'"
+                              th:text="${(m.kind() == 'WITHDRAW' ? '− ' : '+ ') + 'R$ ' + #numbers.formatDecimal(m.amount(), 1, 'POINT', 2, 'COMMA')}">+ R$ 0,00</span>
                         <div class="inv-mov-bal muted">Saldo: <span th:text="${'R$ ' + #numbers.formatDecimal(m.balance(), 1, 'POINT', 2, 'COMMA')}">R$ 0,00</span></div>
                     </div>
                 </li>

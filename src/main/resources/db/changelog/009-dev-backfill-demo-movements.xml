@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ─────────────────────────────────────────────────────────────
+  009 (DEV) — Backfill de investment_movement após o seed demo
+  ─────────────────────────────────────────────────────────────
+  Igual ao 007: o 008-02 (master) roda ANTES do 005, então numa base
+  nova os movimentos do demo não seriam criados. Aqui reaplicamos o
+  backfill só para investimentos que ainda não têm nenhum movimento
+  (idempotente numa base já povoada).
+-->
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.27.xsd">
+
+    <changeSet id="009-01-dev-backfill-demo-movements" author="rastroos" context="dev">
+        <sql>
+            INSERT INTO investment_movement
+                (investment_id, kind, amount_cents, balance_after_cents, occurred_at)
+            SELECT ih.investment_id,
+                   CASE WHEN ih.year_month = fm.min_ym THEN 'INITIAL' ELSE 'DEPOSIT' END,
+                   CASE WHEN ih.year_month = fm.min_ym THEN ih.amount_cents ELSE ih.contributed_cents END,
+                   ih.amount_cents,
+                   (TRIM(ih.year_month) || '-01')::timestamptz
+            FROM investment_history ih
+            JOIN (SELECT investment_id, MIN(year_month) AS min_ym
+                  FROM investment_history GROUP BY investment_id) fm
+              ON fm.investment_id = ih.investment_id
+            WHERE (ih.year_month = fm.min_ym OR ih.contributed_cents &gt; 0)
+              AND NOT EXISTS (SELECT 1 FROM investment_movement m
+                              WHERE m.investment_id = ih.investment_id);
+        </sql>
+        <rollback/>
+    </changeSet>
+
+</databaseChangeLog>

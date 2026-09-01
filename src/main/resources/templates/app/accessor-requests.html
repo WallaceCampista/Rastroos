@@ -11,10 +11,18 @@
     <header class="screen-header">
         <div>
             <h1 class="screen-title">Solicitações de acessor</h1>
-            <p class="screen-sub"><span th:text="${#lists.size(requests)}">0</span> pendente(s) para aprovação.</p>
+            <p class="screen-sub">
+                <span th:text="${#lists.size(requests)}">0</span>
+                <span th:text="${#lists.size(requests)} == 1 ? ' solicitação aguardando aprovação.'
+                                                            : ' solicitações aguardando aprovação.'"> solicitações aguardando aprovação.</span>
+            </p>
         </div>
         <div class="screen-actions">
-            <a class="btn" th:href="@{/app/users}">Voltar aos usuários</a>
+            <a class="btn" th:href="@{/app/users}">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+                Usuários
+            </a>
         </div>
     </header>
 
@@ -23,45 +31,62 @@
 
     <div th:if="${#lists.isEmpty(requests)}" class="empty-state">
         <h3>Nenhuma solicitação pendente</h3>
-        <p>Quando um titular solicitar um acessor, a solicitação aparecerá aqui.</p>
+        <p>Quando um titular solicitar um acessor, a solicitação aparecerá aqui para aprovação.</p>
     </div>
 
     <section class="panel" th:unless="${#lists.isEmpty(requests)}">
+        <div class="panel-head">
+            <h3>Fila de aprovação</h3>
+            <span class="panel-sub muted" th:text="${#lists.size(requests)} + ' pendente(s)'">0 pendente(s)</span>
+        </div>
         <div class="table-scroll">
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>Titular</th>
-                    <th>Acessor solicitado</th>
-                    <th>Observação</th>
-                    <th>Enviada</th>
-                    <th class="actions">Ações</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr th:each="r : ${requests}">
-                    <td>
-                        <div class="acc-name" th:text="${r.requesterName()}">Titular</div>
-                        <div class="acc-email" th:text="${r.requesterEmail()}">email@ex.com</div>
-                    </td>
-                    <td>
-                        <div class="acc-name" th:text="${r.accessorName()}">Nome</div>
-                        <div class="acc-email" th:text="${r.accessorEmail()}">email@ex.com</div>
-                    </td>
-                    <td th:text="${r.note()} ?: '—'">—</td>
-                    <td th:text="${#temporals.format(r.createdAt().atZone(T(java.time.ZoneOffset).UTC), 'dd/MM/yyyy')}">--/--</td>
-                    <td class="actions">
-                        <a class="btn btn-primary" th:href="@{/app/users/new(requestId=${r.id()})}">Aprovar…</a>
-                        <form class="inline-form" method="post"
-                              th:action="@{/app/accessor-requests/{id}/reject(id=${r.id()})}">
-                            <input type="hidden" th:if="${_csrf != null}"
-                                   th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                            <button type="submit" class="btn">Rejeitar</button>
-                        </form>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+            <table class="acc-table">
+                <thead>
+                    <tr>
+                        <th>Titular</th>
+                        <th>Acessor solicitado</th>
+                        <th>Observação</th>
+                        <th>Enviada</th>
+                        <th class="actions">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="r : ${requests}">
+                        <td>
+                            <div class="acc-cell">
+                                <span class="acc-avatar"
+                                      th:text="${r.requesterName() != null and !r.requesterName().isEmpty() ? r.requesterName().substring(0,1).toUpperCase() : '?'}">T</span>
+                                <div class="acc-cell-main">
+                                    <div class="acc-name" th:text="${r.requesterName()}">Titular</div>
+                                    <div class="acc-email" th:text="${r.requesterEmail()}">email@ex.com</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="acc-cell">
+                                <span class="acc-avatar acc-avatar-accent"
+                                      th:text="${r.accessorName() != null and !r.accessorName().isEmpty() ? r.accessorName().substring(0,1).toUpperCase() : '?'}">A</span>
+                                <div class="acc-cell-main">
+                                    <div class="acc-name" th:text="${r.accessorName()}">Nome</div>
+                                    <div class="acc-email" th:text="${r.accessorEmail()}">email@ex.com</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="acc-note-cell" th:title="${r.note()}" th:text="${r.note()} ?: '—'">—</td>
+                        <td class="acc-when" th:text="${#temporals.format(r.createdAt().atZone(T(java.time.ZoneOffset).UTC), 'dd/MM/yyyy')}">--/--</td>
+                        <td class="actions">
+                            <a class="btn btn-primary btn-sm" th:href="@{/app/users/new(requestId=${r.id()})}">Aprovar</a>
+                            <form class="inline-form" method="post"
+                                  th:action="@{/app/accessor-requests/{id}/reject(id=${r.id()})}"
+                                  data-confirm="Rejeitar esta solicitação?">
+                                <input type="hidden" th:if="${_csrf != null}"
+                                       th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                <button type="submit" class="btn btn-sm btn-danger">Rejeitar</button>
+                            </form>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
     </section>
 </section>

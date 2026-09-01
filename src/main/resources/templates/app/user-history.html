@@ -1,0 +1,84 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Histórico de login · Rastro$</title>
+    <link rel="stylesheet" th:href="@{/css/tokens.css}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/components.css}">
+    <link rel="stylesheet" th:href="@{/css/screens/users.css}">
+</head>
+<body>
+<!-- modals.js extrai [data-modal-content] e abre num modal central (openNode). -->
+<div class="app-content">
+    <div class="lh-modal" data-modal-content data-modal-wide>
+
+        <header class="lh-head">
+            <span class="user-avatar lh-avatar"
+                  th:text="${view.name() != null and !view.name().isEmpty()
+                            ? view.name().substring(0,1).toUpperCase() : '?'}">R</span>
+            <div class="lh-head-meta">
+                <div class="lh-head-title">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                    <span>Histórico de login</span>
+                    <span class="lh-head-user" th:text="'· ' + ${view.name()}">· Nome</span>
+                </div>
+                <div class="lh-head-sub" th:text="${view.email()}">email@ex.com</div>
+            </div>
+            <button type="button" class="icon-btn" data-modal-close aria-label="Fechar">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M6 18L18 6"/></svg>
+            </button>
+        </header>
+
+        <div class="lh-body">
+            <!-- Sessões ativas -->
+            <section class="lh-section">
+                <h3 class="lh-section-title">Sessões ativas</h3>
+                <p class="empty-inline" th:if="${view.sessions().isEmpty()}">Nenhuma sessão ativa.</p>
+                <div class="table-scroll" th:unless="${view.sessions().isEmpty()}">
+                    <table class="mini-table">
+                        <thead>
+                            <tr><th>Dispositivo</th><th>IP</th><th>Início</th><th>Última atividade</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="s : ${view.sessions()}">
+                                <td class="ua" th:text="${s.userAgent() != null ? s.userAgent() : '—'}">Navegador</td>
+                                <td th:text="${s.ipAddress() != null ? s.ipAddress() : '—'}">0.0.0.0</td>
+                                <td th:text="${#temporals.format(s.createdAt().atZone(T(java.time.ZoneOffset).UTC), 'dd/MM/yyyy HH:mm')}">--</td>
+                                <td th:text="${#temporals.format(s.lastSeenAt().atZone(T(java.time.ZoneOffset).UTC), 'dd/MM/yyyy HH:mm')}">--</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Histórico de login -->
+            <section class="lh-section">
+                <h3 class="lh-section-title">Últimos acessos</h3>
+                <p class="empty-inline" th:if="${view.loginHistory().isEmpty()}">Sem registros de login.</p>
+                <div class="table-scroll" th:unless="${view.loginHistory().isEmpty()}">
+                    <table class="mini-table">
+                        <thead>
+                            <tr><th>Resultado</th><th>IP</th><th>Quando</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="a : ${view.loginHistory()}">
+                                <td>
+                                    <span class="login-result" th:classappend="${a.success()} ? 'ok' : 'fail'"
+                                          th:text="${a.success()} ? 'Sucesso' : 'Falha'">Resultado</span>
+                                </td>
+                                <td th:text="${a.ipAddress() != null ? a.ipAddress() : '—'}">0.0.0.0</td>
+                                <td th:text="${#temporals.format(a.attemptedAt().atZone(T(java.time.ZoneOffset).UTC), 'dd/MM/yyyy HH:mm')}">--</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </div>
+</div>
+</body>
+</html>

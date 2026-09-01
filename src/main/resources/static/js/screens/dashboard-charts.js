@@ -134,6 +134,12 @@
         ctx.fillStyle = primary;
         ctx.fill();
 
+        // guarda posições dos nós (em CSS px) para o tooltip de hover
+        canvas.__spendNodes = [];
+        for (var n = 0; n < points.length; n++) {
+            canvas.__spendNodes.push({ x: X(n), y: Y(points[n].y), day: points[n].x });
+        }
+
         // rótulos do eixo X (esparsos: 1, 6, 11, …, último)
         ctx.fillStyle = cssVar("--text-dim", "rgba(244,244,248,0.62)");
         ctx.font = "10px 'Plus Jakarta Sans', system-ui, sans-serif";
@@ -216,6 +222,60 @@
         requestAnimationFrame(tick);
     }
 
+    function fmtMoney(v) {
+        return "R$ " + Number(v).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function escapeHtml(s) {
+        return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+            return { "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[c];
+        });
+    }
+
+    // Tooltip ao passar o mouse: mostra o nome da conta (e descrição/valor) do
+    // dia. Um lançamento → conta; vários → "N lançamentos · total".
+    function setupSpendHover(canvas, dailyItems) {
+        var wrap = canvas.parentNode;
+        if (!wrap) return;
+        var tip = wrap.querySelector(".chart-tip");
+        if (!tip) {
+            tip = document.createElement("div");
+            tip.className = "chart-tip";
+            tip.hidden = true;
+            wrap.appendChild(tip);
+        }
+        canvas.addEventListener("mousemove", function (e) {
+            var nodes = canvas.__spendNodes;
+            if (!nodes || !nodes.length) { tip.hidden = true; return; }
+            var rect = canvas.getBoundingClientRect();
+            var mx = e.clientX - rect.left;
+            var best = 0, bd = Infinity;
+            for (var i = 0; i < nodes.length; i++) {
+                var d = Math.abs(nodes[i].x - mx);
+                if (d < bd) { bd = d; best = i; }
+            }
+            var items = (dailyItems && dailyItems[best]) || [];
+            if (!items.length) { tip.hidden = true; return; }
+            var html;
+            if (items.length === 1) {
+                html = '<div class="chart-tip-acc">' + escapeHtml(items[0].account || "—") + '</div>'
+                     + (items[0].desc ? '<div class="chart-tip-desc">' + escapeHtml(items[0].desc) + '</div>' : '')
+                     + '<div class="chart-tip-val">' + fmtMoney(items[0].amount) + '</div>';
+            } else {
+                var total = 0;
+                for (var k = 0; k < items.length; k++) total += Number(items[k].amount) || 0;
+                html = '<div class="chart-tip-acc">Dia ' + nodes[best].day + '</div>'
+                     + '<div class="chart-tip-desc">' + items.length + ' lançamentos</div>'
+                     + '<div class="chart-tip-val">' + fmtMoney(total) + '</div>';
+            }
+            tip.innerHTML = html;
+            tip.hidden = false;
+            tip.style.left = nodes[best].x + "px";
+            tip.style.top = (nodes[best].y - 10) + "px";
+        });
+        canvas.addEventListener("mouseleave", function () { tip.hidden = true; });
+    }
+
     function init() {
         var data = readJson("chartData");
         if (!data) return;
@@ -227,6 +287,7 @@
             : [];
         if (spendCanvas && spendPoints.length) {
             drawLineChart(spendCanvas, spendPoints);
+            setupSpendHover(spendCanvas, data.dailyItems || []);
         }
 
         var donutCanvas = document.getElementById("categoryDonut");

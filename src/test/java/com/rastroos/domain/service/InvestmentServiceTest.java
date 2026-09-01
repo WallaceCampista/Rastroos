@@ -21,9 +21,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.rastroos.domain.entity.Investment;
 import com.rastroos.domain.entity.InvestmentHistory;
+import com.rastroos.domain.entity.InvestmentMovement;
 import com.rastroos.domain.entity.enums.InvestmentKind;
+import com.rastroos.domain.entity.enums.InvestmentMovementKind;
 import com.rastroos.domain.exception.ResourceNotFoundException;
 import com.rastroos.domain.repository.InvestmentHistoryRepository;
+import com.rastroos.domain.repository.InvestmentMovementRepository;
 import com.rastroos.domain.repository.InvestmentRepository;
 import com.rastroos.web.dto.InvestmentsView;
 import com.rastroos.web.form.InvestmentForm;
@@ -34,6 +37,7 @@ class InvestmentServiceTest {
 
     @Mock private InvestmentRepository invRepo;
     @Mock private InvestmentHistoryRepository historyRepo;
+    @Mock private InvestmentMovementRepository movementRepo;
 
     @InjectMocks private InvestmentService service;
 
@@ -140,6 +144,52 @@ class InvestmentServiceTest {
     }
 
     @Test
+    void createComSaldoInicialRegistraAporteNoHistorico() {
+        InvestmentForm form = makeForm("CDB", InvestmentKind.CDI,
+                new BigDecimal("500.00"), new BigDecimal("1000.00"),
+                "105% CDI", new BigDecimal("4.50"));
+        when(invRepo.save(any(Investment.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(historyRepo.save(any(InvestmentHistory.class))).thenAnswer(c -> c.getArgument(0));
+
+        service.create(alice, form);
+
+        ArgumentCaptor<InvestmentHistory> cap = ArgumentCaptor.forClass(InvestmentHistory.class);
+        verify(historyRepo).save(cap.capture());
+        assertThat(cap.getValue().getAmountCents()).isEqualTo(50_000L);
+        assertThat(cap.getValue().getContributedCents()).isEqualTo(50_000L);
+
+        ArgumentCaptor<InvestmentMovement> mov = ArgumentCaptor.forClass(InvestmentMovement.class);
+        verify(movementRepo).save(mov.capture());
+        assertThat(mov.getValue().getKind()).isEqualTo(InvestmentMovementKind.INITIAL);
+        assertThat(mov.getValue().getAmountCents()).isEqualTo(50_000L);
+        assertThat(mov.getValue().getBalanceAfterCents()).isEqualTo(50_000L);
+    }
+
+    @Test
+    void depositRegistraDinheiroNovoComoContributedCents() {
+        UUID id = UUID.randomUUID();
+        Investment inv = newPortfolio(alice, "X", 100_00L, 0L);
+        inv.setId(id);
+        when(invRepo.findByIdAndUserId(id, alice)).thenReturn(Optional.of(inv));
+        when(invRepo.save(any(Investment.class))).thenAnswer(c -> c.getArgument(0));
+        when(historyRepo.save(any(InvestmentHistory.class))).thenAnswer(c -> c.getArgument(0));
+        when(historyRepo.findByInvestmentIdAndYearMonth(any(), any())).thenReturn(Optional.empty());
+
+        service.deposit(alice, id, new BigDecimal("50.00"));
+
+        ArgumentCaptor<InvestmentHistory> cap = ArgumentCaptor.forClass(InvestmentHistory.class);
+        verify(historyRepo).save(cap.capture());
+        assertThat(cap.getValue().getAmountCents()).isEqualTo(150_00L);      // 100 + 50
+        assertThat(cap.getValue().getContributedCents()).isEqualTo(50_00L);  // dinheiro novo do mês
+
+        ArgumentCaptor<InvestmentMovement> mov = ArgumentCaptor.forClass(InvestmentMovement.class);
+        verify(movementRepo).save(mov.capture());
+        assertThat(mov.getValue().getKind()).isEqualTo(InvestmentMovementKind.DEPOSIT);
+        assertThat(mov.getValue().getAmountCents()).isEqualTo(50_00L);       // valor do aporte
+        assertThat(mov.getValue().getBalanceAfterCents()).isEqualTo(150_00L);
+    }
+
+    @Test
     void deleteRemoveTambemHistoricoOrfaos() {
         UUID id = UUID.randomUUID();
         Investment inv = newPortfolio(alice, "X", 100_00L, 0L);
@@ -160,6 +210,7 @@ class InvestmentServiceTest {
         service.delete(alice, id);
 
         verify(historyRepo).deleteAll(List.of(h1, h2));
+        verify(movementRepo).deleteByInvestmentId(id);
         verify(invRepo).delete(inv);
     }
 

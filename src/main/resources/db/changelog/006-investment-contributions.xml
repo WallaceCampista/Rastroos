@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ─────────────────────────────────────────────────────────────
+  006 — Aporte explícito por mês em investment_history
+  ─────────────────────────────────────────────────────────────
+  Antes o "aporte do mês" era só estimado pela variação do saldo
+  (delta entre snapshots), o que zerava quando um investimento tinha
+  um único snapshot (ex.: criado + aportado no mesmo mês). Agora cada
+  aporte soma em contributed_cents, tornando a linha "Aporte" do
+  comparativo e a coluna de aporte do detalhe exatas.
+
+  Backfill: reproduz o comportamento anterior para os dados já
+  existentes — contributed = max(0, saldo - saldo_do_mes_anterior),
+  e 0 para o 1º snapshot de cada investimento (base pré-existente,
+  não conta como dinheiro novo).
+-->
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.27.xsd">
+
+    <changeSet id="006-01-investment-history-add-contributed" author="rastroos">
+        <addColumn tableName="investment_history">
+            <column name="contributed_cents" type="BIGINT" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+        <rollback>
+            <dropColumn tableName="investment_history" columnName="contributed_cents"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="006-02-investment-history-backfill-contributed" author="rastroos">
+        <sql>
+            UPDATE investment_history ih
+            SET contributed_cents = GREATEST(0, ih.amount_cents - COALESCE((
+                SELECT p.amount_cents
+                FROM investment_history p
+                WHERE p.investment_id = ih.investment_id
+                  AND p.year_month &lt; ih.year_month
+                ORDER BY p.year_month DESC
+                LIMIT 1
+            ), ih.amount_cents));
+        </sql>
+        <rollback>
+            <sql>UPDATE investment_history SET contributed_cents = 0;</sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

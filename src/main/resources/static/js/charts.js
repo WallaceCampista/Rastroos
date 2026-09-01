@@ -38,53 +38,71 @@
     function donut(canvas, segments, opts) {
         if (!canvas) return;
         opts = opts || {};
-        var fit = fitCanvas(canvas);
-        var ctx = fit.ctx, w = fit.w, h = fit.h;
-        var cx = w / 2, cy = h / 2;
-        var outerR = Math.min(w, h) / 2 - 6;
-        var innerR = outerR - 24;
+        var reduce = window.matchMedia
+            && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-        ctx.clearRect(0, 0, w, h);
+        function draw(progress) {
+            var fit = fitCanvas(canvas);
+            var ctx = fit.ctx, w = fit.w, h = fit.h;
+            var cx = w / 2, cy = h / 2;
+            var outerR = Math.min(w, h) / 2 - 6;
+            var innerR = outerR - 24;
 
-        var total = 0;
-        for (var s = 0; s < segments.length; s++) total += segments[s].value;
+            ctx.clearRect(0, 0, w, h);
 
-        if (total <= 0) {
-            ctx.strokeStyle = cssVar("--border", "rgba(255,255,255,0.09)");
-            ctx.lineWidth = outerR - innerR;
+            var total = 0;
+            for (var s = 0; s < segments.length; s++) total += segments[s].value;
+
+            if (total <= 0) {
+                ctx.strokeStyle = cssVar("--border", "rgba(255,255,255,0.09)");
+                ctx.lineWidth = outerR - innerR;
+                ctx.beginPath();
+                ctx.arc(cx, cy, (outerR + innerR) / 2, 0, Math.PI * 2);
+                ctx.stroke();
+                return;
+            }
+
+            var start = -Math.PI / 2;
+            for (var i = 0; i < segments.length; i++) {
+                var slice = (segments[i].value / total) * Math.PI * 2 * progress;
+                ctx.fillStyle = segments[i].color || cssVar("--primary", "#6366f1");
+                ctx.beginPath();
+                ctx.moveTo(cx, cy);
+                ctx.arc(cx, cy, outerR, start, start + slice);
+                ctx.closePath();
+                ctx.fill();
+                start += slice;
+            }
+
+            // furo central
+            ctx.globalCompositeOperation = "destination-out";
             ctx.beginPath();
-            ctx.arc(cx, cy, (outerR + innerR) / 2, 0, Math.PI * 2);
-            ctx.stroke();
-            return;
-        }
-
-        var start = -Math.PI / 2;
-        for (var i = 0; i < segments.length; i++) {
-            var slice = (segments[i].value / total) * Math.PI * 2;
-            ctx.fillStyle = segments[i].color || cssVar("--primary", "#6366f1");
-            ctx.beginPath();
-            ctx.moveTo(cx, cy);
-            ctx.arc(cx, cy, outerR, start, start + slice);
-            ctx.closePath();
+            ctx.arc(cx, cy, innerR, 0, Math.PI * 2);
             ctx.fill();
-            start += slice;
+            ctx.globalCompositeOperation = "source-over";
+
+            ctx.fillStyle = cssVar("--text-dim", "rgba(244,244,248,0.62)");
+            ctx.font = "600 11px 'Plus Jakarta Sans', system-ui, sans-serif";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(opts.centerLabel || "Total", cx, cy - 9);
+            ctx.fillStyle = cssVar("--text", "#f4f4f8");
+            ctx.font = "800 16px 'Plus Jakarta Sans', system-ui, sans-serif";
+            ctx.fillText("R$ " + shortMoney(total), cx, cy + 9);
         }
 
-        // furo central
-        ctx.globalCompositeOperation = "destination-out";
-        ctx.beginPath();
-        ctx.arc(cx, cy, innerR, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.globalCompositeOperation = "source-over";
-
-        ctx.fillStyle = cssVar("--text-dim", "rgba(244,244,248,0.62)");
-        ctx.font = "600 11px 'Plus Jakarta Sans', system-ui, sans-serif";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(opts.centerLabel || "Total", cx, cy - 9);
-        ctx.fillStyle = cssVar("--text", "#f4f4f8");
-        ctx.font = "800 16px 'Plus Jakarta Sans', system-ui, sans-serif";
-        ctx.fillText("R$ " + shortMoney(total), cx, cy + 9);
+        if (opts.animate && !reduce) {
+            var startTs = null;
+            (function tick(now) {
+                if (startTs === null) startTs = now;
+                var t = Math.min(1, (now - startTs) / 720);
+                var eased = 1 - Math.pow(1 - t, 3);   // easeOutCubic
+                draw(eased);
+                if (t < 1) requestAnimationFrame(tick);
+            })();
+        } else {
+            draw(1);
+        }
     }
 
     // ── Multi-line com eixo ──────────────────────────────────

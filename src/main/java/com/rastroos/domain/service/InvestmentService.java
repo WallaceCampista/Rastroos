@@ -1,7 +1,10 @@
 package com.rastroos.domain.service;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.YearMonth;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashMap;
@@ -15,9 +18,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.rastroos.domain.entity.Investment;
 import com.rastroos.domain.entity.InvestmentHistory;
+import com.rastroos.domain.entity.InvestmentMovement;
+import com.rastroos.domain.entity.enums.InvestmentMovementKind;
 import com.rastroos.domain.entity.enums.InvestmentKind;
 import com.rastroos.domain.exception.ResourceNotFoundException;
 import com.rastroos.domain.repository.InvestmentHistoryRepository;
+import com.rastroos.domain.repository.InvestmentMovementRepository;
 import com.rastroos.domain.repository.InvestmentRepository;
 import com.rastroos.web.dto.InvestmentChartData;
 import com.rastroos.web.dto.InvestmentDetailView;
@@ -40,13 +46,19 @@ import com.rastroos.web.form.InvestmentHistoryForm;
 @Service
 public class InvestmentService {
 
+    private static final DateTimeFormatter DAY_FMT =
+            DateTimeFormatter.ofPattern("dd/MM/yyyy").withZone(ZoneOffset.UTC);
+
     private final InvestmentRepository investments;
     private final InvestmentHistoryRepository history;
+    private final InvestmentMovementRepository movements;
 
     public InvestmentService(InvestmentRepository investments,
-                             InvestmentHistoryRepository history) {
+                             InvestmentHistoryRepository history,
+                             InvestmentMovementRepository movements) {
         this.investments = investments;
         this.history = history;
+        this.movements = movements;
     }
 
     @Transactional(readOnly = true)
@@ -165,7 +177,20 @@ public class InvestmentService {
         Investment inv = new Investment();
         inv.setUserId(userId);
         applyForm(inv, form);
-        return investments.save(inv);
+        Investment saved = investments.save(inv);
+
+        // Saldo inicial conta como aporte do mês da criação (dinheiro novo).
+        if (saved.getAmountCents() > 0) {
+            InvestmentHistory snap = new InvestmentHistory();
+            snap.setInvestmentId(saved.getId());
+            snap.setYearMonth(YearMonth.now().toString());
+            snap.setAmountCents(saved.getAmountCents());
+            snap.setContributedCents(saved.getAmountCents());
+            history.save(snap);
+            movements.save(new InvestmentMovement(saved.getId(), InvestmentMovementKind.INITIAL,
+                    saved.getAmountCents(), saved.getAmountCents(), Instant.now()));
+        }
+        return saved;
     }
 
     @Transactional
@@ -183,6 +208,7 @@ public class InvestmentService {
         if (!snapshots.isEmpty()) {
             history.deleteAll(snapshots);
         }
+        movements.deleteByInvestmentId(id);
         investments.delete(existing);
     }
 
@@ -207,7 +233,10 @@ public class InvestmentService {
                     return h;
                 });
         snap.setAmountCents(total);
+        snap.setContributedCents(snap.getContributedCents() + addCents);   // dinheiro novo do mês
         history.save(snap);
+        movements.save(new InvestmentMovement(id, InvestmentMovementKind.DEPOSIT,
+                addCents, total, Instant.now()));
         return inv;
     }
 
@@ -236,39 +265,24 @@ public class InvestmentService {
                 });
         snap.setAmountCents(total);
         history.save(snap);
+        movements.save(new InvestmentMovement(id, InvestmentMovementKind.WITHDRAW,
+                cents, total, Instant.now()));
         return inv;
     }
 
-    /** Detalhe do investimento com as movimentações derivadas do histórico. */
+    /** Detalhe do investimento com as movimentações do livro-razão (mais recentes primeiro). */
     @Transactional(readOnly = true)
     public InvestmentDetailView investmentDetail(UUID userId, UUID id) {
         Investment inv = require(userId, id);
-        long incomeCents = inv.getMonthlyReturnCents() == null ? 0L : inv.getMonthlyReturnCents();
         List<InvestmentMovementDto> moves = new ArrayList<>();
-        long prev = 0L;
-        for (InvestmentHistory h : history.findAllByInvestmentIdOrderByYearMonthAsc(id)) {
-            long delta = h.getAmountCents() - prev;
-            long deposit = Math.max(0L, delta - incomeCents);
+        for (InvestmentMovement m : movements.findAllByInvestmentIdOrderByOccurredAtDescIdDesc(id)) {
             moves.add(new InvestmentMovementDto(
-                    monthLabelFull(h.getYearMonth()),
-                    MoneyDto.fromCents(incomeCents),
-                    MoneyDto.fromCents(deposit),
-                    MoneyDto.fromCents(h.getAmountCents())));
-            prev = h.getAmountCents();
+                    DAY_FMT.format(m.getOccurredAt()),
+                    m.getKind().name(),
+                    MoneyDto.fromCents(m.getAmountCents()),
+                    MoneyDto.fromCents(m.getBalanceAfterCents())));
         }
-        java.util.Collections.reverse(moves);   // mais recente primeiro
         return new InvestmentDetailView(toDto(inv), moves);
-    }
-
-    /** "2026-05" → "Mai 2026". */
-    private static String monthLabelFull(String yearMonth) {
-        try {
-            String[] p = yearMonth.split("-");
-            int m = Integer.parseInt(p[1]);
-            return MONTHS_PT[m - 1] + " " + p[0];
-        } catch (RuntimeException e) {
-            return yearMonth;
-        }
     }
 
     @Transactional(readOnly = true)

@@ -53,6 +53,16 @@ public class AccessorController {
         return "app/accessors";
     }
 
+    /** Formulário isolado (corpo do modal "Solicitar acessor"). */
+    @GetMapping("/request")
+    public String requestForm(Model model) {
+        model.addAttribute("activeNav", "accessors");
+        if (!model.containsAttribute("requestForm")) {
+            model.addAttribute("requestForm", new AccessorRequestForm());
+        }
+        return "app/accessor-request-form";
+    }
+
     @PostMapping("/request")
     public String request(@Valid @ModelAttribute("requestForm") AccessorRequestForm form,
                           BindingResult binding,
@@ -60,8 +70,8 @@ public class AccessorController {
                           HttpServletRequest httpRequest,
                           RedirectAttributes flash) {
         if (binding.hasErrors()) {
-            populate(model);
-            return "app/accessors";
+            model.addAttribute("activeNav", "accessors");
+            return "app/accessor-request-form";
         }
         AccessorRequest r = accessors.createRequest(currentUser.requireId(),
                 form.getAccessorName(), form.getAccessorEmail(), form.getNote());

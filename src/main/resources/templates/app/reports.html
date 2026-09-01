@@ -24,7 +24,7 @@
                     <p class="chart-masked" th:if="${maskValues}">🔒 Valores ocultos</p>
                 </div>
                 <ul class="donut-legend">
-                    <li th:each="c : ${data.byCategory()}"
+                    <li th:each="c,iter : ${data.byCategory()}" th:if="${iter.index < 6}"
                         th:with="pct=${data.current().spent().signum() > 0 ? c.amount().doubleValue() * 100.0 / data.current().spent().doubleValue() : 0}">
                         <span class="donut-dot" th:attr="data-fill=${c.colorHex()}"></span>
                         <span class="donut-name" th:text="${c.name()}">categoria</span>
@@ -32,6 +32,9 @@
                         <span class="donut-amount money money-sm"
                               th:data-amount="${maskValues ? '' : c.amount()}"
                               th:text="${(maskValues ? '••••' : 'R$ ' + #numbers.formatDecimal(c.amount(), 1, 'POINT', 2, 'COMMA'))}">R$ 0,00</span>
+                    </li>
+                    <li th:if="${data.byCategory().size() > 6}" class="donut-more muted">
+                        + <span th:text="${data.byCategory().size() - 6}">0</span> categorias ocultas
                     </li>
                     <li th:if="${data.byCategory().isEmpty()}" class="donut-empty muted">Sem gastos lançados no mês.</li>
                 </ul>
@@ -48,7 +51,7 @@
                     <p class="chart-masked" th:if="${maskValues}">🔒 Valores ocultos</p>
                 </div>
                 <ul class="donut-legend">
-                    <li th:each="a : ${data.byAccount()}"
+                    <li th:each="a,iter : ${data.byAccount()}" th:if="${iter.index < 6}"
                         th:with="pct=${data.current().spent().signum() > 0 ? a.amount().doubleValue() * 100.0 / data.current().spent().doubleValue() : 0}">
                         <span class="donut-dot" th:attr="data-fill=${a.colorHex()}"></span>
                         <span class="donut-name" th:text="${a.name()}">conta</span>
@@ -56,6 +59,9 @@
                         <span class="donut-amount money money-sm"
                               th:data-amount="${maskValues ? '' : a.amount()}"
                               th:text="${(maskValues ? '••••' : 'R$ ' + #numbers.formatDecimal(a.amount(), 1, 'POINT', 2, 'COMMA'))}">R$ 0,00</span>
+                    </li>
+                    <li th:if="${data.byAccount().size() > 6}" class="donut-more muted">
+                        + <span th:text="${data.byAccount().size() - 6}">0</span> contas ocultas
                     </li>
                     <li th:if="${data.byAccount().isEmpty()}" class="donut-empty muted">Sem gastos por conta no mês.</li>
                 </ul>

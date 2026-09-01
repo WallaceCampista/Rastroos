@@ -178,12 +178,24 @@
             const resp = await fetch(url, { headers: { 'X-Requested-With': 'fetch' } });
             const doc = new DOMParser().parseFromString(await resp.text(), 'text/html');
             const form = doc.querySelector(FORM_SELECTOR);
-            if (!form) { window.location.href = url; return; }
-            ensureStyles(doc);
-            const t = doc.querySelector(TITLE_SELECTOR);
-            render(t ? t.textContent.trim() : '', form);
-            backdrop.hidden = false;
-            document.addEventListener('keydown', onKey);
+            if (form) {
+                ensureStyles(doc);
+                const t = doc.querySelector(TITLE_SELECTOR);
+                render(t ? t.textContent.trim() : '', form);
+                backdrop.hidden = false;
+                document.addEventListener('keydown', onKey);
+                return;
+            }
+            // Conteúdo não-formulário (ex.: histórico de login): a página traz o
+            // próprio cabeçalho/rodapé dentro de [data-modal-content].
+            const content = doc.querySelector('[data-modal-content]');
+            if (content) {
+                ensureStyles(doc);
+                openNode(document.importNode(content, true),
+                         { wide: content.hasAttribute('data-modal-wide') });
+                return;
+            }
+            window.location.href = url;
         } catch (err) {
             window.location.href = url;
         }

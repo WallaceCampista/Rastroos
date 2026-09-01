@@ -227,6 +227,25 @@ public class UserAdminService {
         return temp;
     }
 
+    /**
+     * Define uma nova senha escolhida pelo admin. Valida pela {@link PasswordPolicy}
+     * (mín. 8 chars), força a troca no próximo login do alvo e revoga suas sessões.
+     * Devolve a lista de erros de política (vazia = sucesso).
+     */
+    @Transactional
+    public List<String> setPassword(UUID id, String rawPassword) {
+        List<String> errors = passwordPolicy.validate(rawPassword);
+        if (!errors.isEmpty()) {
+            return errors;
+        }
+        User u = require(id);
+        u.setPasswordHash(encoder.encode(rawPassword));
+        u.setPasswordMustChange(true);
+        users.save(u);
+        sessions.revokeAllByUser(id, Instant.now());
+        return List.of();
+    }
+
     @Transactional
     public boolean terminateSession(UUID userId, UUID sessionId) {
         require(userId);

@@ -12,8 +12,9 @@
     // Valores monetários que animam ao carregar.
     var COUNT_SELECTOR = ".kpi-value[data-amount], .income-hero-value[data-amount], "
         + ".invest-hero-value[data-amount]";
-    // Cards que inclinam 3D ao passar o cursor.
-    var TILT_SELECTOR = ".kpi-card.is-clickable, .invest-hero, .piggy-card";
+    // Cards que inclinam 3D ao passar o cursor (KPIs de todas as telas).
+    var TILT_SELECTOR = ".kpi-card, .support-kpi, .income-hero, .user-kpi, "
+        + ".acc-kpi, .invest-hero, .piggy-card";
 
     var reduce = window.matchMedia
         && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -58,7 +59,7 @@
                 + "deg) rotateY(" + (px * MAX) + "deg) translateY(-" + LIFT + "px)";
         });
         card.addEventListener("mouseleave", function () {
-            card.style.transition = "";           // volta à transição do CSS
+            card.style.transition = "transform .2s ease";   // recuo suave ao sair
             card.style.transform = "";
         });
     }

@@ -6,6 +6,10 @@ import java.util.UUID;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+
+import jakarta.servlet.http.HttpSession;
 
 /**
  * Acesso curto ao usuário autenticado a partir do contexto. Serviços que
@@ -53,7 +57,33 @@ public class CurrentUser {
      * derivado sempre do principal autenticado, nunca de parâmetro do request.
      */
     public Optional<UUID> effectiveUserId() {
+        // Admin em modo "ver como": override guardado na sessão (admin-only, validado no endpoint).
+        Optional<UUID> viewAs = viewAsUserId();
+        if (viewAs.isPresent()) return viewAs;
         return get().map(u -> u.isAccessor() ? u.getAccessesUserId() : u.getId());
+    }
+
+    /** Chave da sessão para o "ver como" do admin. */
+    public static final String VIEW_AS_SESSION_KEY = "rastroos.viewAsUserId";
+
+    /**
+     * Id do usuário que o admin escolheu "ver" (sessão). Vazio se não é admin ou
+     * não há seleção. É a base do modo "ver como": afeta {@link #effectiveUserId()}.
+     */
+    public Optional<UUID> viewAsUserId() {
+        if (!isAdmin()) return Optional.empty();
+        HttpSession session = currentSession(false);
+        if (session == null) return Optional.empty();
+        Object v = session.getAttribute(VIEW_AS_SESSION_KEY);
+        return v instanceof UUID uuid ? Optional.of(uuid) : Optional.empty();
+    }
+
+    private HttpSession currentSession(boolean create) {
+        var attrs = RequestContextHolder.getRequestAttributes();
+        if (attrs instanceof ServletRequestAttributes sra) {
+            return sra.getRequest().getSession(create);
+        }
+        return null;
     }
 
     public UUID requireEffectiveId() {

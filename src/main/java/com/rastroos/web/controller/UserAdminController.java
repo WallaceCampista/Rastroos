@@ -29,6 +29,7 @@ import com.rastroos.web.dto.UserDetailView;
 import com.rastroos.web.dto.UserFilter;
 import com.rastroos.web.form.UserCreateForm;
 import com.rastroos.web.form.UserEditForm;
+import com.rastroos.web.form.UserResetPasswordForm;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -140,6 +141,14 @@ public class UserAdminController {
         return "app/user-detail";
     }
 
+    /** Corpo do modal "Histórico de login" (somente leitura: sessões + tentativas). */
+    @GetMapping("/{id}/history")
+    public String history(@PathVariable UUID id, Model model) {
+        model.addAttribute("activeNav", "users");
+        model.addAttribute("view", service.detail(id, currentUser.requireId()));
+        return "app/user-history";
+    }
+
     @GetMapping("/{id}/edit")
     public String editForm(@PathVariable UUID id, Model model) {
         UserDetailView view = service.detail(id, currentUser.requireId());
@@ -197,16 +206,48 @@ public class UserAdminController {
         return "redirect:/app/users/" + id;
     }
 
+    /** Corpo do modal "Resetar senha": admin define uma nova senha para o alvo. */
+    @GetMapping("/{id}/reset-password")
+    public String resetPasswordForm(@PathVariable UUID id, Model model) {
+        model.addAttribute("activeNav", "users");
+        model.addAttribute("target", service.detail(id, currentUser.requireId()));
+        if (!model.containsAttribute("resetPasswordForm")) {
+            model.addAttribute("resetPasswordForm", new UserResetPasswordForm());
+        }
+        return "app/user-reset-password";
+    }
+
     @PostMapping("/{id}/reset-password")
     public String resetPassword(@PathVariable UUID id,
+                                @Valid @ModelAttribute("resetPasswordForm") UserResetPasswordForm form,
+                                BindingResult binding,
+                                Model model,
                                 HttpServletRequest request,
                                 RedirectAttributes flash) {
-        String temp = service.resetPassword(id);
+        if (!form.getNewPassword().equals(form.getNewPasswordConfirm())) {
+            binding.rejectValue("newPasswordConfirm", "password.mismatch");
+        }
+        if (!binding.hasErrors()) {
+            service.setPassword(id, form.getNewPassword())
+                    .forEach(err -> binding.rejectValue("newPassword", err));
+        }
+        if (binding.hasErrors()) {
+            model.addAttribute("activeNav", "users");
+            model.addAttribute("target", service.detail(id, currentUser.requireId()));
+            return "app/user-reset-password";
+        }
         audit.record(currentUser.requireId(), "USER_RESET_PASSWORD", "user", id.toString(),
                 request, null);
         flash.addFlashAttribute("ok", "users.passwordReset");
-        flash.addFlashAttribute("tempPassword", temp);
-        return "redirect:/app/users/" + id;
+        return "redirect:/app/users";
+    }
+
+    /** Corpo do modal de confirmação de exclusão. */
+    @GetMapping("/{id}/delete")
+    public String deleteConfirm(@PathVariable UUID id, Model model) {
+        model.addAttribute("activeNav", "users");
+        model.addAttribute("target", service.detail(id, currentUser.requireId()));
+        return "app/user-delete-confirm";
     }
 
     @PostMapping("/{id}/delete")

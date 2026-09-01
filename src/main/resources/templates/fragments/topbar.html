@@ -2,7 +2,8 @@
 <html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
 <body>
 
-<header class="topbar" th:fragment="topbar" th:classappend="${period == null} ? 'topbar-plain' : ''">
+<header class="topbar" th:fragment="topbar"
+        th:classappend="${(period == null ? 'topbar-plain' : '') + ((accessorMode or viewAsCurrentId != null) ? ' has-banner' : '')}">
 
     <div class="topbar-title" th:if="${period != null}">
         <div>
@@ -16,6 +17,21 @@
                         <circle cx="12" cy="12" r="3"/>
                     </svg>
                 </button>
+
+                <!-- Admin "ver como usuário" (só na visão geral) -->
+                <form th:if="${viewAsIsAdmin and activeNav == 'dashboard'}" class="view-as"
+                      method="post" th:action="@{/app/view-as}">
+                    <input type="hidden" th:if="${_csrf != null}"
+                           th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                    <svg class="view-as-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 20v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 20v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg>
+                    <select class="view-as-select" name="userId" data-view-as-select aria-label="Ver dados de">
+                        <option value="self" th:selected="${viewAsCurrentId == null}">Meus dados</option>
+                        <option th:each="u : ${viewAsUsers}" th:value="${u.id()}"
+                                th:selected="${viewAsCurrentId != null and viewAsCurrentId.equals(u.id())}"
+                                th:text="${u.name()}">Usuário</option>
+                    </select>
+                </form>
             </h1>
             <div class="topbar-sub" th:text="${topbarSub != null ? topbarSub : 'Seu dinheiro neste mês'}">
                 Seu dinheiro neste mês
@@ -26,6 +42,17 @@
     <div class="app-access-banner" th:if="${accessorMode}" role="status">
         <span class="app-access-dot" aria-hidden="true"></span>
         <span>Acessando os dados de <strong th:text="${accessTargetName} ?: 'titular'">titular</strong></span>
+    </div>
+
+    <div class="app-access-banner view-as-banner" th:if="${viewAsCurrentId != null}" role="status">
+        <span class="app-access-dot" aria-hidden="true"></span>
+        <span>Visualizando dados de <strong th:text="${viewAsName} ?: 'usuário'">usuário</strong></span>
+        <form class="view-as-exit" method="post" th:action="@{/app/view-as}">
+            <input type="hidden" th:if="${_csrf != null}"
+                   th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+            <input type="hidden" name="userId" value="self">
+            <button type="submit" class="view-as-exit-btn">Voltar aos meus dados</button>
+        </form>
     </div>
 
     <th:block th:if="${period != null}">

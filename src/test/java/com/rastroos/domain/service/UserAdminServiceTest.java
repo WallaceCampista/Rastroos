@@ -254,6 +254,31 @@ class UserAdminServiceTest {
         verify(sessions).revokeAllByUser(eq(otherId), any(Instant.class));
     }
 
+    // ── setPassword (admin define a senha) ───────────────────
+
+    @Test
+    void setPasswordDefineHashMarcaTrocaERevogaSessoes() {
+        User u = user(otherId, "user@example.com", UserRole.USER, UserStatus.ACTIVE);
+        when(users.findById(otherId)).thenReturn(Optional.of(u));
+        when(encoder.encode("NovaSenha1!")).thenReturn("HASH");
+
+        List<String> errors = service.setPassword(otherId, "NovaSenha1!");
+
+        assertThat(errors).isEmpty();
+        assertThat(u.getPasswordHash()).isEqualTo("HASH");
+        assertThat(u.isPasswordMustChange()).isTrue();
+        verify(sessions).revokeAllByUser(eq(otherId), any(Instant.class));
+    }
+
+    @Test
+    void setPasswordRejeitaSenhaFracaSemAlterar() {
+        List<String> errors = service.setPassword(otherId, "123");
+
+        assertThat(errors).isNotEmpty();
+        verify(users, never()).save(any());
+        verify(sessions, never()).revokeAllByUser(any(), any());
+    }
+
     // ── detail / list ────────────────────────────────────────
 
     @Test

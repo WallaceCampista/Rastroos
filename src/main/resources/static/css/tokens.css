@@ -69,6 +69,10 @@
     --kpi-glow:  0 1px 0 rgba(255, 255, 255, 0.7) inset, 0 8px 20px -16px rgba(11, 20, 40, 0.2);
     --panel-bg:  #ffffff;
     --shadow-glow: 0 0 60px -20px rgba(99, 102, 241, 0.30);
+    /* Aliases precisam ser recalculados AQUI: o tema fica no <body>, então um
+       alias definido só no :root (=<html>) congelaria o valor escuro. */
+    --bg-2:       var(--surface-2);
+    --text-faint: var(--muted);
 }
 
 /* Redundante mas explícito: garante dark mesmo se algo sobrescrever antes */
@@ -84,6 +88,8 @@
     --muted:     #6b7497;
     --kpi-glow:  0 0 0 1px rgba(255, 255, 255, 0.04), 0 12px 30px -20px rgba(0, 0, 0, 0.6);
     --panel-bg:  linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent), #131829;
+    --bg-2:       var(--surface-2);
+    --text-faint: var(--muted);
 }
 
 /* ── Densidade ── */

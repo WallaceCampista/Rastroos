@@ -98,7 +98,7 @@ class ManagerControllerTest {
                 LocalDate.of(2026, 5, 1), LocalDate.of(2026, 6, 1), 0L, 0L,
                 new DashboardKpisDto(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
                         BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO),
-                List.of(), List.of(), List.of(), List.of(), List.of());
+                List.of(), List.of(), List.of(), List.of(), List.of(), List.of());
     }
 
     @Test

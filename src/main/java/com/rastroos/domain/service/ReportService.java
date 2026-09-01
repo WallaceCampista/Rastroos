@@ -96,6 +96,7 @@ public class ReportService {
             String color = cat == null ? FALLBACK_COLOR : cat.getColorHex();
             result.add(new CategoryBreakdownDto(id, name, color, MoneyDto.fromCents(total)));
         }
+        result.sort((x, y) -> y.amount().compareTo(x.amount()));
         return result;
     }
 

@@ -33,6 +33,10 @@ public class InvestmentHistory {
     @Column(name = "amount_cents", nullable = false)
     private long amountCents;
 
+    /** Dinheiro novo aportado neste mês (soma dos aportes), independente do saldo. */
+    @Column(name = "contributed_cents", nullable = false)
+    private long contributedCents;
+
     public InvestmentHistory() {
     }
 
@@ -47,6 +51,9 @@ public class InvestmentHistory {
 
     public long getAmountCents() { return amountCents; }
     public void setAmountCents(long amountCents) { this.amountCents = amountCents; }
+
+    public long getContributedCents() { return contributedCents; }
+    public void setContributedCents(long contributedCents) { this.contributedCents = contributedCents; }
 
     @Override
     public boolean equals(Object o) {

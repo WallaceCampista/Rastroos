@@ -1,0 +1,45 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Excluir usuário · Rastro$</title>
+    <link rel="stylesheet" th:href="@{/css/tokens.css}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/auth.css}">
+    <link rel="stylesheet" th:href="@{/css/components.css}">
+    <link rel="stylesheet" th:href="@{/css/screens/users.css}">
+</head>
+<body>
+<main class="auth-shell">
+    <section class="auth-card">
+        <h1 class="auth-title">Excluir usuário</h1>
+
+        <form th:action="@{/app/users/{id}/delete(id=${target.id()})}" method="post" class="form">
+            <input type="hidden" th:if="${_csrf != null}"
+                   th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+            <p class="auth-sub">
+                Isso vai remover o usuário e todos os seus dados do Rastro$. Esta ação é irreversível.
+            </p>
+            <div class="confirm-user">
+                <span class="user-avatar"
+                      th:text="${target.name() != null and !target.name().isEmpty()
+                                ? target.name().substring(0,1).toUpperCase() : '?'}">R</span>
+                <div class="confirm-user-main">
+                    <div class="confirm-user-name" th:text="${target.name()}">Nome</div>
+                    <div class="confirm-user-email" th:text="${target.email()}">email@ex.com</div>
+                </div>
+            </div>
+            <div class="form-actions">
+                <a class="btn btn-ghost" data-modal-close th:href="@{/app/users}">Cancelar</a>
+                <button type="submit" class="btn btn-danger">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 7h14M9 7V4h6v3m-7 0v13h8V7"/></svg>
+                    Excluir
+                </button>
+            </div>
+        </form>
+    </section>
+</main>
+</body>
+</html>

@@ -1,8 +1,9 @@
 package com.rastroos.security;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrlPattern;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -41,7 +42,7 @@ class UserAdminAuthorizationTest {
     void anonimoEhRedirecionadoParaLoginNaTelaDeUsuarios() throws Exception {
         mvc.perform(get("/app/users"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrlPattern("**openLogin=login"));
+                .andExpect(header().string("Location", containsString("openLogin=login")));
     }
 
     @Test

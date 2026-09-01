@@ -19,6 +19,7 @@ import com.rastroos.domain.service.DashboardService;
 import com.rastroos.security.CurrentUser;
 import com.rastroos.web.dto.BalancePointDto;
 import com.rastroos.web.dto.CategoryBreakdownDto;
+import com.rastroos.web.dto.DailyItemDto;
 import com.rastroos.web.dto.DashboardModel;
 
 /**
@@ -62,7 +63,7 @@ public class DashboardController {
         model.addAttribute("data", data);
         // Acessor com valores mascarados: não emitir a série real (vazaria no view-source).
         model.addAttribute("chartDataJson",
-                currentUser.isMaskActive() ? "{\"balance\":[],\"dailySpend\":[],\"byCategory\":[]}"
+                currentUser.isMaskActive() ? "{\"balance\":[],\"dailySpend\":[],\"dailyItems\":[],\"byCategory\":[]}"
                         : buildChartJson(data));
         return "app/dashboard";
     }
@@ -83,6 +84,18 @@ public class DashboardController {
         for (java.math.BigDecimal v : data.dailySpend()) {
             dailySpend.add(v.doubleValue());
         }
+        List<List<Map<String, Object>>> dailyItems = new ArrayList<>(data.dailyItems().size());
+        for (List<DailyItemDto> day : data.dailyItems()) {
+            List<Map<String, Object>> items = new ArrayList<>(day.size());
+            for (DailyItemDto it : day) {
+                items.add(Map.of(
+                        "account", it.account(),
+                        "desc", it.description(),
+                        "amount", it.amount().doubleValue()
+                ));
+            }
+            dailyItems.add(items);
+        }
         List<Map<String, Object>> byCategory = new ArrayList<>(data.byCategory().size());
         for (CategoryBreakdownDto c : data.byCategory()) {
             byCategory.add(Map.of(
@@ -94,10 +107,11 @@ public class DashboardController {
             return objectMapper.writeValueAsString(Map.of(
                     "balance", balance,
                     "dailySpend", dailySpend,
+                    "dailyItems", dailyItems,
                     "byCategory", byCategory
             ));
         } catch (JsonProcessingException e) {
-            return "{\"balance\":[],\"dailySpend\":[],\"byCategory\":[]}";
+            return "{\"balance\":[],\"dailySpend\":[],\"dailyItems\":[],\"byCategory\":[]}";
         }
     }
 

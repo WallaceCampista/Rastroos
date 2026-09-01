@@ -16,5 +16,7 @@
     <include file="db/changelog/002-seed-categories.xml"/>
     <include file="db/changelog/003-create-default-admin.xml"/>
     <include file="db/changelog/004-accessor-profile.xml"/>
+    <include file="db/changelog/006-investment-contributions.xml"/>
+    <include file="db/changelog/008-investment-movements.xml"/>
 
 </databaseChangeLog>

@@ -7,7 +7,7 @@
 <button th:fragment="tile(acc, mask)" type="button"
         class="card-tile"
         th:classappend="${acc.kind().name() == 'CARD' ? 'card-tile-cartao' : ''} + ' st-card-' + ${acc.status()}"
-        th:attr="data-account-detail-url=@{/app/cards/{id}/detail(id=${acc.id()})},data-color=${acc.colorHex()}"
+        th:attr="data-account-detail-url=@{/app/cards/{id}/detail(id=${acc.id()})},data-color=${acc.colorHex()},data-due-day=${acc.dueDay() != null ? acc.dueDay() : 99}"
         th:with="barVal=${acc.status() == 'paid' ? 100 : (acc.paidPercent() == 0 ? 100 : acc.paidPercent())}">
     <div class="card-tile-top">
         <span class="acc-chip" th:attr="data-fill=${acc.colorHex()}"

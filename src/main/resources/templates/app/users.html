@@ -15,7 +15,7 @@
             <p class="screen-sub">Gerencie quem tem acesso ao Rastro$</p>
         </div>
         <div class="screen-actions">
-            <a class="btn btn-primary" th:href="@{/app/users/new}">
+            <a class="btn btn-primary" data-modal-url th:href="@{/app/users/new}">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                      stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
                 Novo usuário
@@ -141,11 +141,17 @@
                         <span th:unless="${u.lastLoginAt() != null}" class="text-faint">—</span>
                     </td>
                     <td class="actions">
-                        <a class="row-action" th:href="@{/app/users/{id}(id=${u.id()})}" title="Ver detalhes" aria-label="Ver">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+                        <a class="row-action" data-modal-url th:href="@{/app/users/{id}/history(id=${u.id()})}" title="Histórico de login" aria-label="Histórico de login">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
                         </a>
-                        <a class="row-action" th:href="@{/app/users/{id}/edit(id=${u.id()})}" title="Editar" aria-label="Editar">
+                        <a class="row-action" data-modal-url th:href="@{/app/users/{id}/edit(id=${u.id()})}" title="Editar usuário" aria-label="Editar usuário">
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l11-11-4-4L4 16z"/></svg>
+                        </a>
+                        <a class="row-action" data-modal-url th:href="@{/app/users/{id}/reset-password(id=${u.id()})}" title="Resetar senha" aria-label="Resetar senha">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M10.85 12.15L19 4m-3 0h3v3"/></svg>
+                        </a>
+                        <a class="row-action danger" data-modal-url th:href="@{/app/users/{id}/delete(id=${u.id()})}" title="Excluir usuário" aria-label="Excluir usuário">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14M9 7V4h6v3m-7 0v13h8V7"/></svg>
                         </a>
                     </td>
                 </tr>

@@ -1,11 +1,11 @@
 package com.rastroos.security;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrlPattern;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -18,9 +18,13 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
 
+import com.rastroos.domain.entity.User;
+import com.rastroos.domain.entity.enums.UserRole;
+import com.rastroos.domain.entity.enums.UserStatus;
 import com.rastroos.domain.repository.LoginAttemptRepository;
 import com.rastroos.domain.repository.UserRepository;
 
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.FilterChainProxy;
 
 @SpringBootTest
@@ -34,6 +38,7 @@ class SecurityFlowTest {
     @Autowired private LoginAttemptRepository attempts;
     @Autowired private LockoutChecker lockoutChecker;
     @Autowired private BruteForceFilter bruteForceFilter;
+    @Autowired private PasswordEncoder passwordEncoder;
 
     private MockMvc mvc;
 
@@ -58,7 +63,7 @@ class SecurityFlowTest {
     void rotaPrivadaSemAuthRedirecionaParaLogin() throws Exception {
         mvc.perform(get("/app/dashboard"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrlPattern("**openLogin=login"));   // landing c/ drawer de login
+                .andExpect(header().string("Location", containsString("openLogin=login")));   // landing c/ drawer
     }
 
     // ── headers de segurança ─────────────────────────────────────────────────
@@ -81,12 +86,24 @@ class SecurityFlowTest {
                 .andExpect(status().isForbidden());
     }
 
-    // ── login feliz (admin seed) ─────────────────────────────────────────────
+    // ── login com password_must_change → tela de troca ───────────────────────
     @Test
-    void loginAdminDoSeedRedirecionaParaChangePassword() throws Exception {
+    void loginComPasswordMustChangeRedirecionaParaChangePassword() throws Exception {
+        // Cria o próprio usuário (não depende do admin do seed, que pode já ter
+        // trocado a senha no dev DB). @Transactional garante o rollback ao fim.
+        User u = new User();
+        u.setName("Must Change");
+        u.setEmail("mustchange-flow@rastroos.local");
+        u.setEmailVerified(true);
+        u.setPasswordHash(passwordEncoder.encode("Secret!2026"));
+        u.setPasswordMustChange(true);
+        u.setRole(UserRole.ADMIN);
+        u.setStatus(UserStatus.ACTIVE);
+        users.saveAndFlush(u);
+
         mvc.perform(post("/auth/login").with(csrf())
-                        .param("username", "admin@rastroos.local")
-                        .param("password", "ChangeMe!2026"))
+                        .param("username", "mustchange-flow@rastroos.local")
+                        .param("password", "Secret!2026"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/app/profile/change-password"));
     }
@@ -98,7 +115,7 @@ class SecurityFlowTest {
                         .param("username", "admin@rastroos.local")
                         .param("password", "WrongPass!2026"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrlPattern("**error=invalid**"));
+                .andExpect(header().string("Location", containsString("error=invalid")));
     }
 
     // ── lockout após 5 falhas ────────────────────────────────────────────────
@@ -116,6 +133,6 @@ class SecurityFlowTest {
                         .param("username", victim)
                         .param("password", "still-wrong"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrlPattern("**error=locked**"));
+                .andExpect(header().string("Location", containsString("error=locked")));
     }
 }

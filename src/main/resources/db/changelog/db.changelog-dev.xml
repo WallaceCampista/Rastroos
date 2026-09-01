@@ -19,5 +19,7 @@
 
     <include file="db/changelog/db.changelog-master.xml"/>
     <include file="db/changelog/005-dev-seed-demo.xml"/>
+    <include file="db/changelog/007-dev-backfill-demo-contributions.xml"/>
+    <include file="db/changelog/009-dev-backfill-demo-movements.xml"/>
 
 </databaseChangeLog>

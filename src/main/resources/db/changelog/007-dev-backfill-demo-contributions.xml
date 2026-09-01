@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ─────────────────────────────────────────────────────────────
+  007 (DEV) — Backfill de contributed_cents após o seed demo
+  ─────────────────────────────────────────────────────────────
+  Só entra no perfil dev (db.changelog-dev.xml), DEPOIS do 005. O
+  006-02 (master) roda ANTES do 005, então numa base nova os
+  snapshots do demo entrariam com contributed_cents = 0 (a linha
+  "Aporte" ficaria zerada). Aqui reaplicamos o mesmo backfill por
+  delta (idempotente) para preencher os dados de demonstração.
+-->
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.27.xsd">
+
+    <changeSet id="007-01-dev-backfill-demo-contributions" author="rastroos" context="dev">
+        <sql>
+            UPDATE investment_history ih
+            SET contributed_cents = GREATEST(0, ih.amount_cents - COALESCE((
+                SELECT p.amount_cents
+                FROM investment_history p
+                WHERE p.investment_id = ih.investment_id
+                  AND p.year_month &lt; ih.year_month
+                ORDER BY p.year_month DESC
+                LIMIT 1
+            ), ih.amount_cents))
+            WHERE ih.contributed_cents = 0;
+        </sql>
+        <rollback/>
+    </changeSet>
+
+</databaseChangeLog>

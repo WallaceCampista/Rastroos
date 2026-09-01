@@ -200,14 +200,17 @@ class UserAdminControllerTest {
     }
 
     @Test
-    void resetPasswordExibeSenhaTemporaria() throws Exception {
-        when(service.resetPassword(targetId)).thenReturn("Temp1!abcd");
+    void resetPasswordDefineNovaSenhaERedirecionaParaLista() throws Exception {
+        when(service.setPassword(eq(targetId), eq("NovaSenha1!"))).thenReturn(List.of());
 
-        mvc.perform(post("/app/users/{id}/reset-password", targetId))
+        mvc.perform(post("/app/users/{id}/reset-password", targetId)
+                        .param("newPassword", "NovaSenha1!")
+                        .param("newPasswordConfirm", "NovaSenha1!"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/app/users/" + targetId))
-                .andExpect(flash().attribute("ok", "users.passwordReset"))
-                .andExpect(flash().attribute("tempPassword", "Temp1!abcd"));
+                .andExpect(redirectedUrl("/app/users"))
+                .andExpect(flash().attribute("ok", "users.passwordReset"));
+
+        verify(service).setPassword(targetId, "NovaSenha1!");
     }
 
     @Test

@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ─────────────────────────────────────────────────────────────
+  008 — Livro-razão de movimentos de investimento
+  ─────────────────────────────────────────────────────────────
+  Uma linha por evento (saldo inicial, aporte, resgate). O histórico
+  mensal (investment_history) continua existindo para os gráficos e a
+  linha "Aporte"; esta tabela é o que alimenta as "Movimentações" do
+  detalhe, para que cada aporte apareça como sua própria linha.
+
+  Backfill a partir do histórico mensal existente: 1º mês de cada
+  investimento vira um movimento INITIAL (saldo do mês); demais meses
+  com aporte viram um DEPOSIT (contributed_cents). Ledger granular só
+  para lançamentos novos, feitos pela aplicação.
+-->
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.27.xsd">
+
+    <changeSet id="008-01-create-investment-movement" author="rastroos">
+        <createTable tableName="investment_movement">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="investment_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="kind" type="VARCHAR(16)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="amount_cents" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="balance_after_cents" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="occurred_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint
+            baseTableName="investment_movement" baseColumnNames="investment_id"
+            referencedTableName="investments" referencedColumnNames="id"
+            constraintName="fk_inv_movement_investment" onDelete="CASCADE"/>
+
+        <createIndex tableName="investment_movement" indexName="ix_inv_movement_investment">
+            <column name="investment_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="investment_movement"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="008-02-backfill-investment-movements" author="rastroos">
+        <sql>
+            INSERT INTO investment_movement
+                (investment_id, kind, amount_cents, balance_after_cents, occurred_at)
+            SELECT ih.investment_id,
+                   CASE WHEN ih.year_month = fm.min_ym THEN 'INITIAL' ELSE 'DEPOSIT' END,
+                   CASE WHEN ih.year_month = fm.min_ym THEN ih.amount_cents ELSE ih.contributed_cents END,
+                   ih.amount_cents,
+                   (TRIM(ih.year_month) || '-01')::timestamptz
+            FROM investment_history ih
+            JOIN (SELECT investment_id, MIN(year_month) AS min_ym
+                  FROM investment_history GROUP BY investment_id) fm
+              ON fm.investment_id = ih.investment_id
+            WHERE ih.year_month = fm.min_ym OR ih.contributed_cents &gt; 0;
+        </sql>
+        <rollback>
+            <sql>DELETE FROM investment_movement;</sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

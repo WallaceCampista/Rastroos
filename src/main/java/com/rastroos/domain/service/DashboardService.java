@@ -26,6 +26,7 @@ import com.rastroos.domain.repository.TransactionRepository;
 import com.rastroos.web.dto.AccountSummaryDto;
 import com.rastroos.web.dto.BalancePointDto;
 import com.rastroos.web.dto.CategoryBreakdownDto;
+import com.rastroos.web.dto.DailyItemDto;
 import com.rastroos.web.dto.DashboardKpisDto;
 import com.rastroos.web.dto.DashboardModel;
 import com.rastroos.web.dto.MoneyDto;
@@ -112,6 +113,8 @@ public class DashboardService {
             accountNames.put(a.getId(), a.getName());
         }
 
+        List<List<DailyItemDto>> dailyItems = buildDailyItems(ym, monthTx, accountNames);
+
         List<UpcomingTransactionDto> upcoming = upcomingTx.stream()
                 .map(t -> new UpcomingTransactionDto(
                         t.getId(),
@@ -139,6 +142,7 @@ public class DashboardService {
                 kpis,
                 balanceSeries,
                 dailySpend,
+                dailyItems,
                 byCategory,
                 upcoming,
                 topAccounts
@@ -157,6 +161,23 @@ public class DashboardService {
             series.add(MoneyDto.fromCents(perDay[d]));
         }
         return series;
+    }
+
+    /** Lançamentos por dia (conta/descrição/valor) para o tooltip do gráfico "Gastos no mês". */
+    private List<List<DailyItemDto>> buildDailyItems(YearMonth ym, List<Transaction> monthTx,
+                                                     Map<UUID, String> accountNames) {
+        int daysIn = ym.lengthOfMonth();
+        List<List<DailyItemDto>> byDay = new ArrayList<>(daysIn);
+        for (int d = 0; d < daysIn; d++) {
+            byDay.add(new ArrayList<>());
+        }
+        for (Transaction t : monthTx) {
+            byDay.get(t.getDueDate().getDayOfMonth() - 1).add(new DailyItemDto(
+                    accountNames.getOrDefault(t.getAccountId(), ""),
+                    t.getDescription(),
+                    MoneyDto.fromCents(t.getAmountCents())));
+        }
+        return byDay;
     }
 
     /**

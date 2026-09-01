@@ -18,6 +18,7 @@ public record DashboardModel(
         DashboardKpisDto kpis,
         List<BalancePointDto> balanceSeries,
         List<BigDecimal> dailySpend,
+        List<List<DailyItemDto>> dailyItems,
         List<CategoryBreakdownDto> byCategory,
         List<UpcomingTransactionDto> upcoming,
         List<AccountSummaryDto> topAccounts

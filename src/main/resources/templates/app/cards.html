@@ -37,12 +37,22 @@
         </article>
     </section>
 
-    <div class="cards-actions" sec:authorize="!hasRole('ACESSOR')">
-        <a class="btn btn-primary" data-modal-url th:href="@{/app/cards/new}">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                 stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-            Nova conta
-        </a>
+    <div class="cards-toolbar">
+        <label class="cards-sort">
+            <span class="cards-sort-lbl">Ordenar por</span>
+            <select class="cards-sort-select" data-cards-sort aria-label="Ordenar contas">
+                <option value="default">Padrão</option>
+                <option value="due-asc">Vencimento (mais próximo)</option>
+                <option value="due-desc">Vencimento (mais distante)</option>
+            </select>
+        </label>
+        <div class="cards-actions" sec:authorize="!hasRole('ACESSOR')">
+            <a class="btn btn-primary" data-modal-url th:href="@{/app/cards/new}">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                Nova conta
+            </a>
+        </div>
     </div>
 
     <div class="cards-grid">
