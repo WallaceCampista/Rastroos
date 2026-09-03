@@ -11,3 +11,60 @@
 .pagination-info { font-size: 13px; }
 
 .app-body.values-hidden [data-amount] { filter: blur(7px); user-select: none; }
+
+/* ── Lançar gasto: importar documento (clip) / foto da notinha (câmera) ── */
+.tx-method-bar { align-items: stretch; }
+.tx-method-sep {
+    width: 1px;
+    align-self: stretch;
+    margin: 2px 2px;
+    background: var(--border);
+    flex: 0 0 auto;
+}
+.form-tab-action {
+    flex: 0 0 auto;
+    padding: 10px;
+    color: var(--text-dim);
+}
+.form-tab-action:hover {
+    color: var(--primary);
+    border-color: color-mix(in oklch, var(--primary) 40%, var(--border));
+}
+.form-tab-action:disabled { opacity: .5; cursor: default; }
+
+/* Aviso/erro/carregando da extração */
+.tx-extract-note {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    font-size: 12.5px; font-weight: 600; line-height: 1.35;
+    background: color-mix(in oklch, var(--primary) 12%, transparent);
+    color: var(--text);
+    border: 1px solid color-mix(in oklch, var(--primary) 30%, var(--border));
+}
+/* Placeholders alternados por JS (loading/erro): o atributo hidden precisa
+   vencer o display:flex acima — o app não tem um [hidden] global. */
+.tx-extract-note[hidden] { display: none; }
+.tx-extract-note svg { flex: 0 0 auto; color: var(--primary); }
+.tx-extract-note.is-demo {
+    background: color-mix(in oklch, var(--warn) 12%, transparent);
+    border-color: color-mix(in oklch, var(--warn) 30%, var(--border));
+}
+.tx-extract-note.is-demo svg { color: var(--warn); }
+.tx-extract-note.is-error {
+    background: color-mix(in oklch, var(--danger) 12%, transparent);
+    border-color: color-mix(in oklch, var(--danger) 30%, var(--border));
+}
+.tx-extract-note.is-error svg { color: var(--danger); }
+.tx-extract-note.is-loading { color: var(--text-dim); }
+.tx-extract-spinner {
+    width: 15px; height: 15px; flex: 0 0 auto;
+    border: 2px solid color-mix(in oklch, var(--primary) 30%, transparent);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: tx-extract-spin .7s linear infinite;
+}
+@keyframes tx-extract-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+    .tx-extract-spinner { animation-duration: 2s; }
+}

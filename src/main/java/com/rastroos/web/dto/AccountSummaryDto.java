@@ -15,6 +15,8 @@ public record AccountSummaryDto(
         AccountKind kind,
         String colorHex,
         String iconText,
+        /** Últimos 4 dígitos do cartão, ou {@code null} (contas não-cartão). */
+        String last4,
         Short closeDay,
         Short dueDay,
         BigDecimal total,

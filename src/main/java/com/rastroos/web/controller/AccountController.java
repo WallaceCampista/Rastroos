@@ -115,6 +115,7 @@ public class AccountController {
         form.setKind(a.getKind());
         form.setColorHex(a.getColorHex());
         form.setIconText(a.getIconText());
+        form.setLast4(a.getLast4());
         form.setCloseDay(a.getCloseDay());
         form.setDueDay(a.getDueDay());
         form.setCategoryId(a.getCategoryId());

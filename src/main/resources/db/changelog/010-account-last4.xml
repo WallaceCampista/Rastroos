@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   ─────────────────────────────────────────────────────────────
-  Rastro$ — Liquibase master changelog
+  010 — Últimos 4 dígitos do cartão
   ─────────────────────────────────────────────────────────────
-  Cada arquivo aqui referenciado deve ser imutável após aplicado.
-  Para corrigir algo já em produção, crie um NOVO changelog.
+  Guarda os 4 últimos dígitos impressos no cartão (só para contas
+  do tipo CARD). É um identificador visual — nunca o número completo.
+  Coluna opcional (nullable): cartões antigos e contas não-cartão
+  ficam com NULL.
 -->
 <databaseChangeLog
     xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
@@ -12,12 +14,13 @@
     xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
                         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.27.xsd">
 
-    <include file="db/changelog/001-initial-schema.xml"/>
-    <include file="db/changelog/002-seed-categories.xml"/>
-    <include file="db/changelog/003-create-default-admin.xml"/>
-    <include file="db/changelog/004-accessor-profile.xml"/>
-    <include file="db/changelog/006-investment-contributions.xml"/>
-    <include file="db/changelog/008-investment-movements.xml"/>
-    <include file="db/changelog/010-account-last4.xml"/>
+    <changeSet id="010-01-accounts-add-last4" author="rastroos">
+        <addColumn tableName="accounts">
+            <column name="last4" type="VARCHAR(4)"/>
+        </addColumn>
+        <rollback>
+            <dropColumn tableName="accounts" columnName="last4"/>
+        </rollback>
+    </changeSet>
 
 </databaseChangeLog>

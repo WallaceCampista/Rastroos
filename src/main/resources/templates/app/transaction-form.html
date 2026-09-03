@@ -21,11 +21,35 @@
     <form class="form tx-form"
           th:action="${editing ? '/app/expenses/' + transactionId + '/edit' : '/app/expenses/new'}"
           method="post"
-          th:object="${transactionForm}">
+          th:object="${transactionForm}"
+          th:attr="data-extract-url=@{/app/expenses/extract}">
         <input type="hidden" th:if="${_csrf != null}"
                th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
 
-        <div class="form-tabs" data-tx-tabs>
+        <!-- Aviso da extração por documento/foto (aparece só após importar) -->
+        <div class="tx-extract-note" th:if="${extracted}"
+             th:classappend="${extractDemo} ? 'is-demo' : ''">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 3l1.9 4.6L18.5 9l-4.6 1.9L12 15l-1.9-4.1L5.5 9l4.6-1.4L12 3zM5 17l1 2 2 1-2 1-1 2-1-2-2-1 2-1 1-2z"/>
+            </svg>
+            <span th:if="${extractDemo}" th:text="#{transaction.extract.demoNote}">Confira e preencha os dados.</span>
+            <span th:unless="${extractDemo}" th:text="#{transaction.extract.note}">Confira os dados extraídos.</span>
+        </div>
+        <div class="tx-extract-note is-error" th:if="${extractError}">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 9v4m0 4h.01M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/>
+            </svg>
+            <span th:text="${extractError}">Erro no arquivo.</span>
+        </div>
+        <div class="tx-extract-note is-loading" data-extract-loading hidden>
+            <span class="tx-extract-spinner" aria-hidden="true"></span>
+            <span>Lendo o arquivo…</span>
+        </div>
+        <div class="tx-extract-note is-error" data-extract-error hidden></div>
+
+        <div class="form-tabs tx-method-bar" data-tx-tabs>
             <button type="button" class="form-tab" data-tx-tab="variable">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                      stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -40,7 +64,33 @@
                 </svg>
                 Gasto fixo
             </button>
+            <th:block th:unless="${editing}">
+                <span class="tx-method-sep" aria-hidden="true"></span>
+                <button type="button" class="form-tab form-tab-action" data-tx-extract="document"
+                        title="Importar documento" aria-label="Importar documento (boleto, fatura, comprovante)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+                    </svg>
+                </button>
+                <button type="button" class="form-tab form-tab-action" data-tx-extract="receipt"
+                        title="Foto da notinha" aria-label="Tirar foto da notinha do cartão">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                        <circle cx="12" cy="13" r="4"/>
+                    </svg>
+                </button>
+            </th:block>
         </div>
+
+        <th:block th:unless="${editing}">
+            <input type="file" data-extract-file="document"
+                   accept=".pdf,image/png,image/jpeg,image/webp" hidden>
+            <input type="file" data-extract-file="receipt"
+                   accept="image/*" capture="environment" hidden>
+        </th:block>
+
         <input type="checkbox" th:field="*{fixed}" hidden>
         <span class="form-hint" data-tx-hint>Gasto pontual como alimentação, combustível, compras.</span>
 

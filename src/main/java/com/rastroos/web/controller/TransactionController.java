@@ -1,10 +1,13 @@
 package com.rastroos.web.controller;
 
 import java.time.Clock;
+import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -15,15 +18,20 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.rastroos.domain.entity.Account;
 import com.rastroos.domain.entity.Category;
 import com.rastroos.domain.entity.Transaction;
+import com.rastroos.domain.exception.InvalidUploadException;
 import com.rastroos.domain.repository.AccountRepository;
 import com.rastroos.domain.repository.CategoryRepository;
+import com.rastroos.domain.service.ExpenseExtractionService;
+import com.rastroos.domain.service.ExpenseExtractionSource;
 import com.rastroos.domain.service.TransactionService;
 import com.rastroos.security.CurrentUser;
+import com.rastroos.web.dto.ExtractedExpense;
 import com.rastroos.web.dto.MoneyDto;
 import com.rastroos.web.dto.TransactionFilter;
 import com.rastroos.web.dto.TransactionsPageView;
@@ -42,19 +50,25 @@ public class TransactionController {
 
     private final CurrentUser currentUser;
     private final TransactionService service;
+    private final ExpenseExtractionService extraction;
     private final AccountRepository accounts;
     private final CategoryRepository categories;
+    private final MessageSource messages;
     private final Clock clock;
 
     public TransactionController(CurrentUser currentUser,
                                  TransactionService service,
+                                 ExpenseExtractionService extraction,
                                  AccountRepository accounts,
                                  CategoryRepository categories,
+                                 MessageSource messages,
                                  Clock clock) {
         this.currentUser = currentUser;
         this.service = service;
+        this.extraction = extraction;
         this.accounts = accounts;
         this.categories = categories;
+        this.messages = messages;
         this.clock = clock;
     }
 
@@ -117,6 +131,33 @@ public class TransactionController {
             return "app/transaction-form";
         }
         return "redirect:/app/expenses";
+    }
+
+    /**
+     * Extrai os campos de um documento (clip) ou foto da notinha (câmera) e
+     * devolve o formulário de gasto PRÉ-PREENCHIDO para o usuário validar/editar
+     * antes de salvar. Não cria nada aqui — a criação segue pelo POST /new normal.
+     */
+    @PostMapping("/extract")
+    public String extract(@RequestParam("file") MultipartFile file,
+                          @RequestParam(value = "source", required = false) String source,
+                          Model model) {
+        UUID userId = currentUser.requireEffectiveId();
+        ExpenseExtractionSource src = ExpenseExtractionSource.parse(source);
+        TransactionForm form;
+        try {
+            ExtractedExpense extracted = extraction.extract(userId, file, src);
+            form = toForm(extracted);
+            model.addAttribute("extracted", true);
+            model.addAttribute("extractDemo", extracted.demo());
+            model.addAttribute("extractSource", src == ExpenseExtractionSource.RECEIPT ? "receipt" : "document");
+        } catch (InvalidUploadException e) {
+            form = emptyForm(YearMonth.now(clock));
+            model.addAttribute("extractError", messages.getMessage(
+                    e.getMessage(), null, e.getMessage(), LocaleContextHolder.getLocale()));
+        }
+        prepareFormModel(model, userId, form, false, null);
+        return "app/transaction-form";
     }
 
     @GetMapping("/{id}/edit")
@@ -195,6 +236,19 @@ public class TransactionController {
     private TransactionForm emptyForm(YearMonth period) {
         TransactionForm f = new TransactionForm();
         f.setDueDate(period.atDay(1));
+        f.setInstallments(1);
+        return f;
+    }
+
+    /** Converte os campos extraídos em um formulário editável (sugestões). */
+    private TransactionForm toForm(ExtractedExpense ex) {
+        TransactionForm f = new TransactionForm();
+        f.setDescription(ex.description());
+        f.setAmount(ex.amount());
+        f.setDueDate(ex.dueDate() != null ? ex.dueDate() : LocalDate.now(clock));
+        f.setFixed(ex.fixed());
+        f.setCategoryId(ex.categoryId());
+        f.setAccountId(ex.accountId());
         f.setInstallments(1);
         return f;
     }

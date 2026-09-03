@@ -19,7 +19,8 @@
                     <th:block th:case="'CARD'">Fatura</th:block>
                     <th:block th:case="'BILL'">Fixo</th:block>
                     <th:block th:case="*">mensal</th:block>
-                </span><span th:if="${acc.dueDay() != null}"> · Vence dia <span th:text="${acc.dueDay()}">10</span></span>
+                </span><span th:if="${acc.dueDay() != null}"> · Vence dia <span th:text="${acc.dueDay()}">10</span></span><span
+                    th:if="${acc.last4() != null}" class="card-tile-last4"> · •••• <span th:text="${acc.last4()}">1234</span></span>
             </div>
         </div>
         <div class="card-tile-status">

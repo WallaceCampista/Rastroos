@@ -202,21 +202,43 @@
     }
 
     // ── Sidebar colapsável (burger) ──────────────────────────
+    // O estado recolhido já vem renderizado pelo servidor (cookie `sideCollapsed`),
+    // então não há "pisca" ao navegar. Aqui só persistimos o cookie no clique e
+    // habilitamos a transição depois do 1º frame (para animar só na interação).
     const appShell    = document.querySelector('[data-app-shell]');
     const sidebarEl   = document.querySelector('.sidebar');
     const sideToggle  = document.querySelector('[data-sidebar-toggle]');
     if (appShell && sidebarEl && sideToggle) {
-        const COLLAPSE_KEY = 'rastroos.sideCollapsed';
+        const COOKIE_KEY  = 'sideCollapsed';
+        const LEGACY_KEY  = 'rastroos.sideCollapsed';
+        const writeCookie = (v) => {
+            const secure = location.protocol === 'https:' ? ';secure' : '';
+            document.cookie = COOKIE_KEY + '=' + v + ';path=/;max-age=31536000;samesite=lax' + secure;
+        };
         const applyCollapsed = (collapsed) => {
             appShell.classList.toggle('side-collapsed', collapsed);
             sidebarEl.classList.toggle('is-collapsed', collapsed);
             sideToggle.setAttribute('aria-label', collapsed ? 'Expandir menu' : 'Recolher menu');
         };
-        applyCollapsed(localStorage.getItem(COLLAPSE_KEY) === 'true');
+
+        let collapsed = appShell.classList.contains('side-collapsed');
+        const hasCookie = document.cookie.split('; ').some((c) => c.indexOf(COOKIE_KEY + '=') === 0);
+        if (!hasCookie) {
+            // Migração única do localStorage antigo → semeia o cookie p/ o SSR.
+            const legacy = localStorage.getItem(LEGACY_KEY) === 'true';
+            if (legacy !== collapsed) { collapsed = legacy; applyCollapsed(collapsed); }
+            writeCookie(collapsed);
+        }
+        sideToggle.setAttribute('aria-label', collapsed ? 'Expandir menu' : 'Recolher menu');
+
+        // Habilita a transição só após o layout inicial pintar (sem animar ao carregar).
+        requestAnimationFrame(() => appShell.classList.add('is-collapsible'));
+
         sideToggle.addEventListener('click', () => {
-            const next = !appShell.classList.contains('side-collapsed');
-            localStorage.setItem(COLLAPSE_KEY, String(next));
-            applyCollapsed(next);
+            collapsed = !collapsed;
+            writeCookie(collapsed);
+            localStorage.setItem(LEGACY_KEY, String(collapsed));
+            applyCollapsed(collapsed);
         });
     }
 

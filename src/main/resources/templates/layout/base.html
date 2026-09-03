@@ -22,6 +22,7 @@
     <script th:src="@{/js/theme.js}" defer></script>
     <script th:src="@{/js/app.js}" defer></script>
     <script th:src="@{/js/modals.js}" defer></script>
+    <script th:src="@{/js/tx-extract.js}" defer></script>
     <script th:src="@{/js/form-widgets.js}" defer></script>
     <script th:src="@{/js/auth-password.js}" defer></script>
     <script th:src="@{/js/style-bindings.js}" defer></script>
@@ -39,7 +40,7 @@
     </svg>
 </button>
 
-<div class="app" data-app-shell>
+<div class="app" data-app-shell th:classappend="${sideCollapsed} ? 'side-collapsed' : ''">
     <div class="sidebar-wrap" data-sidebar-wrap>
         <aside th:replace="~{fragments/sidebar :: sidebar(active=${activeNav})}"></aside>
     </div>

@@ -26,6 +26,10 @@ public class AccountForm {
     @Size(max = 8)
     private String iconText;
 
+    /** Últimos 4 dígitos do cartão (opcional; só usado quando o tipo é CARD). */
+    @Pattern(regexp = "^(\\d{4})?$", message = "account.last4Invalid")
+    private String last4;
+
     @Min(value = 1, message = "account.dayRange")
     @Max(value = 31, message = "account.dayRange")
     private Short closeDay;
@@ -53,6 +57,9 @@ public class AccountForm {
 
     public String getIconText() { return iconText; }
     public void setIconText(String iconText) { this.iconText = iconText; }
+
+    public String getLast4() { return last4; }
+    public void setLast4(String last4) { this.last4 = last4; }
 
     public Short getCloseDay() { return closeDay; }
     public void setCloseDay(Short closeDay) { this.closeDay = closeDay; }

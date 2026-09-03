@@ -43,6 +43,10 @@ public class Account {
     @Column(name = "icon_text", length = 8)
     private String iconText;
 
+    /** Últimos 4 dígitos impressos no cartão (só para {@code kind = CARD}). */
+    @Column(name = "last4", length = 4)
+    private String last4;
+
     @Column(name = "close_day")
     private Short closeDay;
 
@@ -87,6 +91,9 @@ public class Account {
 
     public String getIconText() { return iconText; }
     public void setIconText(String iconText) { this.iconText = iconText; }
+
+    public String getLast4() { return last4; }
+    public void setLast4(String last4) { this.last4 = last4; }
 
     public Short getCloseDay() { return closeDay; }
     public void setCloseDay(Short closeDay) { this.closeDay = closeDay; }

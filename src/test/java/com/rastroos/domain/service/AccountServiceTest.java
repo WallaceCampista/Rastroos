@@ -117,6 +117,45 @@ class AccountServiceTest {
     }
 
     @Test
+    void createGuardaLast4ParaCartao() {
+        AccountForm form = new AccountForm();
+        form.setName("Nubank");
+        form.setKind(AccountKind.CARD);
+        form.setLast4("1234");
+
+        when(accountsRepo.save(any(Account.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Account created = service.create(alice, form);
+        assertThat(created.getLast4()).isEqualTo("1234");
+    }
+
+    @Test
+    void createNormalizaLast4EmBrancoParaNull() {
+        AccountForm form = new AccountForm();
+        form.setName("Nubank");
+        form.setKind(AccountKind.CARD);
+        form.setLast4("   ");
+
+        when(accountsRepo.save(any(Account.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Account created = service.create(alice, form);
+        assertThat(created.getLast4()).isNull();
+    }
+
+    @Test
+    void createIgnoraLast4ParaContaQueNaoEhCartao() {
+        AccountForm form = new AccountForm();
+        form.setName("Aluguel");
+        form.setKind(AccountKind.BILL);
+        form.setLast4("1234");
+
+        when(accountsRepo.save(any(Account.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Account created = service.create(alice, form);
+        assertThat(created.getLast4()).isNull();
+    }
+
+    @Test
     void deleteFalhaSeContaTemLançamentos() {
         UUID id = UUID.randomUUID();
         Account a = newAccount(alice, "X", AccountKind.CARD);

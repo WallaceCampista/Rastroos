@@ -2,6 +2,7 @@ package com.rastroos.web.advice;
 
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.ModelAttribute;
 
 import com.rastroos.security.CurrentUser;
@@ -11,6 +12,11 @@ import com.rastroos.security.CurrentUser;
  * do menu da topbar): {@code userDisplayName} e {@code userInitial}. A inicial
  * é derivada do nome (ou do e-mail, se não houver nome), espelhando o cálculo
  * de iniciais do protótipo.
+ *
+ * <p>Também expõe {@code sideCollapsed}: o estado recolhido da sidebar,
+ * persistido num cookie leve de UI. Renderizar esse estado no servidor evita o
+ * "pisca" (expandido → recolhido) que aparecia quando o JS recolhia só depois
+ * do carregamento.
  */
 @ControllerAdvice
 public class UserModelAdvice {
@@ -19,6 +25,13 @@ public class UserModelAdvice {
 
     public UserModelAdvice(CurrentUser currentUser) {
         this.currentUser = currentUser;
+    }
+
+    @ModelAttribute("sideCollapsed")
+    public boolean sideCollapsed(
+            @CookieValue(name = "sideCollapsed", defaultValue = "false") String collapsed) {
+        // Parse leniente: só "true" recolhe. Um cookie malformado nunca vira 400.
+        return "true".equalsIgnoreCase(collapsed);
     }
 
     @ModelAttribute

@@ -60,6 +60,12 @@ spring:
     time-zone: UTC
     default-property-inclusion: non_null
 
+  # ── Uploads (extração de gasto por documento/foto da notinha) ──
+  servlet:
+    multipart:
+      max-file-size: 8MB
+      max-request-size: 10MB
+
 # ── Server ──────────────────────────────────────────────────
 server:
   port: 8080
@@ -104,6 +110,17 @@ alfredo:
   connect-timeout-ms: 3000
   read-timeout-ms: 15000
   history-window: 12
+
+# ── Extração de gasto (documento / foto da notinha) ────────
+# base-url vazio = modo demonstração (stub, sem chamada externa).
+# Preencha via env para habilitar a IA de visão real (multimodal).
+extraction:
+  base-url: ${EXTRACTION_API_BASE_URL:}
+  api-key: ${EXTRACTION_API_KEY:}
+  model: ${EXTRACTION_MODEL:}
+  max-file-size-bytes: 8388608
+  connect-timeout-ms: 3000
+  read-timeout-ms: 20000
 
 # ── Resilience4j (circuit breaker do Alfredo) ──────────────
 resilience4j:

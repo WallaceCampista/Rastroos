@@ -68,6 +68,15 @@
             </label>
         </div>
 
+        <label data-only-kind="CARD">
+            <span>Últimos 4 dígitos</span>
+            <input class="input" type="text" th:field="*{last4}"
+                   inputmode="numeric" pattern="\d{4}" maxlength="4" autocomplete="off"
+                   placeholder="1234">
+            <small class="form-hint field-help">Opcional. Mostrado no cartão como •••• 1234.</small>
+            <small th:if="${#fields.hasErrors('last4')}" th:errors="*{last4}" class="form-hint form-hint-err"></small>
+        </label>
+
         <label class="check-row" data-only-kind="BILL,RECURRENT">
             <input type="checkbox" th:field="*{fixed}">
             <span>Conta fixa</span>

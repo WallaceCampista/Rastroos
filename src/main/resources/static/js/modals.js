@@ -213,5 +213,14 @@
     backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeModal(); });
 
     // API para outros scripts abrirem conteúdo próprio no overlay.
-    window.RastroosModal = { openNode: openNode, close: closeModal, ensureStyles: ensureStyles };
+    // renderForm re-renderiza um <form> no modal já aberto (usado pela extração
+    // de gasto ao trocar o formulário vazio pelo pré-preenchido).
+    window.RastroosModal = {
+        openNode: openNode,
+        close: closeModal,
+        ensureStyles: ensureStyles,
+        renderForm: render,
+        FORM_SELECTOR: FORM_SELECTOR,
+        TITLE_SELECTOR: TITLE_SELECTOR,
+    };
 })();

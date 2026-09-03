@@ -4,7 +4,8 @@
       lang="pt-BR">
 <body>
 
-<aside class="sidebar" th:fragment="sidebar(active)">
+<aside class="sidebar" th:fragment="sidebar(active)"
+       th:classappend="${sideCollapsed} ? 'is-collapsed' : ''">
 
     <div class="brand">
         <button type="button" class="sidebar-burger" data-sidebar-toggle
@@ -163,10 +164,10 @@
     </div>
 
     <div class="sidebar-user">
-        <span class="user-avatar" th:text="${userInitial != null ? userInitial : '·'}">·</span>
+        <span class="sidebar-user-avatar" th:text="${userInitial != null ? userInitial : '·'}">·</span>
         <div class="user-info">
-            <div class="user-name" th:text="${userDisplayName != null ? userDisplayName : 'Minha conta'}">Minha conta</div>
-            <div class="user-email muted" sec:authentication="name">conta@rastro.app</div>
+            <div class="sidebar-user-name" th:text="${userDisplayName != null ? userDisplayName : 'Minha conta'}">Minha conta</div>
+            <div class="sidebar-user-email muted" sec:authentication="name">conta@rastro.app</div>
         </div>
         <form th:action="@{/auth/logout}" method="post" class="sidebar-user-form">
             <input type="hidden" th:if="${_csrf != null}"

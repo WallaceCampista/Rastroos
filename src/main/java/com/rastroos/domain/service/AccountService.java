@@ -214,6 +214,7 @@ public class AccountService {
                 a.getKind(),
                 a.getColorHex(),
                 a.getIconText(),
+                a.getLast4(),
                 a.getCloseDay(),
                 a.getDueDay(),
                 MoneyDto.fromCents(total),
@@ -303,6 +304,13 @@ public class AccountService {
         a.setFixed(form.getKind() != AccountKind.CARD && form.isFixed());
         a.setCloseDay(form.getKind() == AccountKind.CARD ? form.getCloseDay() : null);
         a.setDueDay(form.getKind() == AccountKind.CARD ? form.getDueDay() : null);
+        a.setLast4(form.getKind() == AccountKind.CARD ? normalizeLast4(form.getLast4()) : null);
+    }
+
+    private static String normalizeLast4(String last4) {
+        if (last4 == null) return null;
+        String trimmed = last4.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     private static String normalizeColor(String hex) {

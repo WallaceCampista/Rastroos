@@ -11,8 +11,11 @@
     grid-template-columns: 268px 1fr;
     height: 100vh;
     overflow: hidden;
-    transition: grid-template-columns .25s cubic-bezier(.3, .7, .4, 1);
 }
+/* A transição só entra depois do 1º frame (classe adicionada por app.js).
+   Assim o estado recolhido, renderizado pelo servidor, não "escorrega"
+   aberto→fechado a cada navegação — anima apenas no clique do usuário. */
+.app.is-collapsible { transition: grid-template-columns .25s cubic-bezier(.3, .7, .4, 1); }
 .app.side-collapsed { grid-template-columns: 76px 1fr; }
 
 .sidebar-wrap { position: relative; z-index: 30; }
@@ -220,7 +223,7 @@
     border: 1px solid var(--border);
     border-radius: 12px;
 }
-.user-avatar {
+.sidebar-user-avatar {
     width: 34px; height: 34px;
     border-radius: 10px;
     background: linear-gradient(135deg, var(--primary), color-mix(in oklch, var(--accent) 60%, var(--primary)));
@@ -228,10 +231,11 @@
     font-weight: 800; font-size: 12.5px;
     letter-spacing: 0.02em;
     display: inline-flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
 }
 .user-info { min-width: 0; }
-.user-name { font-size: 13px; font-weight: 700; }
-.user-email { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sidebar-user-name { font-size: 13px; font-weight: 700; }
+.sidebar-user-email { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .user-logout {
     width: 32px; height: 32px;
     display: inline-flex; align-items: center; justify-content: center;

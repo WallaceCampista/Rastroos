@@ -39,17 +39,33 @@ public class TopbarChipsInterceptor implements HandlerInterceptor {
         if (viewName != null && (viewName.startsWith("redirect:") || viewName.startsWith("forward:"))) {
             return;
         }
-        if (!(modelAndView.getModel().get("period") instanceof YearMonth period)) {
+
+        final UUID userId;
+        try {
+            userId = currentUser.requireEffectiveId();
+        } catch (RuntimeException ignored) {
+            // Sem usuário efetivo (landing/auth) → nada de chips/streak.
             return;
         }
+
+        // O streak (meses no/fora do controle) é por-usuário e independe do período,
+        // então aparece na sidebar de TODAS as telas do app (Alfredo, Acessores,
+        // Suporte inclusive), não só nas que expõem um `period`.
         try {
-            UUID userId = currentUser.requireEffectiveId();
-            modelAndView.addObject("monthChips", periodChips.yearChips(userId, period));
             PeriodChipsService.StreakView streak = periodChips.streak(userId);
             modelAndView.addObject("streakInControl", streak.inControl());
             modelAndView.addObject("streakOutControl", streak.outControl());
         } catch (RuntimeException ignored) {
-            // Sem chips/streak → o fragmento cai no seletor simples. Nunca quebra a página.
+            // Nunca quebra a página por causa do streak.
+        }
+
+        // Os chips de mês da topbar dependem de um período no modelo.
+        if (modelAndView.getModel().get("period") instanceof YearMonth period) {
+            try {
+                modelAndView.addObject("monthChips", periodChips.yearChips(userId, period));
+            } catch (RuntimeException ignored) {
+                // Sem chips → o fragmento cai no seletor simples.
+            }
         }
     }
 }
