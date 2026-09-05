@@ -45,4 +45,11 @@ class AlfredoAiClientTest {
         assertThat(client.reply(null, List.of())).isNotBlank();
         assertThat(client.reply("   ", List.of())).isNotBlank();
     }
+
+    @Test
+    void summarizeSemBaseUrlNaoChamaNadaExternoEDeixaOResumoLocalNoLugar() {
+        AlfredoAiClient client = new AlfredoAiClient(new AlfredoProperties());
+
+        assertThat(client.summarize("Tela: Visão geral\n- Total gasto: R$ 10,00")).isEmpty();
+    }
 }

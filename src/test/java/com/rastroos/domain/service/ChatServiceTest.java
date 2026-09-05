@@ -194,4 +194,79 @@ class ChatServiceTest {
         m.setCreatedAt(Instant.parse("2026-05-01T10:05:00Z"));
         return m;
     }
+
+    @Test
+    void startFromScreen_gravaOResumoComoPrimeiraFalaEPrefixaOTitulo() {
+        when(chats.save(any(Chat.class))).thenAnswer(inv -> {
+            Chat c = inv.getArgument(0);
+            if (c.getId() == null) c.setId(UUID.randomUUID());
+            return c;
+        });
+        when(messages.findAllByChatIdOrderByCreatedAtAsc(any())).thenReturn(List.of());
+        when(ai.reply(eq("Como reduzo isso?"), anyList())).thenReturn("Comece pelos fixos.");
+        when(messages.save(any(ChatMessage.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        ChatDetailDto detail = service.startFromScreen(
+                alice, "Visão geral", "Você gastou R$ 6.200,00 neste mês.", " Como reduzo isso? ");
+
+        assertThat(detail).isNotNull();
+
+        ArgumentCaptor<Chat> chatCaptor = ArgumentCaptor.forClass(Chat.class);
+        verify(chats).save(chatCaptor.capture());
+        assertThat(chatCaptor.getValue().getUserId()).isEqualTo(alice);
+        assertThat(chatCaptor.getValue().getTitle()).isEqualTo("Visão geral · Como reduzo isso?");
+
+        ArgumentCaptor<ChatMessage> msgCaptor = ArgumentCaptor.forClass(ChatMessage.class);
+        verify(messages, times(3)).save(msgCaptor.capture());
+        List<ChatMessage> saved = msgCaptor.getAllValues();
+        assertThat(saved.get(0).getRole()).isEqualTo(ChatMessageRole.ASSISTANT);
+        assertThat(saved.get(0).getContent()).isEqualTo("Você gastou R$ 6.200,00 neste mês.");
+        assertThat(saved.get(1).getRole()).isEqualTo(ChatMessageRole.USER);
+        assertThat(saved.get(1).getContent()).isEqualTo("Como reduzo isso?");
+        assertThat(saved.get(2).getRole()).isEqualTo(ChatMessageRole.ASSISTANT);
+        assertThat(saved.get(2).getContent()).isEqualTo("Comece pelos fixos.");
+    }
+
+    @Test
+    void startFromScreen_tituloLongoEhTruncadoNoLimiteDaColuna() {
+        when(chats.save(any(Chat.class))).thenAnswer(inv -> {
+            Chat c = inv.getArgument(0);
+            if (c.getId() == null) c.setId(UUID.randomUUID());
+            return c;
+        });
+        when(messages.findAllByChatIdOrderByCreatedAtAsc(any())).thenReturn(List.of());
+        when(ai.reply(any(), anyList())).thenReturn("ok");
+        when(messages.save(any(ChatMessage.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.startFromScreen(alice, "Cartões & Contas", "resumo", "x".repeat(200));
+
+        ArgumentCaptor<Chat> chatCaptor = ArgumentCaptor.forClass(Chat.class);
+        verify(chats).save(chatCaptor.capture());
+        assertThat(chatCaptor.getValue().getTitle())
+                .hasSizeLessThanOrEqualTo(ChatService.TITLE_MAX)
+                .startsWith("Cartões & Contas · ")
+                .endsWith("…");
+    }
+
+    @Test
+    void startAndDetail_semResumo_gravaSoOParPerguntaResposta() {
+        when(chats.save(any(Chat.class))).thenAnswer(inv -> {
+            Chat c = inv.getArgument(0);
+            if (c.getId() == null) c.setId(UUID.randomUUID());
+            return c;
+        });
+        when(messages.findAllByChatIdOrderByCreatedAtAsc(any())).thenReturn(List.of());
+        when(ai.reply(eq("E aí?"), anyList())).thenReturn("Tudo certo.");
+        when(messages.save(any(ChatMessage.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.startAndDetail(alice, "E aí?");
+
+        ArgumentCaptor<ChatMessage> msgCaptor = ArgumentCaptor.forClass(ChatMessage.class);
+        verify(messages, times(2)).save(msgCaptor.capture());
+        assertThat(msgCaptor.getAllValues().get(0).getRole()).isEqualTo(ChatMessageRole.USER);
+
+        ArgumentCaptor<Chat> chatCaptor = ArgumentCaptor.forClass(Chat.class);
+        verify(chats).save(chatCaptor.capture());
+        assertThat(chatCaptor.getValue().getTitle()).isEqualTo("E aí?");
+    }
 }

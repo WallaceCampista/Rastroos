@@ -1,10 +1,13 @@
 package com.rastroos.web.controller;
 
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
@@ -125,6 +128,21 @@ class DashboardControllerTest {
         mvc.perform(get("/app/dashboard").param("ym", "lixo"))
                 .andExpect(status().isOk())
                 .andExpect(model().attribute("period", YearMonth.of(2026, 5)));
+    }
+
+    @Test
+    void dashboardRenderizaOWidgetFlutuanteDoAlfredoApontandoParaATela() throws Exception {
+        when(dashboard.load(eq(userId), any())).thenReturn(emptyModel(YearMonth.of(2026, 5)));
+
+        mvc.perform(get("/app/dashboard"))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("alfredoWidget", true))
+                .andExpect(model().attribute("alfredoScreen", "dashboard"))
+                .andExpect(content().string(containsString("data-alfredo")))
+                .andExpect(content().string(containsString("data-screen=\"dashboard\"")))
+                .andExpect(content().string(containsString("data-ym=\"2026-05\"")))
+                // §2.3: o widget não pode trazer estilo/handler inline (a CSP bloquearia)
+                .andExpect(content().string(not(containsString("onclick="))));
     }
 
     private DashboardModel emptyModel(YearMonth ym) {

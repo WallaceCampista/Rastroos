@@ -97,6 +97,44 @@ public class ChatService {
         return chat.getId();
     }
 
+    /**
+     * Abre uma conversa a partir do resumo de uma tela (widget flutuante): o
+     * resumo entra como primeira fala do Alfredo e vira contexto da resposta,
+     * e a pergunta do usuário segue logo depois.
+     *
+     * <p>Como é uma conversa comum de {@code chats}, ela aparece no histórico
+     * da tela do Alfredo igual às demais — só o título ganha o prefixo da tela
+     * de origem para ficar reconhecível na lista.
+     */
+    @Transactional
+    public ChatDetailDto startFromScreen(UUID userId, String screenLabel,
+                                         String screenSummary, String question) {
+        return open(userId, screenLabel, screenSummary, question);
+    }
+
+    /**
+     * Abre uma conversa a partir de uma pergunta avulsa e devolve a thread —
+     * mesmo fluxo de {@link #start}, em JSON, para o chat flutuante das telas
+     * que não têm resumo.
+     */
+    @Transactional
+    public ChatDetailDto startAndDetail(UUID userId, String question) {
+        return open(userId, null, null, question);
+    }
+
+    private ChatDetailDto open(UUID userId, String titlePrefix, String seed, String question) {
+        String text = question.strip();
+        Chat chat = new Chat();
+        chat.setUserId(userId);
+        chat.setTitle(deriveTitle(titlePrefix, text));
+        chats.save(chat);
+        if (seed != null && !seed.isBlank()) {
+            saveMessage(chat.getId(), ChatMessageRole.ASSISTANT, seed);
+        }
+        exchange(chat.getId(), text);
+        return toDetail(chat);
+    }
+
     /** Envia nova mensagem numa conversa existente e responde. */
     @Transactional
     public ChatDetailDto send(UUID userId, UUID chatId, String message) {
@@ -151,10 +189,16 @@ public class ChatService {
     }
 
     private static String deriveTitle(String text) {
+        return deriveTitle(null, text);
+    }
+
+    /** Título derivado da mensagem, opcionalmente prefixado pela tela de origem. */
+    private static String deriveTitle(String prefix, String text) {
         String single = text.replaceAll("\\s+", " ").strip();
         if (single.isEmpty()) return "Nova conversa";
-        return single.length() > TITLE_MAX
-                ? single.substring(0, TITLE_MAX - 1).strip() + "…"
-                : single;
+        String full = (prefix == null || prefix.isBlank()) ? single : prefix.strip() + " · " + single;
+        return full.length() > TITLE_MAX
+                ? full.substring(0, TITLE_MAX - 1).strip() + "…"
+                : full;
     }
 }

@@ -110,6 +110,9 @@ alfredo:
   connect-timeout-ms: 3000
   read-timeout-ms: 15000
   history-window: 12
+  # Resumos de tela do widget flutuante: reaproveitados por 15 min enquanto os
+  # números da tela não mudarem (a chave do cache inclui os próprios valores).
+  insight-cache-ttl-seconds: ${ALFREDO_INSIGHT_TTL_SECONDS:900}
 
 # ── Extração de gasto (documento / foto da notinha) ────────
 # base-url vazio = modo demonstração (stub, sem chamada externa).

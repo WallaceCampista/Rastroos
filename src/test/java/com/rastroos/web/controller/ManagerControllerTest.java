@@ -1,11 +1,14 @@
 package com.rastroos.web.controller;
 
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
@@ -133,6 +136,18 @@ class ManagerControllerTest {
         mvc.perform(get("/app/manager").param("chat", "nao-e-uuid"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("app/manager"));
+    }
+
+    @Test
+    void managerNaoRenderizaOWidgetFlutuante() throws Exception {
+        when(service.load(eq(userId), eq(null)))
+                .thenReturn(new ManagerView(List.of(), null, List.of("Como estão meus gastos?")));
+
+        mvc.perform(get("/app/manager"))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("alfredoWidget", false))
+                .andExpect(content().string(not(containsString("data-alfredo"))))
+                .andExpect(content().string(containsString("mgr-hero-orb")));
     }
 
     @Test

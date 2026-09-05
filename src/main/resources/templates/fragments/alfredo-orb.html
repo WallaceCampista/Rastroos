@@ -1,0 +1,130 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
+<body>
+
+<!--
+  Widget flutuante do Alfredo (orbe + balão de resumo + chat).
+  Marcação apenas: comportamento em /js/alfredo-orb.js e estilo em
+  /css/alfredo-orb.css (§2.3 — nada inline).
+-->
+<div class="alf" data-alfredo th:fragment="orb"
+     th:attr="data-screen=${alfredoScreen},
+              data-screen-label=${alfredoScreenLabel},
+              data-ym=${period != null ? period.toString() : null},
+              data-csrf=${_csrf != null ? _csrf.token : null},
+              data-user-initial=${userInitial != null ? userInitial : '·'}"
+     th:data-insight-url="@{/api/v1/insights}"
+     th:data-chat-url="@{/api/v1/chats}"
+     th:data-manager-url="@{/app/manager}">
+
+    <!-- ── Balão de resumo ─────────────────────────────────────── -->
+    <div class="alf-bubble" data-alf-bubble hidden role="status" aria-live="polite">
+        <div class="alf-bubble-head">
+            <span class="alf-bubble-title">Alfredo:</span>
+            <span class="alf-bubble-screen" data-alf-bubble-screen th:text="${alfredoScreenLabel}"></span>
+            <button type="button" class="alf-bubble-close" data-alf-bubble-close
+                    aria-label="Fechar o resumo">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2.4" stroke-linecap="round" aria-hidden="true">
+                    <path d="M6 6l12 12M18 6L6 18"/>
+                </svg>
+            </button>
+        </div>
+
+        <button type="button" class="alf-bubble-text" data-alf-bubble-text
+                aria-label="Continuar essa conversa com o Alfredo">
+            <span data-alf-bubble-summary>…</span>
+            <span class="alf-bubble-cta">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M4 12h14M13 6l6 6-6 6"/>
+                </svg>
+                Perguntar sobre isso
+            </span>
+        </button>
+
+        <div class="alf-timeline" aria-hidden="true">
+            <span class="alf-timeline-fill" data-alf-timeline></span>
+        </div>
+        <span class="alf-bubble-tail" aria-hidden="true"></span>
+    </div>
+
+    <!-- ── Chat flutuante ──────────────────────────────────────── -->
+    <section class="alf-chat" data-alf-chat hidden aria-label="Conversa com o Alfredo">
+        <header class="alf-chat-head">
+            <span class="alf-chat-avatar" aria-hidden="true">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 3l2.4 5.6 6 .5-4.6 3.9 1.4 5.9L12 16.9 6.8 18.9l1.4-5.9L3.6 9.1l6-.5z"/>
+                </svg>
+            </span>
+            <div class="alf-chat-meta">
+                <p class="alf-chat-name">Alfredo</p>
+                <p class="alf-chat-sub" data-alf-chat-sub>Gerente financeiro</p>
+            </div>
+            <a class="alf-chat-expand" data-alf-chat-open th:href="@{/app/manager}" hidden
+               title="Abrir na tela do Alfredo" aria-label="Abrir na tela do Alfredo">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M14 4h6v6M20 4l-8 8M10 6H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4"/>
+                </svg>
+            </a>
+            <button type="button" class="alf-chat-new" data-alf-chat-new
+                    title="Nova conversa" aria-label="Começar uma nova conversa">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2.4" stroke-linecap="round" aria-hidden="true">
+                    <path d="M12 5v14M5 12h14"/>
+                </svg>
+            </button>
+            <button type="button" class="alf-chat-close" data-alf-chat-close
+                    aria-label="Fechar a conversa">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2.4" stroke-linecap="round" aria-hidden="true">
+                    <path d="M6 6l12 12M18 6L6 18"/>
+                </svg>
+            </button>
+        </header>
+
+        <div class="alf-chat-thread" data-alf-chat-thread aria-live="polite"></div>
+
+        <p class="alf-chat-error" data-alf-chat-error hidden></p>
+
+        <form class="alf-chat-form" data-alf-chat-form>
+            <textarea class="alf-chat-input" data-alf-chat-input rows="1" maxlength="2000"
+                      aria-label="Mensagem para o Alfredo"
+                      placeholder="Pergunte alguma coisa…"></textarea>
+            <button type="submit" class="alf-chat-send" data-alf-chat-send aria-label="Enviar">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M12 19V5M5 12l7-7 7 7"/>
+                </svg>
+            </button>
+        </form>
+    </section>
+
+    <!-- ── Orbe animado ────────────────────────────────────────── -->
+    <button type="button" class="alf-orb is-thinking" data-alf-orb aria-expanded="false"
+            aria-label="Alfredo — seu gerente financeiro">
+        <span class="alf-orb-halo" aria-hidden="true"></span>
+        <span class="alf-orb-wave" aria-hidden="true">
+            <svg viewBox="0 0 120 60" preserveAspectRatio="none" focusable="false">
+                <path class="alf-w alf-w1"
+                      d="M0,26 Q15,12 30,26 T60,26 T90,26 T120,26 T150,26 T180,26 T210,26 T240,26 V60 H0 Z"/>
+                <path class="alf-w alf-w2"
+                      d="M0,31 Q15,19 30,31 T60,31 T90,31 T120,31 T150,31 T180,31 T210,31 T240,31 V60 H0 Z"/>
+                <path class="alf-w alf-w3"
+                      d="M0,36 Q15,20 30,36 T60,36 T90,36 T120,36 T150,36 T180,36 T210,36 T240,36 V60 H0 Z"/>
+            </svg>
+        </span>
+        <span class="alf-orb-spark" aria-hidden="true">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 3l2.4 5.6 6 .5-4.6 3.9 1.4 5.9L12 16.9 6.8 18.9l1.4-5.9L3.6 9.1l6-.5z"/>
+            </svg>
+        </span>
+        <span class="alf-orb-badge" data-alf-orb-badge hidden aria-hidden="true"></span>
+    </button>
+</div>
+
+</body>
+</html>

@@ -15,6 +15,7 @@
     <link rel="stylesheet" th:href="@{/css/base.css}">
     <link rel="stylesheet" th:href="@{/css/layout.css}">
     <link rel="stylesheet" th:href="@{/css/components.css}">
+    <link rel="stylesheet" th:href="@{/css/alfredo-orb.css}">
 
     <!-- CSS específico da tela (do <head> de cada template) -->
     <th:block th:replace="${links} ?: ~{}"></th:block>
@@ -27,6 +28,7 @@
     <script th:src="@{/js/auth-password.js}" defer></script>
     <script th:src="@{/js/style-bindings.js}" defer></script>
     <script th:src="@{/js/kpi-motion.js}" defer></script>
+    <script th:src="@{/js/alfredo-orb.js}" defer></script>
 </head>
 <body class="app-body"
       th:attr="data-theme=${userTheme != null ? userTheme : 'dark'},
@@ -59,6 +61,12 @@
 <div class="modal-backdrop" data-modal-backdrop hidden>
     <div class="modal" data-modal-container role="dialog" aria-modal="true"></div>
 </div>
+
+<!-- Alfredo flutuante: em todas as telas do app, menos na do próprio Alfredo
+     (alfredoWidget vem do AlfredoWidgetInterceptor, a partir do activeNav). -->
+<th:block th:if="${alfredoWidget}">
+    <div th:replace="~{fragments/alfredo-orb :: orb}"></div>
+</th:block>
 
 <!-- JS específico da tela (do <head> de cada template) -->
 <th:block th:replace="${scripts} ?: ~{}"></th:block>

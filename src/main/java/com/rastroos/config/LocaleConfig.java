@@ -12,6 +12,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.i18n.LocaleChangeInterceptor;
 import org.springframework.web.servlet.i18n.SessionLocaleResolver;
 
+import com.rastroos.web.interceptor.AlfredoWidgetInterceptor;
 import com.rastroos.web.interceptor.TopbarChipsInterceptor;
 
 /**
@@ -26,9 +27,12 @@ public class LocaleConfig implements WebMvcConfigurer {
     // e essa configuração ainda precisa subir sem quebrar. Em produção o bean
     // existe e é registrado normalmente.
     private final ObjectProvider<TopbarChipsInterceptor> topbarChipsInterceptor;
+    private final ObjectProvider<AlfredoWidgetInterceptor> alfredoWidgetInterceptor;
 
-    public LocaleConfig(ObjectProvider<TopbarChipsInterceptor> topbarChipsInterceptor) {
+    public LocaleConfig(ObjectProvider<TopbarChipsInterceptor> topbarChipsInterceptor,
+                        ObjectProvider<AlfredoWidgetInterceptor> alfredoWidgetInterceptor) {
         this.topbarChipsInterceptor = topbarChipsInterceptor;
+        this.alfredoWidgetInterceptor = alfredoWidgetInterceptor;
     }
 
     public static final Locale DEFAULT_LOCALE = Locale.of("pt", "BR");
@@ -60,5 +64,6 @@ public class LocaleConfig implements WebMvcConfigurer {
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(localeChangeInterceptor());
         topbarChipsInterceptor.ifAvailable(registry::addInterceptor);
+        alfredoWidgetInterceptor.ifAvailable(registry::addInterceptor);
     }
 }

@@ -1,0 +1,603 @@
+/* ─────────────────────────────────────────────────────────────
+   Rastro$ — widget flutuante do Alfredo
+   ─────────────────────────────────────────────────────────────
+   Orbe animado (ondas tipo Siri) no canto inferior direito, balão
+   de resumo com linha do tempo de exibição e chat flutuante que
+   "sai de dentro" do orbe (transform-origin no canto do orbe).
+
+   Sem estilo inline (§2.3): o JS só escreve variáveis CSS via
+   CSSOM (--alf-timeout), que a CSP `style-src 'self'` permite.
+   ───────────────────────────────────────────────────────────── */
+
+.alf {
+    position: fixed;
+    right: 22px;
+    bottom: 22px;
+    z-index: 90; /* abaixo do modal-backdrop (100) */
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 12px;
+    pointer-events: none; /* só os filhos capturam clique */
+    font-family: var(--font);
+}
+
+.alf > * {
+    pointer-events: auto;
+}
+
+/* O `hidden` do HTML tem que vencer os `display` declarados abaixo (.alf-chat
+   é flex, .alf-chat-expand é inline-flex): sem isto o painel de chat nasceria
+   aberto. Escondemos/mostramos por atributo, nunca por style inline (§2.3). */
+.alf [hidden] {
+    display: none !important;
+}
+
+/* ── Orbe ────────────────────────────────────────────────────── */
+.alf-orb {
+    position: relative;
+    width: 72px;
+    height: 72px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    border: 1px solid var(--border-2);
+    /* Fundo escuro fixo nos dois temas: o orbe é um elemento de marca flutuante
+       e a estrela branca precisa de contraste — no tema claro um fundo claro
+       apagaria a marca e as ondas. */
+    background: linear-gradient(160deg, #1b2138, #0b1022);
+    color: #fff;
+    padding: 0;
+    cursor: pointer;
+    overflow: hidden;
+    isolation: isolate;
+    box-shadow:
+        0 16px 40px -12px rgba(0, 0, 0, 0.55),
+        0 0 0 1px color-mix(in oklch, var(--primary) 22%, transparent),
+        0 0 34px -10px color-mix(in oklch, var(--primary) 70%, transparent);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.alf-orb:hover  { transform: translateY(-2px) scale(1.04); }
+.alf-orb:active { transform: scale(0.97); }
+
+.alf-orb:focus-visible {
+    outline: 2px solid var(--primary-2);
+    outline-offset: 3px;
+}
+
+/* Halo pulsante — sinaliza que o Alfredo está "pensando" no resumo. */
+.alf-orb-halo {
+    position: absolute;
+    inset: -1px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 50% 120%,
+        color-mix(in oklch, var(--primary) 65%, transparent), transparent 62%);
+    opacity: 0.75;
+}
+
+.alf-orb.is-thinking .alf-orb-halo {
+    animation: alf-halo 1.5s ease-in-out infinite;
+}
+
+@keyframes alf-halo {
+    0%, 100% { opacity: 0.45; }
+    50%      { opacity: 1; }
+}
+
+/* Ondas: 3 senoides sobrepostas deslizando em velocidades diferentes. */
+.alf-orb-wave {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    overflow: hidden;
+}
+
+.alf-orb-wave svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.alf-w {
+    transform-box: view-box;
+    transform-origin: 0 0;
+    /* Cada path tem 4 períodos (240u) num viewBox de 120u: deslizar exatamente
+       um período (60u) devolve a mesma silhueta → laço sem emenda. */
+    animation: alf-slide 3.6s linear infinite;
+}
+
+/* Três camadas de matiz distinto (marca, acento, ciano) em profundidades
+   diferentes: sobrepostas, dão o brilho iridescente da onda. */
+.alf-w1 { fill: var(--info);    opacity: 0.45; animation-duration: 7.4s; }
+.alf-w2 { fill: var(--accent);  opacity: 0.6;  animation-duration: 5.2s; animation-direction: reverse; }
+.alf-w3 { fill: var(--primary); opacity: 0.95; animation-duration: 3.6s; }
+
+@keyframes alf-slide {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-60px); }
+}
+
+/* Enquanto pensa, as ondas aceleram; em repouso, respiram devagar. */
+.alf-orb.is-thinking .alf-w1 { animation-duration: 2.2s; }
+.alf-orb.is-thinking .alf-w2 { animation-duration: 1.6s; }
+.alf-orb.is-thinking .alf-w3 { animation-duration: 1.15s; }
+
+.alf-orb-spark {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.45));
+    transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.alf-orb.is-thinking .alf-orb-spark {
+    opacity: 0.35;
+    transform: scale(0.82);
+}
+
+/* Ponto de aviso quando há resumo novo e o balão foi fechado. */
+.alf-orb-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 2px #0b1022;
+}
+
+/* ── Balão de resumo ─────────────────────────────────────────── */
+.alf-bubble {
+    position: relative;
+    width: min(410px, calc(100vw - 44px));
+    background: var(--panel-bg);
+    border: 1px solid var(--border-2);
+    border-radius: 18px;
+    box-shadow: 0 24px 56px -22px rgba(0, 0, 0, 0.7);
+    transform-origin: bottom right;
+    animation: alf-bubble-in 0.34s cubic-bezier(0.2, 1.15, 0.35, 1);
+}
+
+.alf-bubble.is-leaving {
+    animation: alf-bubble-out 0.22s ease forwards;
+    pointer-events: none;
+}
+
+@keyframes alf-bubble-in {
+    from { opacity: 0; transform: translate(10px, 14px) scale(0.86); }
+    to   { opacity: 1; transform: translate(0, 0) scale(1); }
+}
+
+@keyframes alf-bubble-out {
+    to { opacity: 0; transform: translate(6px, 8px) scale(0.94); }
+}
+
+/* Bico apontando para o orbe. Fica fora do balão, por isso o balão não pode
+   recortar o overflow — quem arredonda a base é a própria linha do tempo. */
+.alf-bubble-tail {
+    position: absolute;
+    right: 28px;
+    bottom: -7px;
+    width: 14px;
+    height: 14px;
+    background: var(--surface);
+    border-right: 1px solid var(--border-2);
+    border-bottom: 1px solid var(--border-2);
+    border-bottom-right-radius: 3px;
+    transform: rotate(45deg);
+}
+
+.alf-bubble-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 14px 8px 18px;
+}
+
+.alf-bubble-title {
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: 0.2px;
+    background: linear-gradient(90deg, var(--primary-2), var(--accent));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.alf-bubble-screen {
+    flex: 1;
+    min-width: 0;
+    font-size: 12px;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.alf-bubble-close {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.alf-bubble-close:hover {
+    background: var(--surface-3);
+    color: var(--text);
+}
+
+.alf-bubble-text {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 0 18px 15px;
+    background: transparent;
+    border: 0;
+    color: var(--text);
+    font: inherit;
+    font-size: 14.5px;
+    line-height: 1.6;
+    cursor: pointer;
+}
+
+.alf-bubble-text:hover .alf-bubble-cta,
+.alf-bubble-text:focus-visible .alf-bubble-cta {
+    color: var(--primary-2);
+}
+
+/* O resumo é bloco para o CTA nunca emendar na última linha do texto
+   (os dois são spans no mesmo botão). */
+.alf-bubble-text > [data-alf-bubble-summary] {
+    display: block;
+}
+
+.alf-bubble-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 12px;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--muted);
+    transition: color 0.15s ease;
+}
+
+/* Linha do tempo: consome a duração de exibição do balão. O fim da
+   animação é o gatilho do fechamento (JS), então parar a animação no
+   hover/foco pausa a contagem — sem timer paralelo para dessincronizar. */
+.alf-timeline {
+    height: 4px;
+    overflow: hidden;
+    border-bottom-left-radius: 17px;
+    border-bottom-right-radius: 17px;
+    background: color-mix(in oklch, var(--border-2) 70%, transparent);
+}
+
+.alf-timeline-fill {
+    display: block;
+    height: 100%;
+    width: 100%;
+    transform-origin: left center;
+    background: linear-gradient(90deg, var(--primary), var(--accent));
+}
+
+.alf-bubble.is-timing .alf-timeline-fill {
+    animation: alf-countdown var(--alf-timeout, 16s) linear forwards;
+}
+
+.alf-bubble:hover .alf-timeline-fill,
+.alf-bubble:focus-within .alf-timeline-fill {
+    animation-play-state: paused;
+}
+
+@keyframes alf-countdown {
+    from { transform: scaleX(1); }
+    to   { transform: scaleX(0); }
+}
+
+/* ── Chat flutuante ──────────────────────────────────────────── */
+.alf-chat {
+    display: flex;
+    flex-direction: column;
+    width: min(410px, calc(100vw - 44px));
+    height: min(540px, calc(100vh - 160px));
+    background: var(--surface);
+    border: 1px solid var(--border-2);
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 30px 70px -26px rgba(0, 0, 0, 0.75);
+    transform-origin: bottom right;
+    animation: alf-chat-in 0.36s cubic-bezier(0.2, 1.1, 0.35, 1);
+}
+
+.alf-chat.is-leaving {
+    animation: alf-chat-out 0.2s ease forwards;
+    pointer-events: none;
+}
+
+/* Sai de dentro do orbe: escala mínima ancorada no canto inferior direito. */
+@keyframes alf-chat-in {
+    from { opacity: 0; transform: translate(14px, 24px) scale(0.22); }
+    50%  { opacity: 1; }
+    to   { opacity: 1; transform: translate(0, 0) scale(1); }
+}
+
+@keyframes alf-chat-out {
+    to { opacity: 0; transform: translate(14px, 24px) scale(0.24); }
+}
+
+.alf-chat-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 12px 12px 14px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-2);
+}
+
+.alf-chat-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    color: #fff;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    box-shadow: 0 0 12px color-mix(in oklch, var(--primary) 50%, transparent);
+}
+
+.alf-chat-meta {
+    flex: 1;
+    min-width: 0;
+}
+
+.alf-chat-name {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--text);
+}
+
+.alf-chat-sub {
+    margin: 0;
+    font-size: 11px;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.alf-chat-expand,
+.alf-chat-new,
+.alf-chat-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    flex: 0 0 auto;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.alf-chat-expand:hover,
+.alf-chat-new:hover,
+.alf-chat-close:hover {
+    background: var(--surface-3);
+    color: var(--text);
+}
+
+.alf-chat-new:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.alf-chat-thread {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 16px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.alf-msg {
+    display: flex;
+    gap: 9px;
+    max-width: 92%;
+    animation: alf-msg-in 0.24s cubic-bezier(0.3, 1.2, 0.5, 1);
+}
+
+@keyframes alf-msg-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.alf-msg-asst { align-self: flex-start; }
+.alf-msg-user { align-self: flex-end; flex-direction: row-reverse; }
+
+.alf-msg-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    font-size: 11px;
+    font-weight: 800;
+    color: #fff;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+}
+
+.alf-msg-user .alf-msg-avatar {
+    background: linear-gradient(135deg, var(--primary),
+        color-mix(in oklch, var(--accent) 60%, var(--primary)));
+}
+
+.alf-msg-bubble {
+    padding: 10px 13px;
+    border-radius: 13px;
+    border-top-left-radius: 4px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 13px;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.alf-msg-user .alf-msg-bubble {
+    background: linear-gradient(180deg, var(--primary),
+        color-mix(in oklch, var(--primary) 80%, black));
+    color: #fff;
+    border-color: transparent;
+    border-radius: 13px;
+    border-top-right-radius: 4px;
+}
+
+.alf-typing {
+    display: inline-flex;
+    gap: 4px;
+    align-items: center;
+    padding: 4px 2px;
+}
+
+.alf-typing span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--muted);
+    animation: alf-typing 1.1s ease-in-out infinite;
+}
+
+.alf-typing span:nth-child(2) { animation-delay: 0.16s; }
+.alf-typing span:nth-child(3) { animation-delay: 0.32s; }
+
+@keyframes alf-typing {
+    0%, 60%, 100% { opacity: 0.28; transform: translateY(0); }
+    30%           { opacity: 1;    transform: translateY(-3px); }
+}
+
+.alf-chat-error {
+    margin: 0;
+    padding: 8px 14px;
+    font-size: 12px;
+    color: var(--danger);
+    background: color-mix(in oklch, var(--danger) 12%, transparent);
+    border-top: 1px solid var(--border);
+}
+
+.alf-chat-form {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+    padding: 12px 14px;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+}
+
+.alf-chat-input {
+    width: 100%;
+    max-height: 110px;
+    resize: none;
+    overflow-y: hidden; /* o JS liga a rolagem só quando bate no teto */
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 13px;
+    color: var(--text);
+    font: inherit;
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.alf-chat-input:focus {
+    outline: none;
+    border-color: color-mix(in oklch, var(--primary) 55%, var(--border));
+}
+
+.alf-chat-send {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    align-self: end;
+    height: 40px;
+    border: 0;
+    border-radius: 12px;
+    color: #fff;
+    background: linear-gradient(135deg, var(--primary), var(--primary-2));
+    cursor: pointer;
+    transition: filter 0.15s ease, opacity 0.15s ease;
+}
+
+.alf-chat-send:hover:not(:disabled) { filter: brightness(1.08); }
+.alf-chat-send:disabled { opacity: 0.5; cursor: default; }
+
+/* ── "Ocultar valores": o resumo cita números, então segue a regra ── */
+.app-body.values-hidden .alf-bubble-text span[data-alf-bubble-summary],
+.app-body.values-hidden .alf-msg-bubble {
+    filter: blur(6px);
+    user-select: none;
+}
+
+/* ── Telas estreitas ─────────────────────────────────────────── */
+@media (max-width: 640px) {
+    .alf {
+        right: 14px;
+        bottom: 14px;
+        left: 14px;
+        align-items: flex-end;
+    }
+
+    .alf-bubble,
+    .alf-chat {
+        width: 100%;
+    }
+
+    .alf-chat {
+        height: min(70vh, calc(100vh - 120px));
+    }
+}
+
+/* ── Acessibilidade: sem movimento ───────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+    .alf-w,
+    .alf-orb-halo,
+    .alf-typing span {
+        animation: none;
+    }
+
+    .alf-bubble,
+    .alf-chat,
+    .alf-msg {
+        animation-duration: 0.01ms;
+    }
+
+    /* A contagem continua (é o gatilho do fechamento), só sem transição visual. */
+    .alf-bubble.is-timing .alf-timeline-fill {
+        animation-timing-function: linear;
+    }
+}

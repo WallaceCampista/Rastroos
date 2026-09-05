@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,12 +63,29 @@ public class AlfredoAiClient {
         if (restClient == null) {
             return stubReply(userMessage);
         }
-        return callRemote(userMessage, history);
+        return callRemote(userMessage, history, props.getSystemPrompt());
     }
 
-    private String callRemote(String userMessage, List<ChatMessage> history) {
+    /**
+     * Reescreve, na voz do Alfredo, o resumo de uma tela a partir dos números
+     * que o servidor já calculou ({@code prompt}).
+     *
+     * <p>Devolve {@link Optional#empty()} quando não há IA configurada ou
+     * quando o provedor falha (circuit breaker aberto, timeout, resposta
+     * vazia): nesses casos o chamador usa o resumo local determinístico, que
+     * já é montado a partir dos mesmos números.
+     */
+    @CircuitBreaker(name = "alfredo", fallbackMethod = "summarizeFallback")
+    public Optional<String> summarize(String prompt) {
+        if (restClient == null) {
+            return Optional.empty();
+        }
+        return Optional.of(callRemote(prompt, List.of(), props.getInsightSystemPrompt()));
+    }
+
+    private String callRemote(String userMessage, List<ChatMessage> history, String systemPrompt) {
         List<Map<String, String>> messages = new ArrayList<>();
-        messages.add(Map.of("role", "system", "content", props.getSystemPrompt()));
+        messages.add(Map.of("role", "system", "content", systemPrompt));
 
         int window = Math.max(0, props.getHistoryWindow());
         List<ChatMessage> recent = history.size() > window
@@ -119,6 +137,13 @@ public class AlfredoAiClient {
         return "No momento não consegui falar com o motor de IA. Enquanto isso, dê uma olhada "
                 + "nos seus vencimentos do mês em Gastos e no saldo em Visão geral. "
                 + "Tente novamente em alguns instantes.";
+    }
+
+    /** Fallback do circuit breaker do resumo: cai no texto local do servidor. */
+    @SuppressWarnings("unused")
+    private Optional<String> summarizeFallback(String prompt, Throwable t) {
+        log.warn("Alfredo indisponível para resumo ({}), usando o resumo local", t.toString());
+        return Optional.empty();
     }
 
     /**

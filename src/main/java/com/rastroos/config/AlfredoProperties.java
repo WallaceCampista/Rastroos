@@ -36,6 +36,21 @@ public class AlfredoProperties {
     /** Quantas mensagens recentes do histórico enviar como contexto. */
     private int historyWindow = 12;
 
+    /**
+     * Instrução de sistema dos resumos de tela (widget flutuante). Difere do
+     * {@link #systemPrompt}: pede texto curto e proíbe inventar números — os
+     * dados vêm prontos no prompt, calculados pelo servidor.
+     */
+    private String insightSystemPrompt =
+            "Você é o Alfredo, gerente financeiro pessoal do Rastro$. "
+            + "Escreva UM resumo curto (2 a 3 frases, no máximo 55 palavras) em português do Brasil "
+            + "sobre a situação atual da tela e o cuidado mais importante a tomar. "
+            + "Use SOMENTE os números fornecidos; nunca invente valores, percentuais ou datas. "
+            + "Fale direto com a pessoa, sem saudação, sem listas, sem markdown e sem prometer rendimentos.";
+
+    /** Por quanto tempo um resumo já gerado é reaproveitado (segundos). */
+    private int insightCacheTtlSeconds = 900;
+
     public boolean isEnabled() {
         return baseUrl != null && !baseUrl.isBlank();
     }
@@ -60,4 +75,14 @@ public class AlfredoProperties {
 
     public int getHistoryWindow() { return historyWindow; }
     public void setHistoryWindow(int historyWindow) { this.historyWindow = historyWindow; }
+
+    public String getInsightSystemPrompt() { return insightSystemPrompt; }
+    public void setInsightSystemPrompt(String insightSystemPrompt) {
+        this.insightSystemPrompt = insightSystemPrompt;
+    }
+
+    public int getInsightCacheTtlSeconds() { return insightCacheTtlSeconds; }
+    public void setInsightCacheTtlSeconds(int insightCacheTtlSeconds) {
+        this.insightCacheTtlSeconds = insightCacheTtlSeconds;
+    }
 }
