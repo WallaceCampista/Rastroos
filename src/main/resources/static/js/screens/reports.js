@@ -53,6 +53,8 @@
 
         draw();
         C.onResize(draw);
+        // Canvas não reage a var(--text)/var(--primary): repinta no tema novo.
+        C.onThemeChange(draw);
     }
 
     if (document.readyState === "loading") {

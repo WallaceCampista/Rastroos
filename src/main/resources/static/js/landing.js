@@ -224,15 +224,29 @@
     }
   });
 
-  /* Feedback visual no submit (evita duplo clique). */
+  /* Feedback visual no submit (evita duplo clique).
+     O botão troca o rótulo por um disco girando: o texto "Enviando…" mudava a
+     largura do botão a cada clique e dizia menos do que o próprio movimento.
+     O aria-label mantém o estado legível para leitor de tela. */
   overlay.querySelectorAll('form').forEach(form => {
     form.addEventListener('submit', () => {
       const btn = form.querySelector('.login-submit');
-      if (btn && !btn.disabled) {
-        btn.dataset.original = btn.innerHTML;
-        btn.disabled = true;
-        btn.innerHTML = 'Enviando…';
-      }
+      if (!btn || btn.disabled) return;
+
+      // Fixa a altura (height, não min-height) medida ANTES da troca: o disco
+      // de 18px é mais alto que a linha do texto, então com min-height o
+      // conteúdo ainda esticava o botão e ele "pulava" 3px ao clicar.
+      btn.style.height = btn.offsetHeight + 'px';
+      btn.dataset.original = btn.innerHTML;
+      btn.disabled = true;
+      btn.setAttribute('aria-busy', 'true');
+      btn.setAttribute('aria-label', 'Enviando');
+      btn.classList.add('is-loading');
+
+      const spinner = document.createElement('span');
+      spinner.className = 'login-spinner';
+      spinner.setAttribute('aria-hidden', 'true');
+      btn.replaceChildren(spinner);
     });
   });
 })();

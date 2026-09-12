@@ -18,6 +18,16 @@
         body.setAttribute('data-' + name, String(value));
     };
 
+    /**
+     * CSS reage sozinho à troca de tema (var(--text) e afins), mas canvas não:
+     * o que já foi pintado é bitmap e congela nas cores antigas — era por isso
+     * que o donut "Gastos por categoria" ficava escuro com letras claras depois
+     * de mudar para o tema claro. Quem desenha em canvas escuta este evento.
+     */
+    const announce = () => {
+        window.dispatchEvent(new CustomEvent('rastroos:themechange'));
+    };
+
     const stored = {
         theme:   localStorage.getItem(THEME_KEY),
         density: localStorage.getItem(DENSITY_KEY),
@@ -32,14 +42,17 @@
         setTheme(theme) {
             localStorage.setItem(THEME_KEY, theme);
             setAttr('theme', theme);
+            announce();
         },
         setDensity(density) {
             localStorage.setItem(DENSITY_KEY, density);
             setAttr('density', density);
+            announce();
         },
         setPalette(index) {
             localStorage.setItem(PALETTE_KEY, String(index));
             setAttr('palette', String(index));
+            announce();
         },
         current() {
             return {

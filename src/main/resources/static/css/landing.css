@@ -1728,3 +1728,26 @@ footer {
 /* ─────────────────────────────────────────────────────────────────────────
    END
    ───────────────────────────────────────────────────────────────────────── */
+
+/* Disco girando no submit do login (substitui o antigo texto "Enviando…"). */
+.login-submit.is-loading {
+  cursor: progress;
+  /* A altura vem do landing.js, medida antes da troca (um valor fixo aqui
+     mudava o tamanho do botão no clique). */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+/* O brilho de hover não faz sentido enquanto carrega. */
+.login-submit.is-loading::after { content: none; }
+.login-spinner {
+  width: 18px; height: 18px;
+  border: 2.5px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: login-spin .7s linear infinite;
+}
+@keyframes login-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .login-spinner { animation-duration: 2s; }
+}

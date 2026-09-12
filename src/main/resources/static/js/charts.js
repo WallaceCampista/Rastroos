@@ -6,6 +6,7 @@
 //   • donut(canvas, segments, opts)   — rosca proporcional
 //   • multiLine(canvas, {labels, series}) — várias linhas com eixo
 //   • onResize(fn)                    — redesenho responsivo (rAF)
+//   • onThemeChange(fn)               — redesenho ao trocar tema/paleta
 //
 // Os dados vêm de JSON inline (gerado pelo Thymeleaf) — nunca th:utext.
 // ─────────────────────────────────────────────────────────────
@@ -284,11 +285,21 @@
         });
     }
 
+    /**
+     * Redesenha quando o tema (claro/escuro) ou a paleta muda. CSS reage
+     * sozinho a var(--text); canvas não — o que já foi pintado é bitmap e
+     * ficaria com as cores do tema anterior.
+     */
+    function onThemeChange(fn) {
+        window.addEventListener("rastroos:themechange", fn);
+    }
+
     window.RastroCharts = {
         donut: donut,
         multiLine: multiLine,
         treemap: treemap,
         onResize: onResize,
+        onThemeChange: onThemeChange,
         readJson: function (id) {
             var el = document.getElementById(id);
             if (!el) return null;

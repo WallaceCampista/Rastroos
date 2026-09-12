@@ -155,7 +155,6 @@ class AccountControllerTest {
                 .andExpect(status().isNotFound());
     }
 
-    /** Grava o HTML real do modal para o harness de layout (ver scratchpad). */
     @Test
     void deleteConfirmRenderizaOModalDeEscopo() throws Exception {
         UUID id = UUID.randomUUID();
@@ -171,8 +170,6 @@ class AccountControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(view().name("app/account-delete-confirm"))
                 .andReturn().getResponse().getContentAsString();
-        java.nio.file.Files.writeString(java.nio.file.Path.of(
-                System.getProperty("java.io.tmpdir"), "rastroos-acct-del.html"), html);
 
         org.assertj.core.api.Assertions.assertThat(html)
                 .contains("data-modal-content")

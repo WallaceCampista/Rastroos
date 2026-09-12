@@ -121,18 +121,21 @@ class TransactionControllerTest {
                 .andExpect(model().attributeExists("view", "filter", "accounts", "categories"));
     }
 
-    /** Grava o HTML real do form para o harness de layout (ver scratchpad). */
+    /**
+     * Conta e "já está pago" somem no gasto fixo, e Permanente só aparece lá.
+     * Quem alterna é o form-widgets.js pelos marcadores abaixo — sem eles no
+     * HTML, o modo fixo volta a exibir campos que não se aplicam.
+     */
     @Test
-    void newFormGravaHtmlParaInspecao() throws Exception {
+    void newFormMarcaOsCamposExclusivosDeCadaModo() throws Exception {
         String html = mvc.perform(get("/app/expenses/new"))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
-        java.nio.file.Files.writeString(java.nio.file.Path.of(
-                System.getProperty("java.io.tmpdir"), "rastroos-tx-form.html"), html);
 
         org.assertj.core.api.Assertions.assertThat(html)
                 .contains("data-tx-fixed-only")
-                .contains("data-tx-variable-only");
+                .contains("data-tx-variable-only")
+                .contains("data-tx-permanent");
     }
 
     @Test
