@@ -9,7 +9,9 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import com.rastroos.domain.entity.User;
+import com.rastroos.domain.entity.enums.UserDensity;
 import com.rastroos.domain.entity.enums.UserStatus;
+import com.rastroos.domain.entity.enums.UserTheme;
 
 /**
  * Adaptador da entity {@link User} para o contrato {@link UserDetails} do
@@ -27,6 +29,10 @@ public class CustomUserDetails implements UserDetails {
     private final UUID accessesUserId;
     private final boolean valuesMasked;
     private final String targetName;
+    private final UserTheme theme;
+    private final short paletteIndex;
+    private final UserDensity density;
+    private final boolean onboardingPending;
     private final List<GrantedAuthority> authorities;
 
     public CustomUserDetails(User user) {
@@ -43,6 +49,10 @@ public class CustomUserDetails implements UserDetails {
         this.accessesUserId = user.getAccessesUserId();
         this.valuesMasked = user.isValuesMasked();
         this.targetName = targetName;
+        this.theme = user.getTheme();
+        this.paletteIndex = user.getPaletteIndex();
+        this.density = user.getDensity();
+        this.onboardingPending = user.getOnboardingCompletedAt() == null;
         this.authorities = List.of(
                 new SimpleGrantedAuthority("ROLE_" + user.getRole().name())
         );
@@ -63,6 +73,13 @@ public class CustomUserDetails implements UserDetails {
 
     /** Nome do usuário-alvo (para o banner "Acessando: …"); {@code null} se não-acessor. */
     public String getTargetName() { return targetName; }
+
+    public UserTheme getTheme() { return theme; }
+    public short getPaletteIndex() { return paletteIndex; }
+    public UserDensity getDensity() { return density; }
+
+    /** {@code true} enquanto o usuário não concluiu nem dispensou o wizard de boas-vindas. */
+    public boolean isOnboardingPending() { return onboardingPending; }
 
     public boolean isAccessor() {
         return authorities.stream().anyMatch(a -> "ROLE_ACESSOR".equals(a.getAuthority()));

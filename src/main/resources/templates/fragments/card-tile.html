@@ -6,7 +6,7 @@
 <!-- Card de conta/cartão (clica para abrir o detalhe abaixo) -->
 <button th:fragment="tile(acc, mask)" type="button"
         class="card-tile"
-        th:classappend="${acc.kind().name() == 'CARD' ? 'card-tile-cartao' : ''} + ' st-card-' + ${acc.status()}"
+        th:classappend="${acc.kind().isCard() ? 'card-tile-cartao' : ''} + ' st-card-' + ${acc.status()}"
         th:attr="data-account-detail-url=@{/app/cards/{id}/detail(id=${acc.id()})},data-color=${acc.colorHex()},data-due-day=${acc.dueDay() != null ? acc.dueDay() : 99}"
         th:with="barVal=${acc.status() == 'paid' ? 100 : (acc.paidPercent() == 0 ? 100 : acc.paidPercent())}">
     <div class="card-tile-top">
@@ -17,6 +17,7 @@
             <div class="card-tile-type">
                 <span th:switch="${acc.kind().name()}">
                     <th:block th:case="'CARD'">Fatura</th:block>
+                    <th:block th:case="'DEBIT'">Débito</th:block>
                     <th:block th:case="'BILL'">Fixo</th:block>
                     <th:block th:case="*">mensal</th:block>
                 </span><span th:if="${acc.dueDay() != null}"> · Vence dia <span th:text="${acc.dueDay()}">10</span></span><span
@@ -49,8 +50,8 @@
 
     <div class="card-tile-foot">
         <span class="muted"><span th:text="${acc.entriesCount()}">0</span>
-            <th:block th:if="${acc.kind().name() == 'CARD'}">lançamentos</th:block>
-            <th:block th:unless="${acc.kind().name() == 'CARD'}">contas</th:block></span>
+            <th:block th:if="${acc.kind().isCard()}">lançamentos</th:block>
+            <th:block th:unless="${acc.kind().isCard()}">contas</th:block></span>
         <span>
             <span class="money money-sm" th:text="${(mask ? '••••' : 'R$ ' + #numbers.formatDecimal(acc.paid(), 1, 'POINT', 2, 'COMMA'))}">R$ 0,00</span>
             / <span class="money money-sm" th:text="${(mask ? '••••' : 'R$ ' + #numbers.formatDecimal(acc.total(), 1, 'POINT', 2, 'COMMA'))}">R$ 0,00</span>

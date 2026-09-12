@@ -17,14 +17,24 @@
         <div>
             <div class="income-hero-label">Total recebido</div>
             <div class="income-hero-value"
-                 th:data-amount="${maskValues ? '' : view.totalAmount()}"
-                 th:text="${maskValues ? '••••' : 'R$ ' + #numbers.formatDecimal(view.totalAmount(), 1, 'POINT', 2, 'COMMA')}">R$ 0,00</div>
+                 th:data-amount="${maskValues ? '' : view.receivedAmount()}"
+                 th:text="${maskValues ? '••••' : 'R$ ' + #numbers.formatDecimal(view.receivedAmount(), 1, 'POINT', 2, 'COMMA')}">R$ 0,00</div>
             <div class="income-hero-sub"><span th:text="${view.totalElements()}">0</span> lançamentos neste mês</div>
+            <div class="income-hero-pending" th:if="${view.pendingAmount().signum() > 0}">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                <span th:text="${maskValues ? '•••• a receber' : 'R$ ' + #numbers.formatDecimal(view.pendingAmount(), 1, 'POINT', 2, 'COMMA') + ' a receber'}">R$ 0,00 a receber</span>
+            </div>
         </div>
-        <a class="btn btn-primary" data-modal-url th:href="@{/app/income/new}" sec:authorize="!hasRole('ACESSOR')">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
-            Lançar receita
-        </a>
+        <div class="income-hero-actions" sec:authorize="!hasRole('ACESSOR')">
+            <a class="btn" data-modal-url th:href="@{/app/income/sources/new(ym=${period})}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18M3 12h18M3 17h10"/></svg>
+                Receita fixa
+            </a>
+            <a class="btn btn-primary" data-modal-url th:href="@{/app/income/new(ym=${period})}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                Lançar receita
+            </a>
+        </div>
     </div>
 
     <div class="panel income-chart-panel" th:if="${!maskValues}">
@@ -33,11 +43,63 @@
         <script type="application/json" id="incomeChartData" th:text="${incomeChartJson}">{"points":[]}</script>
     </div>
 
+    <div class="panel" th:if="${!#lists.isEmpty(sources)}">
+        <div class="panel-head"><h3>Receitas fixas</h3></div>
+        <ul class="income-src-list">
+            <li class="income-src-row" th:each="s : ${sources}"
+                th:classappend="${s.active()} ? '' : 'is-closed'">
+                <div class="income-src-mid">
+                    <div class="income-src-name">
+                        <span th:text="${s.name()}">Empresa</span>
+                        <span class="income-src-closed" th:unless="${s.active()}">encerrada</span>
+                    </div>
+                    <div class="income-meta">
+                        <th:block th:if="${!s.active()}">encerrada</th:block>
+                        <th:block th:if="${s.active() and s.currentReceived()}">
+                            recebido em <span th:text="${#temporals.format(s.currentPayDate(), 'dd/MM')}">07/10</span>
+                            (<span th:text="${s.payBusinessDay()}">5</span>º dia útil)
+                        </th:block>
+                        <th:block th:if="${s.active() and !s.currentReceived() and s.currentPayDate() != null}">
+                            cairá dia <span th:text="${#temporals.format(s.currentPayDate(), 'dd')}">07</span>
+                            (<span th:text="${s.payBusinessDay()}">5</span>º dia útil deste mês)
+                        </th:block>
+                        <span th:if="${s.note() != null}"> · <span th:text="${s.note()}">obs</span></span>
+                    </div>
+                </div>
+                <span class="money money-md"
+                      th:data-amount="${maskValues ? '' : s.amount()}"
+                      th:text="${maskValues ? '••••' : 'R$ ' + #numbers.formatDecimal(s.amount(), 1, 'POINT', 2, 'COMMA')}">R$ 0,00</span>
+                <div class="tx-actions" sec:authorize="!hasRole('ACESSOR')">
+                    <form th:if="${s.hasCurrent()}" method="post"
+                          th:action="@{/app/income/{id}/toggle-received(id=${s.currentIncomeId()})}">
+                        <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                        <input type="hidden" name="ym" th:value="${period}">
+                        <button type="submit" class="income-confirm"
+                                th:classappend="${s.currentReceived()} ? 'is-on' : ''"
+                                th:title="${s.currentReceived() ? 'Desfazer o recebimento' : 'Marcar como recebido'}">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 13l4 4 10-12"/></svg>
+                            <span th:text="${s.currentReceived() ? 'Recebido' : 'Marcar como recebido'}">Marcar como recebido</span>
+                        </button>
+                    </form>
+                    <a class="row-action" data-modal-url
+                       th:href="@{/app/income/sources/{id}/edit(id=${s.id()})}" title="Editar">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l11-11-4-4L4 16v4z"/></svg>
+                    </a>
+                    <a class="row-action danger" data-modal-url
+                       th:href="@{/app/income/sources/{id}/delete(id=${s.id()}, ym=${period})}" title="Remover">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14M9 7V4h6v3m-7 0v13h8V7"/></svg>
+                    </a>
+                </div>
+            </li>
+        </ul>
+    </div>
+
     <div class="panel">
         <div class="panel-head"><h3>Receitas deste mês</h3></div>
         <div th:if="${view.items().isEmpty()}" class="empty-sm muted">Nenhuma receita registrada neste período.</div>
         <ul class="income-list" th:unless="${view.items().isEmpty()}">
-            <li class="income-row" th:each="i : ${view.items()}">
+            <li class="income-row" th:each="i : ${view.items()}"
+                th:classappend="${i.received()} ? '' : 'is-pending'">
                 <span class="income-icon">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14m0 0l-6-6m6 6l6-6"/></svg>
                 </span>
@@ -45,23 +107,32 @@
                     <div class="income-src" th:text="${i.source()}">Fonte</div>
                     <div class="income-meta">
                         <span th:text="${#temporals.format(i.incomeDate(), 'dd ''de'' MMM')}">18 de mai</span>
-                        <span th:if="${i.categoryName() != null}"> · <span th:text="${i.categoryName()}">Categoria</span></span>
-                        <span th:if="${i.categoryName() == null and i.note() != null}"> · <span th:text="${i.note()}">obs</span></span>
+                        <span th:if="${i.recurring()}"> · <span class="income-fixed-tag">fixa</span></span>
+                        <span th:unless="${i.received()}"> · <span class="income-pending-tag">a receber</span></span>
+                        <span th:if="${i.note() != null}"> · <span th:text="${i.note()}">obs</span></span>
                     </div>
                 </div>
                 <span class="money money-md income-amount"
                       th:data-amount="${maskValues ? '' : i.amount()}"
                       th:text="${maskValues ? '••••' : '+R$ ' + #numbers.formatDecimal(i.amount(), 1, 'POINT', 2, 'COMMA')}">+R$ 0,00</span>
                 <div class="tx-actions">
+                    <form th:if="${!accessorMode}" method="post"
+                          th:action="@{/app/income/{id}/toggle-received(id=${i.id()})}">
+                        <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                        <input type="hidden" name="ym" th:value="${period}">
+                        <button type="submit" class="row-action income-check"
+                                th:classappend="${i.received()} ? 'is-on' : ''"
+                                th:title="${i.received() ? 'Desfazer o recebimento' : 'Marcar como recebido'}">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-12"/></svg>
+                        </button>
+                    </form>
                     <a class="row-action" data-modal-url th:href="@{/app/income/{id}/edit(id=${i.id()})}" title="Editar">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l11-11-4-4L4 16v4z"/></svg>
                     </a>
-                    <form th:if="${!accessorMode}" th:action="@{/app/income/{id}/delete(id=${i.id()})}" method="post" data-confirm="Remover esta receita?">
-                        <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                        <button type="submit" class="row-action danger" title="Remover">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14M9 7V4h6v3m-7 0v13h8V7"/></svg>
-                        </button>
-                    </form>
+                    <a th:if="${!accessorMode}" class="row-action danger" data-modal-url
+                       th:href="@{/app/income/{id}/delete(id=${i.id()})}" title="Remover">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14M9 7V4h6v3m-7 0v13h8V7"/></svg>
+                    </a>
                 </div>
             </li>
         </ul>
@@ -69,10 +140,10 @@
 
     <nav class="pagination" th:if="${view.totalPages() > 1}" aria-label="Paginação">
         <a class="btn" th:if="${view.page() > 0}"
-           th:href="@{/app/income(ym=${period}, page=${view.page() - 1}, size=${view.size()}, categoryId=${filter.categoryId()}, q=${filter.search()})}">← Anterior</a>
+           th:href="@{/app/income(ym=${period}, page=${view.page() - 1}, size=${view.size()}, q=${filter.search()})}">← Anterior</a>
         <span class="pagination-info muted">Página <strong th:text="${view.page() + 1}">1</strong> de <strong th:text="${view.totalPages()}">1</strong></span>
         <a class="btn" th:if="${view.page() + 1 < view.totalPages()}"
-           th:href="@{/app/income(ym=${period}, page=${view.page() + 1}, size=${view.size()}, categoryId=${filter.categoryId()}, q=${filter.search()})}">Próxima →</a>
+           th:href="@{/app/income(ym=${period}, page=${view.page() + 1}, size=${view.size()}, q=${filter.search()})}">Próxima →</a>
     </nav>
 </section>
 </body>

@@ -120,6 +120,27 @@ class AccountServiceTest {
     }
 
     @Test
+    void createDeCartaoDeDebitoGuardaLast4MasNaoDiasDeFatura() {
+        AccountForm form = new AccountForm();
+        form.setName("Débito BB");
+        form.setKind(AccountKind.DEBIT);
+        form.setLast4("4321");
+        // Débito não tem fatura: mesmo se vierem no request, os dias são ignorados.
+        form.setCloseDay((short) 5);
+        form.setDueDay((short) 12);
+        form.setFixed(true);
+
+        when(accountsRepo.save(any(Account.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Account created = service.create(alice, form);
+        assertThat(created.getKind()).isEqualTo(AccountKind.DEBIT);
+        assertThat(created.getLast4()).isEqualTo("4321");
+        assertThat(created.getCloseDay()).isNull();
+        assertThat(created.getDueDay()).isNull();
+        assertThat(created.isFixed()).isFalse();
+    }
+
+    @Test
     void createGuardaLast4ParaCartao() {
         AccountForm form = new AccountForm();
         form.setName("Nubank");

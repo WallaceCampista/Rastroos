@@ -1,0 +1,218 @@
+/* ─────────────────────────────────────────────────────────────
+   Rastroo$ — wizard de boas-vindas (/app/onboarding)
+   ─────────────────────────────────────────────────────────────
+   Renderizado dentro do .modal-body (modal largo) e também como
+   página cheia quando não há JS — por isso o .onb carrega o
+   próprio respiro e o próprio .flash (que não é compartilhado).
+   ───────────────────────────────────────────────────────────── */
+
+.onb { display: flex; flex-direction: column; gap: 18px; }
+
+/* Página cheia (sem JS): o wizard ganha a moldura que o modal daria. */
+.app-content > .onb {
+    max-width: 640px;
+    margin: 40px auto;
+    padding: 26px;
+    background: var(--surface);
+    border: 1px solid var(--border-2);
+    border-radius: var(--radius-lg);
+}
+
+/* ── Cabeçalho ─────────────────────────────────────────────── */
+.onb-head {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 16px;
+}
+.onb-title {
+    margin: 0;
+    font-size: 19px; font-weight: 800; letter-spacing: -0.02em;
+    color: var(--text);
+}
+.onb-title .accent { color: var(--accent); }
+.onb-sub {
+    margin: 4px 0 0;
+    font-size: 12.5px; color: var(--text-dim);
+}
+.onb-skip-form { flex-shrink: 0; }
+.onb-skip-form .btn { padding: 7px 12px; font-size: 12px; }
+
+/* ── Trilha de passos ──────────────────────────────────────── */
+.onb-steps {
+    display: flex; align-items: center; gap: 6px;
+    margin: 0; padding: 0; list-style: none;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+.onb-steps::-webkit-scrollbar { display: none; }
+.onb-step { flex: 1 1 0; min-width: 84px; }
+.onb-step > a {
+    display: flex; align-items: center; gap: 7px;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface-2);
+    color: var(--text-dim);
+    font-size: 11.5px; font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background .15s, color .15s, border-color .15s;
+}
+.onb-step > a:hover { background: var(--surface-3); color: var(--text); text-decoration: none; }
+.onb-step-num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 19px; height: 19px; flex-shrink: 0;
+    border-radius: 50%;
+    background: var(--surface-3);
+    color: var(--text-dim);
+    font-size: 10.5px; font-weight: 700;
+}
+.onb-step.on > a {
+    background: color-mix(in oklch, var(--primary) 16%, transparent);
+    border-color: color-mix(in oklch, var(--primary) 45%, transparent);
+    color: var(--text);
+}
+.onb-step.on .onb-step-num { background: var(--primary); color: #fff; }
+
+/* ── Corpo dos passos ──────────────────────────────────────── */
+.onb-pane { display: flex; flex-direction: column; gap: 16px; }
+.onb-lead {
+    margin: 0;
+    font-size: 13px; line-height: 1.55;
+    color: var(--text-dim);
+}
+.onb-label,
+.onb-section-title {
+    font-size: 11.5px; font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 0.06em;
+}
+.onb-section-title {
+    margin: 6px 0 -4px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+}
+.onb-form { gap: 14px; }
+.app-content > .onb .onb-form,
+.modal-body .onb-form { background: transparent; border: 0; padding: 0; margin: 0; }
+
+/* ── Escolha de tema ───────────────────────────────────────── */
+.onb-theme-pick { display: flex; gap: 12px; }
+.onb-theme-opt {
+    flex: 1 1 0;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    padding: 12px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface-2);
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+}
+.onb-theme-opt:hover { border-color: var(--border-2); }
+.onb-theme-opt.on {
+    border-color: var(--primary);
+    background: color-mix(in oklch, var(--primary) 10%, transparent);
+}
+/* O radio some visualmente mas continua focável pelo teclado. */
+.onb-theme-opt input[type="radio"] {
+    position: absolute;
+    width: 1px; height: 1px;
+    margin: -1px; padding: 0;
+    overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%);
+    white-space: nowrap;
+}
+.onb-theme-opt:focus-within { outline: 2px solid var(--primary); outline-offset: 2px; }
+.onb-theme-card {
+    display: block; width: 100%; max-width: 132px; height: 62px;
+    border-radius: 10px; overflow: hidden;
+    border: 1px solid var(--border-2);
+}
+.onb-theme-bar { display: block; height: 14px; }
+.onb-theme-body { display: block; height: calc(100% - 14px); }
+.onb-theme-dark .onb-theme-bar { background: #1a2138; }
+.onb-theme-dark .onb-theme-body { background: #0a0e1f; }
+.onb-theme-light .onb-theme-bar { background: #eef1fa; }
+.onb-theme-light .onb-theme-body { background: #ffffff; }
+.onb-theme-name { font-size: 12.5px; font-weight: 600; color: var(--text); }
+
+/* ── Grade de paletas ──────────────────────────────────────── */
+.onb-palette { display: flex; flex-wrap: wrap; gap: 8px; }
+.onb-swatch {
+    position: relative;
+    width: 38px; height: 26px;
+    padding: 0; overflow: hidden;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    background: var(--surface-2);
+    cursor: pointer;
+    transition: transform .12s ease, box-shadow .12s ease;
+}
+.onb-swatch:hover { transform: translateY(-1px); }
+.onb-swatch.on { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--text); }
+.onb-swatch-primary { position: absolute; inset: 0 40% 0 0; }
+.onb-swatch-accent  { position: absolute; inset: 0 0 0 60%; }
+
+/* ── Listas do que já foi cadastrado ───────────────────────── */
+.onb-list {
+    display: flex; flex-direction: column; gap: 8px;
+    margin: 0; padding: 0; list-style: none;
+}
+.onb-list-item {
+    display: flex; align-items: center; gap: 11px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface-2);
+}
+.onb-list-chip {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 30px; height: 30px; flex-shrink: 0;
+    border-radius: 9px;
+    background: var(--surface-3);
+    color: #fff;
+    font-size: 13px; font-weight: 700;
+}
+.onb-list-chip-income { background: color-mix(in oklch, var(--success) 24%, transparent); color: var(--success); }
+.onb-list-mid { flex: 1 1 auto; min-width: 0; }
+.onb-list-name {
+    font-size: 13.5px; font-weight: 600; color: var(--text);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.onb-list-meta { font-size: 11.5px; color: var(--text-dim); }
+
+/* ── Rodapé de ações ───────────────────────────────────────── */
+.onb-actions {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px;
+    padding-top: 6px;
+}
+.onb-actions-group { display: inline-flex; gap: 8px; }
+.onb-actions-spacer { flex: 1 1 auto; }
+.onb-finish { margin-top: 2px; }
+
+/* ── Flash (não é compartilhado; cada tela define o seu) ───── */
+.onb .flash {
+    padding: 10px 13px;
+    border-radius: var(--radius-sm);
+    font-size: 12.5px; font-weight: 600;
+}
+.onb .flash-ok {
+    background: color-mix(in oklch, var(--success) 14%, transparent);
+    border: 1px solid color-mix(in oklch, var(--success) 35%, transparent);
+    color: var(--success);
+}
+.onb .flash-error {
+    background: color-mix(in oklch, var(--danger) 14%, transparent);
+    border: 1px solid color-mix(in oklch, var(--danger) 35%, transparent);
+    color: var(--danger);
+}
+
+@media (max-width: 560px) {
+    .app-content > .onb { margin: 16px; padding: 18px; }
+    .onb-head { flex-direction: column; }
+    .onb-theme-pick { flex-direction: column; }
+    .onb-actions { flex-direction: column-reverse; align-items: stretch; }
+    .onb-actions-group { flex-direction: column; }
+    .onb-actions .btn { width: 100%; justify-content: center; }
+    .onb-step-lbl { display: none; }
+    .onb-step { min-width: 0; }
+}

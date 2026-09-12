@@ -23,6 +23,7 @@
     <th:block th:replace="${links} ?: ~{}"></th:block>
 
     <script th:src="@{/js/theme.js}" defer></script>
+    <script th:src="@{/js/palettes.js}" defer></script>
     <script th:src="@{/js/app.js}" defer></script>
     <script th:src="@{/js/modals.js}" defer></script>
     <script th:src="@{/js/table-paginate.js}" defer></script>
@@ -34,6 +35,7 @@
     <script th:src="@{/js/style-bindings.js}" defer></script>
     <script th:src="@{/js/kpi-motion.js}" defer></script>
     <script th:src="@{/js/alfredo-orb.js}" defer></script>
+    <script th:src="@{/js/onboarding.js}" defer></script>
 </head>
 <body class="app-body"
       th:attr="data-theme=${userTheme != null ? userTheme : 'dark'},
@@ -66,6 +68,11 @@
 <div class="modal-backdrop" data-modal-backdrop hidden>
     <div class="modal" data-modal-container role="dialog" aria-modal="true"></div>
 </div>
+
+<!-- Primeiro acesso: onboarding.js vê este marcador e abre o wizard por cima
+     da tela. Some assim que o usuário conclui ou pula (users.onboarding_completed_at). -->
+<div th:if="${onboardingPending}" data-onboarding-trigger
+     th:data-url="@{/app/onboarding}" hidden></div>
 
 <!-- Alfredo flutuante: em todas as telas do app, menos na do próprio Alfredo
      (alfredoWidget vem do AlfredoWidgetInterceptor, a partir do activeNav). -->

@@ -45,12 +45,43 @@ class DashboardServiceTest {
     private final UUID alice = UUID.randomUUID();
 
     @Test
+    void salarioProgramadoENaoConfirmadoViraAReceberENaoEntraNoSaldo() {
+        YearMonth ym = YearMonth.of(2026, 5);
+        LocalDate start = LocalDate.of(2026, 5, 1);
+        LocalDate end = LocalDate.of(2026, 6, 1);
+
+        when(incomeRepo.sumAmountByUserAndPeriod(alice, start, end)).thenReturn(500_000L);
+        when(incomeRepo.sumReceivedByUserAndPeriod(alice, start, end)).thenReturn(0L);
+        when(txRepo.sumAmountByUserAndPeriod(alice, start, end)).thenReturn(300_000L);
+        when(txRepo.sumPaidByUserAndPeriod(alice, start, end)).thenReturn(100_000L);
+        when(txRepo.findUpcomingUnpaid(eq(alice), eq(start), any(Pageable.class)))
+                .thenReturn(List.of());
+        when(txRepo.findAllByUserIdAndDueDateBetweenOrderByDueDateAsc(alice, start, end))
+                .thenReturn(List.of());
+        when(incomeRepo.findAllByUserIdAndIncomeDateBetweenOrderByIncomeDateDesc(alice, start, end))
+                .thenReturn(List.of());
+        when(txRepo.aggregateByCategoryAndPeriod(alice, start, end)).thenReturn(List.of());
+        when(accountsRepo.findAllByUserIdOrderByNameAsc(alice)).thenReturn(List.of());
+        when(accountsRepo.countByUserId(alice)).thenReturn(0L);
+        when(accountService.topAccountsForMonth(eq(alice), eq(ym), eq(6))).thenReturn(List.of());
+
+        DashboardModel data = service.load(alice, ym);
+
+        assertThat(data.kpis().received().toPlainString()).isEqualTo("0.00");
+        assertThat(data.kpis().toReceive().toPlainString()).isEqualTo("5000.00");
+        // Saldo disponível é dinheiro em mãos: sem recebimento confirmado ele
+        // fica negativo no valor já pago.
+        assertThat(data.kpis().balance().toPlainString()).isEqualTo("-1000.00");
+    }
+
+    @Test
     void loadCalculaKpisCorretosEAEspectroDeBalance() {
         YearMonth ym = YearMonth.of(2026, 5);
         LocalDate start = LocalDate.of(2026, 5, 1);
         LocalDate end = LocalDate.of(2026, 6, 1);
 
         when(incomeRepo.sumAmountByUserAndPeriod(alice, start, end)).thenReturn(500_000L);
+        when(incomeRepo.sumReceivedByUserAndPeriod(alice, start, end)).thenReturn(500_000L);
         when(txRepo.sumAmountByUserAndPeriod(alice, start, end)).thenReturn(300_000L);
         when(txRepo.sumPaidByUserAndPeriod(alice, start, end)).thenReturn(100_000L);
         when(txRepo.findUpcomingUnpaid(eq(alice), eq(start), any(Pageable.class)))
@@ -67,6 +98,7 @@ class DashboardServiceTest {
         DashboardModel data = service.load(alice, ym);
 
         assertThat(data.kpis().received().toPlainString()).isEqualTo("5000.00");
+        assertThat(data.kpis().toReceive().toPlainString()).isEqualTo("0.00");
         assertThat(data.kpis().spent().toPlainString()).isEqualTo("3000.00");
         assertThat(data.kpis().paid().toPlainString()).isEqualTo("1000.00");
         assertThat(data.kpis().toPay().toPlainString()).isEqualTo("2000.00");
@@ -103,6 +135,7 @@ class DashboardServiceTest {
         t.setFixed(false);
 
         when(incomeRepo.sumAmountByUserAndPeriod(alice, start, end)).thenReturn(0L);
+        when(incomeRepo.sumReceivedByUserAndPeriod(alice, start, end)).thenReturn(0L);
         when(txRepo.sumAmountByUserAndPeriod(alice, start, end)).thenReturn(0L);
         when(txRepo.sumPaidByUserAndPeriod(alice, start, end)).thenReturn(0L);
         when(txRepo.findUpcomingUnpaid(eq(alice), eq(start), any(Pageable.class)))
@@ -223,6 +256,7 @@ class DashboardServiceTest {
         outros.setColorHex("#123456");
 
         when(incomeRepo.sumAmountByUserAndPeriod(alice, start, end)).thenReturn(0L);
+        when(incomeRepo.sumReceivedByUserAndPeriod(alice, start, end)).thenReturn(0L);
         when(txRepo.sumAmountByUserAndPeriod(alice, start, end)).thenReturn(0L);
         when(txRepo.sumPaidByUserAndPeriod(alice, start, end)).thenReturn(0L);
         when(txRepo.findUpcomingUnpaid(eq(alice), eq(start), any(Pageable.class)))

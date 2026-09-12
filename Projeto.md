@@ -651,6 +651,35 @@ Content-Security-Policy: <conforme 5.5>
 - [x] **Bugs encontrados e corrigidos na verificação ao vivo**: (1) auto-invocação anulando `@Transactional` no listener de mudança de dados — o `bump` nunca rodava; (2) falha de embedding abortava o aquecimento inteiro, inclusive os resumos que funcionariam; (3) falha permanente do provedor causava tentativa a cada 30s, indefinidamente; (4) construtor extra tornou a injeção do `AiModelClient` ambígua e derrubava o contexto
 - [x] **Testes**: 562 no total (111 novos), incluindo `@DataJpaTest` contra o **pgvector real** (distância de cosseno, upsert, isolamento por usuário) e `MockRestServiceServer` para retry/429/limite de dimensão. Gate de cobertura do domínio mantido
 
+### Etapa 21 — Onboarding do primeiro acesso + receita recorrente (2 dias)
+
+**Diagnóstico do que existia.** Quem entrava pela primeira vez caía direto num dashboard vazio, sem cartão, sem receita e com o nome que o admin digitou no cadastro. Tema e paleta já tinham coluna no banco (`users.theme`, `users.palette_index`) mas **ninguém lia nem escrevia**: a escolha vivia só no `localStorage`, então trocar de máquina perdia tudo. Receita era sempre lançamento avulso — quem recebe o mesmo salário todo mês redigitava origem, valor e categoria doze vezes por ano, e a categoria era pedida sem servir para nada (relatório de receita não usa categoria).
+
+- [x] **Wizard de boas-vindas em 4 passos** (`/app/onboarding`, changelog `014`): abre como modal por cima de qualquer tela do app enquanto `users.onboarding_completed_at` for NULL. Perfil (nome + senha opcional) → Aparência (tema + paleta) → Cartões → Receita fixa. É **dispensável de vez**: "Pular" carimba a mesma data que "Concluir", então quem não quer configurar não é perseguido a cada login. Contas já existentes nascem marcadas no backfill — o wizard é para quem chega agora
+- [x] **Cada passo é um POST-redirect-GET** que devolve o HTML do passo seguinte; `onboarding.js` troca o conteúdo do modal por fetch. A validação continua sendo do servidor, o F5 não reenvia o cartão, e **sem JS os mesmos links e forms navegam para a página cheia** do wizard. O modal fica travado (nem Esc nem clique no fundo fecham): a saída é sempre um botão, para ninguém dispensar o wizard sem saber que dispensou
+- [x] **Trocar a senha continua exigindo a senha atual**, mesmo dentro do wizard. Senha é opcional ali, mas uma sessão aberta esquecida numa máquina alheia não pode virar posse permanente da conta
+- [x] **Tema e paleta agora persistem no banco** (`UserPreferencesAdvice` lê do principal em sessão e alimenta o `<body>`; `PrincipalRefresher` recarrega o principal depois de salvar). A lista de 18 paletas saiu de dentro do `app.js` para `palettes.js`, compartilhada com o wizard — a **ordem do array é o contrato** de `users.palette_index`
+- [x] **Cartão de débito é um tipo próprio** (`AccountKind.DEBIT`): tem os 4 últimos dígitos, não tem fatura. Modelar como `CARD` com fechamento/vencimento nulos deixaria a tela de fatura mentindo sobre um cartão que debita na hora. Aparece junto do crédito na grade de cartões
+- [x] **Receita recorrente (`income_sources`)**: a empresa que paga o salário fixo. Cadastrar **materializa 10 anos de recebimentos** em `incomes` apontando para a fonte — mesma estratégia do gasto fixo permanente, e pelo mesmo motivo: dashboard, relatórios e o Alfredo somam uma tabela só, sem reinterpretar uma regra de recorrência em cada consulta. Editar a fonte reescreve só o que ainda está por vir; um aumento de salário não reescreve o holerite do ano passado
+- [x] **Excluir receita com escopo, igual a excluir conta**: só este lançamento · deste mês em diante (apaga do corte para frente e **encerra** a fonte, preservando o histórico) · apagar tudo. Escopo vindo de request forjado num lançamento avulso não vira "apagar a série" — o servidor confere se há fonte antes de aceitar
+- [x] **Receita não tem mais categoria**: para lançar bastam a empresa cadastrada (ou uma origem digitada) e o valor. A coluna `incomes.category` fica no banco e uma edição **não a apaga** — registro antigo continua legível para o Alfredo
+- [x] **Testes**: 609 no total (47 novos) — unitários de `IncomeSourceService` (materialização, dia 31 em fevereiro, escopos de exclusão, isolamento) e `OnboardingService`, MockMvc de `OnboardingController` (os 4 passos renderizando de verdade) e `IncomeController` (escopos), e `@DataJpaTest` provando que o corte "deste mês em diante" não toca a linha de outro usuário. Gate de cobertura do domínio mantido
+
+
+### Etapa 22 — Receita fixa por dia útil + confirmação de recebimento (1 dia)
+
+**Diagnóstico do que existia.** A receita fixa guardava um dia do calendário ("dia 5") e materializava a data crua — mas salário cai no **N-ésimo dia útil**, e fim de semana ou feriado empurram a data. Pior: os 10 anos de recebimentos entravam no "total recebido" só por existirem, então o dashboard somava como dinheiro em conta um depósito programado para 2036.
+
+- [x] **`BusinessDayCalendar`** (changelog `015`): a coluna `pay_day` virou `pay_business_day` — o nome não podia continuar mentindo sobre o que guarda. O calendário considera os feriados **bancários nacionais**: os fixos, Sexta-feira Santa, segunda e terça de Carnaval e Corpus Christi (Páscoa pelo algoritmo gregoriano anônimo); quarta-feira de cinzas **é** dia útil, e 20/11 só entra a partir de 2024 (Lei 14.759/2023). Pedir um dia útil que o mês não tem cai no último — quem recebe no 22º não deixa de receber em fevereiro
+- [x] **Feriado estadual/municipal fica de fora**, por não haver como saber a cidade do usuário. É um limite declarado no formulário: se um feriado local empurrar o pagamento, a data daquele mês se corrige no próprio lançamento
+- [x] **Os recebimentos já gerados foram recalculados** por um one-shot em PL/pgSQL dentro da própria migração (funções criadas, usadas e removidas), só do mês corrente em diante. A fonte da verdade do calendário continua sendo a classe Java — não sobrou lógica de feriado no banco
+- [x] **`incomes.received` separa programado de recebido.** Um recebimento de receita fixa nasce pendente e só entra nos totais depois do botão **"Marcar como recebido"**, no painel de receitas fixas e na linha do mês. Lançamento avulso nasce confirmado (lançar é registrar o que já caiu) — e é assim que o backfill trata os registros antigos
+- [x] **Recebido é caixa; saldo continua sendo previsão.** "Total recebido" (dashboard, relatórios, comparativo, gráfico de 6 meses) passa a somar só o confirmado, e o dashboard ganhou **"a receber"** logo abaixo. Já `net`/`savingsRate` seguem usando tudo que está lançado no mês: fossem para caixa, todo mês futuro apareceria no vermelho só porque o salário ainda não caiu, e os chips de mês e o comparativo perderiam a função de projeção
+- [x] **O Alfredo deixou de chamar de "recebido" o que ainda não caiu**: o dossiê marca cada linha como recebida ou a receber e informa o total confirmado ao lado do previsto
+- [x] **Tela**: "todo dia 5 · 120 recebimento(s)" virou **"cairá dia 08 (5º dia útil deste mês)"** — e "recebido em 08/09 (5º dia útil)" depois de confirmado
+- [x] **Testes**: 633 no total (24 novos) — 14 do calendário contra datas reais conferidas uma a uma (Páscoa de 4 anos, Carnaval, Corpus Christi, o 5º dia útil de setembro/2026 caindo no dia 8 por causa do feriado da Independência, mês curto caindo no último dia útil), materialização por dia útil, `update` que não reescreve recebimento já confirmado, o toggle, e `@DataJpaTest` provando que a soma do confirmado não cruza usuários. Gate de cobertura do domínio mantido
+
+
 ---
 
 ## 7. Estrutura de pastas
@@ -1004,4 +1033,4 @@ open http://localhost:8080/swagger-ui.html
 
 ---
 
-**Fim do documento.** Todas as 19 etapas do roadmap estão concluídas (0–19). Próximos passos sugeridos fora do roadmap inicial: validação visual/e2e da landing e dos fluxos de auth, rodar o OWASP Dependency Check contra o NVD (perfil `security` + chave), e um `EmailService` SMTP/SES real para prod.
+**Fim do documento.** Todas as etapas do roadmap estão concluídas (0–22). Próximos passos sugeridos fora do roadmap inicial: validação visual/e2e da landing e dos fluxos de auth, rodar o OWASP Dependency Check contra o NVD (perfil `security` + chave), e um `EmailService` SMTP/SES real para prod.

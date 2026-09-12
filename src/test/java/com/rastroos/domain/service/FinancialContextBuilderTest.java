@@ -149,7 +149,7 @@ class FinancialContextBuilderTest {
                 new PortfolioSummaryDto(BigDecimal.ZERO, BigDecimal.ZERO, null,
                         BigDecimal.ZERO, Map.of()), null));
         lenient().when(incomes.listForMonth(eq(alice), eq(period), any(), anyInt(), anyInt()))
-                .thenReturn(new IncomesPageView(List.of(), 0, 10, 0, 0, BigDecimal.ZERO));
+                .thenReturn(new IncomesPageView(List.of(), 0, 10, 0, 0, BigDecimal.ZERO, BigDecimal.ZERO));
 
         String context = builder.build(alice, period);
 
@@ -164,7 +164,7 @@ class FinancialContextBuilderTest {
     private void stubAll() {
         lenient().when(dashboard.load(alice, period)).thenReturn(new DashboardModel(
                 LocalDate.of(2026, 9, 1), LocalDate.of(2026, 10, 1), 3, 18,
-                new DashboardKpisDto(brl("8500"), brl("6200"), brl("4000"), brl("2200"),
+                new DashboardKpisDto(brl("8500"), BigDecimal.ZERO, brl("6200"), brl("4000"), brl("2200"),
                         brl("2300"), brl("1000")),
                 List.of(), List.of(), List.of(),
                 List.of(new CategoryBreakdownDto("alimentacao", "Alimentação", "#fff", brl("1200"))),
@@ -187,9 +187,9 @@ class FinancialContextBuilderTest {
 
         lenient().when(incomes.listForMonth(eq(alice), eq(period), any(), anyInt(), anyInt()))
                 .thenReturn(new IncomesPageView(List.of(
-                        new IncomeDto(UUID.randomUUID(), "Salário", brl("8000"),
-                                LocalDate.of(2026, 9, 5), "trabalho", "Trabalho", "#fff", null)),
-                        0, 12, 1, 1, brl("8000")));
+                        new IncomeDto(UUID.randomUUID(), "Salário", null, brl("8000"),
+                                LocalDate.of(2026, 9, 5), "trabalho", "Trabalho", "#fff", null, true)),
+                        0, 12, 1, 1, brl("8000"), brl("8000")));
 
         lenient().when(investments.load(alice)).thenReturn(new InvestmentsView(
                 List.of(new InvestmentDto(UUID.randomUUID(), "Reserva de emergência",

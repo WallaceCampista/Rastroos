@@ -62,7 +62,7 @@ class InsightFactsBuilderTest {
     @Test
     void dashboard_comSaldoPositivoEContasEmAberto_resumeSituacaoECuidado() {
         when(dashboard.load(userId, period)).thenReturn(dashboardModel(
-                new DashboardKpisDto(brl("8500.00"), brl("6200.00"), brl("4000.00"),
+                new DashboardKpisDto(brl("8500.00"), BigDecimal.ZERO, brl("6200.00"), brl("4000.00"),
                         brl("2200.00"), brl("2300.00"), brl("900.00"))));
 
         InsightFacts facts = builder.build(userId, InsightScreen.DASHBOARD, period);
@@ -83,7 +83,7 @@ class InsightFactsBuilderTest {
     @Test
     void dashboard_quandoFaltaPagarPassaOSaldo_alertaParaPriorizarVencimentos() {
         when(dashboard.load(userId, period)).thenReturn(dashboardModel(
-                new DashboardKpisDto(brl("3000.00"), brl("2800.00"), brl("0.00"),
+                new DashboardKpisDto(brl("3000.00"), BigDecimal.ZERO, brl("2800.00"), brl("0.00"),
                         brl("2500.00"), brl("200.00"), BigDecimal.ZERO)));
 
         InsightFacts facts = builder.build(userId, InsightScreen.DASHBOARD, period);
@@ -94,7 +94,7 @@ class InsightFactsBuilderTest {
     @Test
     void dashboard_comSaldoNegativo_dizQueOsGastosPassaramDoQueEntrou() {
         when(dashboard.load(userId, period)).thenReturn(dashboardModel(
-                new DashboardKpisDto(brl("2000.00"), brl("3500.00"), brl("0.00"),
+                new DashboardKpisDto(brl("2000.00"), BigDecimal.ZERO, brl("3500.00"), brl("0.00"),
                         brl("0.00"), brl("-1500.00"), BigDecimal.ZERO)));
 
         InsightFacts facts = builder.build(userId, InsightScreen.DASHBOARD, period);
@@ -107,7 +107,7 @@ class InsightFactsBuilderTest {
     @Test
     void dashboard_semLancamentos_pedeQueOUsuarioRegistre() {
         when(dashboard.load(userId, period)).thenReturn(dashboardModel(
-                new DashboardKpisDto(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
+                new DashboardKpisDto(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
                         BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO)));
 
         InsightFacts facts = builder.build(userId, InsightScreen.DASHBOARD, period);
@@ -176,7 +176,7 @@ class InsightFactsBuilderTest {
     @Test
     void income_comFonteUnica_alertaSobreConcentracao() {
         when(incomes.listForMonth(eq(userId), eq(period), any(), eq(0), eq(1)))
-                .thenReturn(new IncomesPageView(List.of(), 0, 1, 1, 1, brl("7000.00")));
+                .thenReturn(new IncomesPageView(List.of(), 0, 1, 1, 1, brl("7000.00"), brl("7000.00")));
 
         InsightFacts facts = builder.build(userId, InsightScreen.INCOME, period);
 
@@ -187,7 +187,7 @@ class InsightFactsBuilderTest {
     @Test
     void income_semReceitas_pedeORegistro() {
         when(incomes.listForMonth(eq(userId), eq(period), any(), eq(0), eq(1)))
-                .thenReturn(new IncomesPageView(List.of(), 0, 1, 0, 0, BigDecimal.ZERO));
+                .thenReturn(new IncomesPageView(List.of(), 0, 1, 0, 0, BigDecimal.ZERO, BigDecimal.ZERO));
 
         InsightFacts facts = builder.build(userId, InsightScreen.INCOME, period);
 
@@ -279,7 +279,7 @@ class InsightFactsBuilderTest {
     @Test
     void dashboard_tudoPagoMasGastandoQuase100PorCentoDaReceita_avisaOComprometimento() {
         when(dashboard.load(userId, period)).thenReturn(dashboardModel(
-                new DashboardKpisDto(brl("1000.00"), brl("950.00"), brl("950.00"),
+                new DashboardKpisDto(brl("1000.00"), BigDecimal.ZERO, brl("950.00"), brl("950.00"),
                         brl("0.00"), brl("50.00"), BigDecimal.ZERO)));
 
         InsightFacts facts = builder.build(userId, InsightScreen.DASHBOARD, period);
@@ -292,7 +292,7 @@ class InsightFactsBuilderTest {
     @Test
     void dashboard_comReceitaMasSemGasto_pedeQueLanceOsGastos() {
         when(dashboard.load(userId, period)).thenReturn(dashboardModel(
-                new DashboardKpisDto(brl("4000.00"), BigDecimal.ZERO, BigDecimal.ZERO,
+                new DashboardKpisDto(brl("4000.00"), BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
                         BigDecimal.ZERO, brl("4000.00"), BigDecimal.ZERO)));
 
         InsightFacts facts = builder.build(userId, InsightScreen.DASHBOARD, period);
@@ -357,7 +357,7 @@ class InsightFactsBuilderTest {
     @Test
     void income_comVariasFontes_lembraDeConferirSeTudoFoiLancado() {
         when(incomes.listForMonth(eq(userId), eq(period), any(), eq(0), eq(1)))
-                .thenReturn(new IncomesPageView(List.of(), 0, 1, 3, 1, brl("9000.00")));
+                .thenReturn(new IncomesPageView(List.of(), 0, 1, 3, 1, brl("9000.00"), brl("9000.00")));
 
         InsightFacts facts = builder.build(userId, InsightScreen.INCOME, period);
 

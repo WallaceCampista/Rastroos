@@ -35,7 +35,14 @@
 
     const onKey = (e) => { if (e.key === 'Escape') closeModal(); };
 
-    function closeModal() {
+    // Modal travado: só sai por um botão do próprio conteúdo (o wizard de
+    // boas-vindas, que precisa de "Pular" ou "Concluir" — um Esc acidental
+    // deixaria o usuário sem configurar e sem saber que havia um wizard).
+    let locked = false;
+
+    function closeModal(force) {
+        if (locked && force !== true) return;
+        locked = false;
         backdrop.hidden = true;
         container.innerHTML = '';
         container.classList.remove('modal-wide');
@@ -64,6 +71,7 @@
     // investimento, que já traz o próprio cabeçalho e rodapé.
     function openNode(node, opts) {
         opts = opts || {};
+        locked = opts.dismissible === false;
         container.innerHTML = '';
         container.classList.toggle('modal-wide', !!opts.wide);
         const body = document.createElement('div');
@@ -104,6 +112,7 @@
     };
 
     const render = (title, form) => {
+        locked = false;
         container.innerHTML = '';
 
         const head = document.createElement('div');
@@ -227,6 +236,7 @@
     window.RastroosModal = {
         openNode: openNode,
         close: closeModal,
+        paintBindings: paintBindings,
         ensureStyles: ensureStyles,
         renderForm: render,
         FORM_SELECTOR: FORM_SELECTOR,

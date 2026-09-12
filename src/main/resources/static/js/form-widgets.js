@@ -158,6 +158,31 @@
         apply();
     }
 
+    // Receita: escolher a empresa cadastrada dispensa digitar a origem.
+    // Vive aqui (e não em income.js) para funcionar também dentro do modal.
+    function initIncomeSource(select) {
+        if (select.dataset.init) return;
+        select.dataset.init = '1';
+        const form = select.closest('form');
+        if (!form) return;
+        const free = form.querySelector('[data-income-source-free]');
+        const input = free ? free.querySelector('input[name="source"]') : null;
+        const apply = () => {
+            const chosen = !!select.value;
+            // style.display (não [hidden]): .form > label define display, que
+            // venceria o atributo.
+            if (free) free.style.display = chosen ? 'none' : '';
+            if (input) {
+                // Campo escondido e ainda required travaria o submit com um
+                // erro que ninguém vê.
+                input.required = !chosen;
+                input.disabled = chosen;
+            }
+        };
+        select.addEventListener('change', apply);
+        apply();
+    }
+
     // Modal de investimento: Tipo em pílulas (Cofrinho / CDI / …) →
     // grava no input hidden "kind" e alterna os campos [data-only-kind].
     function initInvKind(group) {
@@ -286,6 +311,7 @@
             scope.querySelectorAll('[data-tx-tabs]').forEach(initTabs);
             scope.querySelectorAll('[data-cat-grid]').forEach(initCatGrid);
             scope.querySelectorAll('[data-account-kind]').forEach(initAccountKind);
+            scope.querySelectorAll('[data-income-source]').forEach(initIncomeSource);
             scope.querySelectorAll('[data-inv-kind]').forEach(initInvKind);
             scope.querySelectorAll('[data-swatch-group]').forEach(initSwatches);
             scope.querySelectorAll('[data-inv-mode-tabs]').forEach(initInvMode);

@@ -25,6 +25,10 @@ public class Income {
     @Column(name = "source", nullable = false, length = 120)
     private String source;
 
+    /** Fonte recorrente que gerou este lançamento; NULL numa receita avulsa. */
+    @Column(name = "source_id")
+    private UUID sourceId;
+
     /** Em centavos. CHECK > 0 no banco. */
     @Column(name = "amount_cents", nullable = false)
     private long amountCents;
@@ -37,6 +41,17 @@ public class Income {
 
     @Column(name = "note", length = 200)
     private String note;
+
+    /**
+     * Se o dinheiro já caiu. Um recebimento de receita fixa nasce
+     * {@code false} — foi programado, não recebido — e só entra nos totais
+     * de "recebido" depois de confirmado.
+     */
+    @Column(name = "received", nullable = false)
+    private boolean received;
+
+    @Column(name = "received_at")
+    private Instant receivedAt;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -59,6 +74,9 @@ public class Income {
     public String getSource() { return source; }
     public void setSource(String source) { this.source = source; }
 
+    public UUID getSourceId() { return sourceId; }
+    public void setSourceId(UUID sourceId) { this.sourceId = sourceId; }
+
     public long getAmountCents() { return amountCents; }
     public void setAmountCents(long amountCents) { this.amountCents = amountCents; }
 
@@ -70,6 +88,12 @@ public class Income {
 
     public String getNote() { return note; }
     public void setNote(String note) { this.note = note; }
+
+    public boolean isReceived() { return received; }
+    public void setReceived(boolean received) { this.received = received; }
+
+    public Instant getReceivedAt() { return receivedAt; }
+    public void setReceivedAt(Instant receivedAt) { this.receivedAt = receivedAt; }
 
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }

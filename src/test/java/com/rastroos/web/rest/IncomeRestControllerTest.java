@@ -96,14 +96,14 @@ class IncomeRestControllerTest {
     @Test
     void getListaRetornaJson() throws Exception {
         IncomeDto dto = new IncomeDto(
-                UUID.randomUUID(), "Salário",
+                UUID.randomUUID(), "Salário", null,
                 new BigDecimal("3500.00"),
                 LocalDate.of(2026, 5, 5),
                 "outros", "Outros", "#999999",
-                null);
+                null, true);
         IncomesPageView page = new IncomesPageView(
                 List.of(dto), 0, 20, 1L, 1,
-                new BigDecimal("3500.00"));
+                new BigDecimal("3500.00"), new BigDecimal("3500.00"));
         when(service.listForMonth(eq(userId), eq(YearMonth.of(2026, 5)), any(), eq(0), eq(20)))
                 .thenReturn(page);
 
@@ -132,10 +132,10 @@ class IncomeRestControllerTest {
         when(service.create(eq(userId), any(IncomeForm.class))).thenReturn(i);
 
         IncomeDto dto = new IncomeDto(
-                newId, "Salário",
+                newId, "Salário", null,
                 new BigDecimal("3500.00"),
                 LocalDate.of(2026, 5, 5),
-                null, null, null, null);
+                null, null, null, null, true);
         when(service.get(userId, newId)).thenReturn(dto);
 
         String body = objectMapper.writeValueAsString(java.util.Map.of(

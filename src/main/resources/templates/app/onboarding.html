@@ -1,0 +1,339 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Bem-vindo ao Rastroo$</title>
+    <link rel="stylesheet" th:href="@{/css/tokens.css}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/components.css}">
+    <link rel="stylesheet" th:href="@{/css/auth.css}">
+    <link rel="stylesheet" th:href="@{/css/screens/onboarding.css}">
+</head>
+<body>
+<!-- onboarding.js abre [data-modal-content] num modal largo; sem JS, esta
+     mesma página funciona como um wizard de página cheia. -->
+<div class="app-content">
+    <div class="onb" data-modal-content data-modal-wide th:data-step="${step}">
+
+        <header class="onb-head">
+            <div>
+                <h3 class="onb-title">Bem-vindo ao Rastroo<span class="accent">$</span></h3>
+                <p class="onb-sub">Quatro passos rápidos para o sistema já nascer com a sua cara.</p>
+            </div>
+            <form method="post" th:action="@{/app/onboarding/skip}" class="onb-skip-form">
+                <input type="hidden" th:if="${_csrf != null}"
+                       th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <button type="submit" class="btn btn-ghost btn-sm">Pular</button>
+            </form>
+        </header>
+
+        <ol class="onb-steps" aria-label="Progresso">
+            <li class="onb-step" th:classappend="${step == 'profile' ? 'on' : ''}">
+                <a th:href="@{/app/onboarding(step='profile')}" data-onb-step>
+                    <span class="onb-step-num">1</span><span class="onb-step-lbl">Perfil</span>
+                </a>
+            </li>
+            <li class="onb-step" th:classappend="${step == 'appearance' ? 'on' : ''}">
+                <a th:href="@{/app/onboarding(step='appearance')}" data-onb-step>
+                    <span class="onb-step-num">2</span><span class="onb-step-lbl">Aparência</span>
+                </a>
+            </li>
+            <li class="onb-step" th:classappend="${step == 'cards' ? 'on' : ''}">
+                <a th:href="@{/app/onboarding(step='cards')}" data-onb-step>
+                    <span class="onb-step-num">3</span><span class="onb-step-lbl">Cartões</span>
+                </a>
+            </li>
+            <li class="onb-step" th:classappend="${step == 'income' ? 'on' : ''}">
+                <a th:href="@{/app/onboarding(step='income')}" data-onb-step>
+                    <span class="onb-step-num">4</span><span class="onb-step-lbl">Receita</span>
+                </a>
+            </li>
+        </ol>
+
+        <div th:if="${ok}" class="flash flash-ok" th:text="#{${ok}}">Ok</div>
+
+        <!-- ── Passo 1 · perfil ───────────────────────────────────────── -->
+        <form th:if="${step == 'profile'}" class="form onb-form" method="post"
+              th:action="@{/app/onboarding/profile}" th:object="${profileForm}">
+            <input type="hidden" th:if="${_csrf != null}"
+                   th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
+            <p class="onb-lead">
+                Como podemos te chamar? A senha só muda se você quiser —
+                deixe os campos em branco para manter a atual.
+            </p>
+
+            <label>
+                <span>Nome</span>
+                <input class="input" type="text" th:field="*{name}" maxlength="120"
+                       required autocomplete="name" placeholder="Seu nome">
+                <small th:if="${#fields.hasErrors('name')}" th:errors="*{name}"
+                       class="form-hint form-hint-err"></small>
+            </label>
+
+            <p class="onb-section-title">Trocar senha (opcional)</p>
+
+            <label>
+                <span>Senha atual</span>
+                <div class="auth-input-wrap">
+                    <input class="input" type="password" th:field="*{currentPassword}"
+                           autocomplete="current-password" maxlength="128">
+                    <th:block th:replace="~{fragments/password-toggle :: pwdToggle}"></th:block>
+                </div>
+                <small th:if="${#fields.hasErrors('currentPassword')}"
+                       th:errors="*{currentPassword}" class="form-hint form-hint-err"></small>
+            </label>
+
+            <div class="form-row">
+                <label>
+                    <span>Nova senha</span>
+                    <div class="auth-input-wrap">
+                        <input class="input" type="password" th:field="*{newPassword}"
+                               autocomplete="new-password" maxlength="128">
+                        <th:block th:replace="~{fragments/password-toggle :: pwdToggle}"></th:block>
+                    </div>
+                    <small th:if="${#fields.hasErrors('newPassword')}"
+                           th:errors="*{newPassword}" class="form-hint form-hint-err"></small>
+                </label>
+                <label>
+                    <span>Confirmar</span>
+                    <div class="auth-input-wrap">
+                        <input class="input" type="password" th:field="*{newPasswordConfirm}"
+                               autocomplete="new-password" maxlength="128">
+                        <th:block th:replace="~{fragments/password-toggle :: pwdToggle}"></th:block>
+                    </div>
+                    <small th:if="${#fields.hasErrors('newPasswordConfirm')}"
+                           th:errors="*{newPasswordConfirm}" class="form-hint form-hint-err"></small>
+                </label>
+            </div>
+            <small class="form-hint">
+                Mínimo 8 caracteres, com maiúscula, minúscula, dígito e caractere especial.
+            </small>
+
+            <div class="onb-actions">
+                <span class="onb-actions-spacer"></span>
+                <button type="submit" class="btn btn-primary">Continuar</button>
+            </div>
+        </form>
+
+        <!-- ── Passo 2 · aparência ────────────────────────────────────── -->
+        <form th:if="${step == 'appearance'}" class="form onb-form" method="post"
+              th:action="@{/app/onboarding/appearance}" th:object="${appearanceForm}"
+              data-onb-appearance>
+            <input type="hidden" th:if="${_csrf != null}"
+                   th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
+            <p class="onb-lead">Escolha o clima da interface. Dá para trocar depois no menu do topo.</p>
+
+            <span class="onb-label">Tema</span>
+            <div class="onb-theme-pick">
+                <label class="onb-theme-opt" data-onb-theme-opt>
+                    <input type="radio" th:field="*{theme}" value="dark" data-onb-theme>
+                    <span class="onb-theme-card onb-theme-dark" aria-hidden="true">
+                        <span class="onb-theme-bar"></span>
+                        <span class="onb-theme-body"></span>
+                    </span>
+                    <span class="onb-theme-name">Escuro</span>
+                </label>
+                <label class="onb-theme-opt" data-onb-theme-opt>
+                    <input type="radio" th:field="*{theme}" value="light" data-onb-theme>
+                    <span class="onb-theme-card onb-theme-light" aria-hidden="true">
+                        <span class="onb-theme-bar"></span>
+                        <span class="onb-theme-body"></span>
+                    </span>
+                    <span class="onb-theme-name">Claro</span>
+                </label>
+            </div>
+
+            <span class="onb-label">Cor do tema</span>
+            <!-- As amostras são montadas por onboarding.js a partir de palettes.js
+                 (mesma lista do menu do usuário) — sem cor inline no HTML. -->
+            <div class="onb-palette" data-onb-palette
+                 th:data-count="${paletteCount}" th:data-selected="*{paletteIndex}"></div>
+            <input type="hidden" th:field="*{paletteIndex}" data-onb-palette-input>
+            <small th:if="${#fields.hasErrors('paletteIndex')}" th:errors="*{paletteIndex}"
+                   class="form-hint form-hint-err"></small>
+
+            <div class="onb-actions">
+                <a class="btn btn-ghost" data-onb-step
+                   th:href="@{/app/onboarding(step='profile')}">Voltar</a>
+                <button type="submit" class="btn btn-primary">Continuar</button>
+            </div>
+        </form>
+
+        <!-- ── Passo 3 · cartões ──────────────────────────────────────── -->
+        <div th:if="${step == 'cards'}" class="onb-pane">
+            <p class="onb-lead">
+                Cadastre os cartões que você usa. Crédito tem fatura (fechamento e
+                vencimento); débito sai na hora. Pode adicionar quantos quiser — ou
+                nenhum, e deixar para depois.
+            </p>
+
+            <ul class="onb-list" th:if="${!view.cards().isEmpty()}">
+                <li class="onb-list-item" th:each="c : ${view.cards()}">
+                    <span class="onb-list-chip" th:attr="data-fill=${c.colorHex()}"
+                          th:text="${#strings.substring(c.name(),0,1)}">N</span>
+                    <div class="onb-list-mid">
+                        <div class="onb-list-name" th:text="${c.name()}">Cartão</div>
+                        <div class="onb-list-meta">
+                            <span th:text="${c.credit() ? 'Crédito' : 'Débito'}">Crédito</span><span
+                                th:if="${c.last4() != null}"> · •••• <span th:text="${c.last4()}">1234</span></span><span
+                                th:if="${c.dueDay() != null}"> · vence dia <span th:text="${c.dueDay()}">10</span></span>
+                        </div>
+                    </div>
+                </li>
+            </ul>
+
+            <form class="form onb-form" method="post"
+                  th:action="@{/app/onboarding/cards}" th:object="${accountForm}">
+                <input type="hidden" th:if="${_csrf != null}"
+                       th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
+                <div class="form-row">
+                    <label>
+                        <span>Tipo</span>
+                        <select class="input" th:field="*{kind}" data-account-kind>
+                            <option th:each="k : ${cardKinds}" th:value="${k}"
+                                    th:text="${k.name() == 'CARD' ? 'Cartão de crédito' : 'Cartão de débito'}">Tipo</option>
+                        </select>
+                        <small th:if="${#fields.hasErrors('kind')}" th:errors="*{kind}"
+                               class="form-hint form-hint-err"></small>
+                    </label>
+                    <label>
+                        <span>Nome</span>
+                        <input class="input" type="text" th:field="*{name}" maxlength="80"
+                               autocomplete="off" required placeholder="Ex: Nubank">
+                        <small th:if="${#fields.hasErrors('name')}" th:errors="*{name}"
+                               class="form-hint form-hint-err"></small>
+                    </label>
+                </div>
+
+                <div class="form-row">
+                    <label>
+                        <span>Cor</span>
+                        <input class="input input-color" type="color" th:field="*{colorHex}" value="#6366f1">
+                        <small th:if="${#fields.hasErrors('colorHex')}" th:errors="*{colorHex}"
+                               class="form-hint form-hint-err"></small>
+                    </label>
+                    <label>
+                        <span>Últimos 4 dígitos</span>
+                        <input class="input" type="text" th:field="*{last4}"
+                               inputmode="numeric" pattern="\d{4}" maxlength="4"
+                               autocomplete="off" placeholder="1234">
+                        <small th:if="${#fields.hasErrors('last4')}" th:errors="*{last4}"
+                               class="form-hint form-hint-err"></small>
+                    </label>
+                </div>
+
+                <div class="form-row" data-only-kind="CARD">
+                    <label>
+                        <span>Dia de fechamento</span>
+                        <input class="input" type="number" th:field="*{closeDay}" min="1" max="31" placeholder="1–31">
+                        <small th:if="${#fields.hasErrors('closeDay')}" th:errors="*{closeDay}"
+                               class="form-hint form-hint-err"></small>
+                    </label>
+                    <label>
+                        <span>Dia de vencimento</span>
+                        <input class="input" type="number" th:field="*{dueDay}" min="1" max="31" placeholder="1–31">
+                        <small th:if="${#fields.hasErrors('dueDay')}" th:errors="*{dueDay}"
+                               class="form-hint form-hint-err"></small>
+                    </label>
+                </div>
+
+                <div class="onb-actions">
+                    <a class="btn btn-ghost" data-onb-step
+                       th:href="@{/app/onboarding(step='appearance')}">Voltar</a>
+                    <span class="onb-actions-group">
+                        <button type="submit" class="btn">Adicionar cartão</button>
+                        <a class="btn btn-primary" data-onb-step
+                           th:href="@{/app/onboarding(step='income')}">Continuar</a>
+                    </span>
+                </div>
+            </form>
+        </div>
+
+        <!-- ── Passo 4 · receita recorrente ───────────────────────────── -->
+        <div th:if="${step == 'income'}" class="onb-pane">
+            <p class="onb-lead">
+                Cadastre o salário fixo. O dia é o <strong>dia útil</strong> em que
+                o dinheiro cai — no 5º dia útil a data muda a cada mês conforme fim
+                de semana e feriado. Cada mês entra como "a receber" até você
+                confirmar na tela de receitas.
+            </p>
+
+            <ul class="onb-list" th:if="${!view.sources().isEmpty()}">
+                <li class="onb-list-item" th:each="s : ${view.sources()}">
+                    <span class="onb-list-chip onb-list-chip-income" aria-hidden="true">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5m0 0l-6 6m6-6l6 6"/></svg>
+                    </span>
+                    <div class="onb-list-mid">
+                        <div class="onb-list-name" th:text="${s.name()}">Empresa</div>
+                        <div class="onb-list-meta">
+                            <span th:text="${s.payBusinessDay()}">5</span>º dia útil ·
+                            <span th:text="${s.entries()}">120</span> recebimentos programados
+                        </div>
+                    </div>
+                    <span class="money money-sm"
+                          th:text="'R$ ' + ${#numbers.formatDecimal(s.amount(), 1, 'POINT', 2, 'COMMA')}">R$ 0,00</span>
+                </li>
+            </ul>
+
+            <form class="form onb-form" method="post"
+                  th:action="@{/app/onboarding/income}" th:object="${incomeSourceForm}">
+                <input type="hidden" th:if="${_csrf != null}"
+                       th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
+                <label>
+                    <span>Empresa</span>
+                    <input class="input" type="text" th:field="*{name}" maxlength="120"
+                           autocomplete="organization" required placeholder="Ex: Acme Ltda">
+                    <small th:if="${#fields.hasErrors('name')}" th:errors="*{name}"
+                           class="form-hint form-hint-err"></small>
+                </label>
+
+                <div class="form-row">
+                    <label>
+                        <span>Valor mensal (R$)</span>
+                        <input class="input" type="number" step="0.01" min="0.01"
+                               th:field="*{amount}" required placeholder="0,00">
+                        <small th:if="${#fields.hasErrors('amount')}" th:errors="*{amount}"
+                               class="form-hint form-hint-err"></small>
+                    </label>
+                    <label>
+                        <span>Dia útil do pagamento</span>
+                        <input class="input" type="number" th:field="*{payBusinessDay}" min="1" max="23" required>
+                        <small th:if="${#fields.hasErrors('payBusinessDay')}" th:errors="*{payBusinessDay}"
+                               class="form-hint form-hint-err"></small>
+                    </label>
+                </div>
+
+                <label>
+                    <span>A partir de</span>
+                    <input class="input" type="month" th:field="*{startMonth}">
+                    <small class="form-hint">Deixe como está para começar no mês corrente.</small>
+                    <small th:if="${#fields.hasErrors('startMonth')}" th:errors="*{startMonth}"
+                           class="form-hint form-hint-err"></small>
+                </label>
+
+                <div class="onb-actions">
+                    <a class="btn btn-ghost" data-onb-step
+                       th:href="@{/app/onboarding(step='cards')}">Voltar</a>
+                    <span class="onb-actions-group">
+                        <button type="submit" class="btn">Adicionar receita</button>
+                    </span>
+                </div>
+            </form>
+
+            <form method="post" th:action="@{/app/onboarding/finish}" class="onb-finish">
+                <input type="hidden" th:if="${_csrf != null}"
+                       th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <button type="submit" class="btn btn-primary btn-block">Concluir e começar</button>
+            </form>
+        </div>
+
+    </div>
+</div>
+</body>
+</html>

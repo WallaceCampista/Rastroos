@@ -53,14 +53,19 @@ public class MonthlyFinanceAggregator {
         long spent = toLong(row[0]);
         long paid = toLong(row[1]);
         long fixed = toLong(row[2]);
-        long received = incomes.sumAmountByUserAndPeriod(userId, start, end);
+        // "Recebido" é caixa: só o que foi confirmado. O saldo e a taxa de
+        // poupança continuam sendo PREVISÃO — usam tudo que está lançado no
+        // mês, senão todo mês futuro apareceria no vermelho só porque o
+        // salário ainda não caiu.
+        long received = incomes.sumReceivedByUserAndPeriod(userId, start, end);
+        long expected = incomes.sumAmountByUserAndPeriod(userId, start, end);
 
         long toPay = Math.max(0L, spent - paid);
         long oneTime = Math.max(0L, spent - fixed);
-        long net = received - spent;
+        long net = expected - spent;
 
-        Integer savingsRate = received > 0
-                ? (int) Math.round((received - spent) * 100.0 / received)
+        Integer savingsRate = expected > 0
+                ? (int) Math.round((expected - spent) * 100.0 / expected)
                 : null;
 
         return new MonthSummaryDto(

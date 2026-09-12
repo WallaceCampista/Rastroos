@@ -22,5 +22,7 @@
     <include file="db/changelog/011-login-attempt-user-agent.xml"/>
     <include file="db/changelog/012-ai-vector-store.xml"/>
     <include file="db/changelog/013-ai-insight-cache.xml"/>
+    <include file="db/changelog/014-onboarding-income-sources.xml"/>
+    <include file="db/changelog/015-income-business-day-and-received.xml"/>
 
 </databaseChangeLog>

@@ -78,15 +78,20 @@ public class DashboardService {
         LocalDate start = ym.atDay(1);
         LocalDate end = ym.plusMonths(1).atDay(1);
 
-        long incomeCents = incomes.sumAmountByUserAndPeriod(userId, start, end);
+        // Recebido = confirmado; a receber = o que está programado e ainda não
+        // caiu. O saldo disponível é dinheiro em mãos, então parte do recebido.
+        long receivedCents = incomes.sumReceivedByUserAndPeriod(userId, start, end);
+        long expectedCents = incomes.sumAmountByUserAndPeriod(userId, start, end);
+        long toReceiveCents = Math.max(0L, expectedCents - receivedCents);
         long spentCents = transactions.sumAmountByUserAndPeriod(userId, start, end);
         long paidCents = transactions.sumPaidByUserAndPeriod(userId, start, end);
         long toPayCents = Math.max(0L, spentCents - paidCents);
-        long balanceCents = incomeCents - paidCents;
+        long balanceCents = receivedCents - paidCents;
         long investedCents = contributions.inMonthCents(userId, ym);
 
         DashboardKpisDto kpis = new DashboardKpisDto(
-                MoneyDto.fromCents(incomeCents),
+                MoneyDto.fromCents(receivedCents),
+                MoneyDto.fromCents(toReceiveCents),
                 MoneyDto.fromCents(spentCents),
                 MoneyDto.fromCents(paidCents),
                 MoneyDto.fromCents(toPayCents),

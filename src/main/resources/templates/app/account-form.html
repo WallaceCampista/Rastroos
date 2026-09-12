@@ -11,7 +11,7 @@
         <div>
             <h1 class="screen-title"
                 th:text="${editing ? 'Editar conta' : 'Nova conta'}">Nova conta</h1>
-            <p class="screen-sub">Cartão, boleto fixo ou conta recorrente.</p>
+            <p class="screen-sub">Cartão de crédito ou débito, boleto fixo ou conta recorrente.</p>
         </div>
         <div class="screen-actions">
             <a class="btn" th:href="@{/app/cards}">Voltar</a>
@@ -30,7 +30,8 @@
             <select class="input" th:field="*{kind}" data-account-kind>
                 <option th:each="k : ${kinds}" th:value="${k}"
                         th:text="${k.name() == 'CARD' ? 'Cartão de crédito'
-                                : (k.name() == 'BILL' ? 'Conta / boleto' : 'Recorrente')}">Tipo</option>
+                                : (k.name() == 'DEBIT' ? 'Cartão de débito'
+                                : (k.name() == 'BILL' ? 'Conta / boleto' : 'Recorrente'))}">Tipo</option>
             </select>
             <small th:if="${#fields.hasErrors('kind')}" th:errors="*{kind}" class="form-hint form-hint-err"></small>
         </label>
@@ -68,7 +69,7 @@
             </label>
         </div>
 
-        <label data-only-kind="CARD">
+        <label data-only-kind="CARD,DEBIT">
             <span>Últimos 4 dígitos</span>
             <input class="input" type="text" th:field="*{last4}"
                    inputmode="numeric" pattern="\d{4}" maxlength="4" autocomplete="off"

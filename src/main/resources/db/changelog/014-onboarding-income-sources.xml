@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ─────────────────────────────────────────────────────────────
+  014 — Onboarding do primeiro acesso + receita recorrente
+  ─────────────────────────────────────────────────────────────
+  Três coisas independentes que entram juntas porque a mesma tela
+  (o wizard de boas-vindas) usa as três:
+
+  1. users.onboarding_completed_at — enquanto NULL, o modal de
+     boas-vindas abre. Contas que já existem são marcadas como
+     concluídas no backfill: quem já usa o sistema não é
+     interrompido por um wizard de primeiro acesso.
+  2. accounts.kind ganha DEBIT — cartão de débito não tem fatura
+     (nem fechamento nem vencimento), então é um tipo próprio e não
+     um CARD com colunas nulas.
+  3. income_sources — a empresa que paga o salário. Uma receita
+     recorrente é materializada em N linhas de `incomes` apontando
+     para a fonte (mesma estratégia do gasto fixo permanente), o que
+     torna o "apagar tudo / apagar deste mês em diante" uma operação
+     de DELETE por intervalo, e não uma regra a reinterpretar em
+     todo relatório.
+-->
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.27.xsd">
+
+    <changeSet id="014-01-users-add-onboarding-completed-at" author="rastroos">
+        <addColumn tableName="users">
+            <column name="onboarding_completed_at" type="TIMESTAMPTZ"/>
+        </addColumn>
+        <rollback>
+            <dropColumn tableName="users" columnName="onboarding_completed_at"/>
+        </rollback>
+    </changeSet>
+
+    <!-- Contas existentes já passaram do primeiro acesso: não abrir o wizard
+         para elas. Só quem for criado a partir daqui nasce com NULL. -->
+    <changeSet id="014-02-users-backfill-onboarding" author="rastroos">
+        <sql>
+            UPDATE users SET onboarding_completed_at = now()
+             WHERE onboarding_completed_at IS NULL;
+        </sql>
+        <rollback>
+            <sql>UPDATE users SET onboarding_completed_at = NULL;</sql>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="014-03-accounts-kind-add-debit" author="rastroos">
+        <sql>
+            ALTER TABLE accounts DROP CONSTRAINT ck_accounts_kind;
+            ALTER TABLE accounts ADD CONSTRAINT ck_accounts_kind
+                CHECK (kind IN ('CARD', 'DEBIT', 'BILL', 'RECURRENT'));
+        </sql>
+        <rollback>
+            <sql>
+                ALTER TABLE accounts DROP CONSTRAINT ck_accounts_kind;
+                ALTER TABLE accounts ADD CONSTRAINT ck_accounts_kind
+                    CHECK (kind IN ('CARD', 'BILL', 'RECURRENT'));
+            </sql>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="014-04-create-income-sources" author="rastroos">
+        <createTable tableName="income_sources">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="user_id" type="UUID">
+                <constraints nullable="false"
+                             foreignKeyName="fk_income_sources_user"
+                             references="users(id)"
+                             deleteCascade="true"/>
+            </column>
+            <column name="name" type="VARCHAR(120)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="amount_cents" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="pay_day" type="SMALLINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="note" type="VARCHAR(200)"/>
+            <!-- Encerrada: o histórico fica, nada novo é gerado. -->
+            <column name="closed_at" type="DATE"/>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <sql>
+            ALTER TABLE income_sources ADD CONSTRAINT ck_income_sources_amount_positive
+                CHECK (amount_cents > 0);
+            ALTER TABLE income_sources ADD CONSTRAINT ck_income_sources_pay_day
+                CHECK (pay_day BETWEEN 1 AND 31);
+        </sql>
+
+        <createIndex tableName="income_sources" indexName="ix_income_sources_user_name">
+            <column name="user_id"/>
+            <column name="name"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="income_sources"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="014-05-incomes-add-source-id" author="rastroos">
+        <addColumn tableName="incomes">
+            <column name="source_id" type="UUID"/>
+        </addColumn>
+
+        <!-- SET NULL (e não CASCADE): apagar a fonte sem apagar as receitas é
+             um caminho válido (encerrar deixando o histórico). Quem quer apagar
+             os lançamentos junto faz isso explicitamente no service. -->
+        <addForeignKeyConstraint baseTableName="incomes"
+                                 baseColumnNames="source_id"
+                                 constraintName="fk_incomes_source"
+                                 referencedTableName="income_sources"
+                                 referencedColumnNames="id"
+                                 onDelete="SET NULL"/>
+
+        <createIndex tableName="incomes" indexName="ix_incomes_source_date">
+            <column name="source_id"/>
+            <column name="income_date"/>
+        </createIndex>
+
+        <rollback>
+            <dropIndex tableName="incomes" indexName="ix_incomes_source_date"/>
+            <dropForeignKeyConstraint baseTableName="incomes" constraintName="fk_incomes_source"/>
+            <dropColumn tableName="incomes" columnName="source_id"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

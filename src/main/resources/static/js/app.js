@@ -33,27 +33,15 @@
     }
 
     // ── Menu do usuário: idioma / modo escuro / paletas ───────
-    const PALETTES = [
-        ['#6366f1', '#fbbf24'], ['#22c55e', '#f5f5f5'], ['#d97757', '#1a1a1a'],
-        ['#0f766e', '#fb7185'], ['#fde047', '#a78bfa'], ['#ec4899', '#22d3ee'],
-        ['#0ea5e9', '#f97316'], ['#7c3aed', '#10b981'], ['#dc2626', '#fcd34d'],
-        ['#1e293b', '#facc15'], ['#14b8a6', '#f43f5e'], ['#84cc16', '#8b5cf6'],
-        ['#1e40af', '#fb7185'], ['#9333ea', '#fde047'], ['#06b6d4', '#f472b6'],
-        ['#16a34a', '#fbbf24'], ['#ea580c', '#0ea5e9'], ['#be123c', '#a3e635'],
-    ];
-    const docRoot = document.documentElement;
+    // A lista mora em palettes.js (compartilhada com o wizard de boas-vindas).
+    const PALETTES = window.RastroosPalettes || [['#6366f1', '#fbbf24']];
     const currentPaletteIndex = () => {
         const i = parseInt(document.body.dataset.palette, 10);
         return (!Number.isNaN(i) && PALETTES[i]) ? i : 0;
     };
-    const applyPalette = (i) => {
-        const p = PALETTES[i] || PALETTES[0];
-        docRoot.style.setProperty('--primary', p[0]);
-        docRoot.style.setProperty('--accent', p[1]);
-        // Avisa quem desenha em canvas (gráficos) para redesenhar com a
-        // nova cor — CSS reage sozinho via var(--primary), canvas não.
-        window.dispatchEvent(new CustomEvent('rastroos:themechange'));
-    };
+    // Avisa quem desenha em canvas (gráficos) para redesenhar com a nova cor —
+    // CSS reage sozinho via var(--primary), canvas não.
+    const applyPalette = (i) => window.RastroosApplyPalette(i);
     applyPalette(currentPaletteIndex());
 
     const colorPreview = document.querySelector('[data-color-preview]');

@@ -24,7 +24,12 @@ import org.springframework.data.domain.Pageable;
 import com.rastroos.domain.entity.Category;
 import com.rastroos.domain.entity.Income;
 import com.rastroos.domain.repository.CategoryRepository;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
+
 import com.rastroos.domain.repository.IncomeRepository;
+import com.rastroos.domain.repository.IncomeSourceRepository;
 import com.rastroos.web.dto.IncomeFilter;
 import com.rastroos.web.dto.IncomesPageView;
 
@@ -36,6 +41,7 @@ import com.rastroos.web.dto.IncomesPageView;
 class IncomeServiceListTest {
 
     @Mock private IncomeRepository incomes;
+    @Mock private IncomeSourceRepository sources;
     @Mock private CategoryRepository categories;
 
     private IncomeService service;
@@ -44,7 +50,9 @@ class IncomeServiceListTest {
 
     private IncomeService service() {
         if (service == null) {
-            service = new IncomeService(incomes, categories, event -> { });
+            service = new IncomeService(incomes, sources, categories,
+                    Clock.fixed(Instant.parse("2026-05-15T12:00:00Z"), ZoneId.of("UTC")),
+                    event -> { });
         }
         return service;
     }

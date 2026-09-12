@@ -1,0 +1,86 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR"
+      th:replace="~{layout/base :: layout(~{::title}, ~{::head/link}, ~{::section}, ~{::head/script})}">
+<head>
+    <title th:text="${editing ? 'Editar receita fixa · Rastroo$' : 'Nova receita fixa · Rastroo$'}">Receita fixa · Rastroo$</title>
+    <link rel="stylesheet" th:href="@{/css/screens/income.css}">
+</head>
+<body>
+<section class="app-content screen screen-income screen-income-form">
+    <header class="screen-header">
+        <div>
+            <h1 class="screen-title"
+                th:text="${editing ? 'Editar receita fixa' : 'Nova receita fixa'}">Nova receita fixa</h1>
+            <p class="screen-sub">O salário que entra todo mês, sempre da mesma empresa.</p>
+        </div>
+        <div class="screen-actions">
+            <a class="btn" th:href="@{/app/income}">Voltar</a>
+        </div>
+    </header>
+
+    <form class="form income-form"
+          th:action="${editing ? '/app/income/sources/' + incomeSourceId + '/edit' : '/app/income/sources/new'}"
+          method="post"
+          th:object="${incomeSourceForm}">
+        <input type="hidden" th:if="${_csrf != null}"
+               th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
+        <label>
+            <span>Empresa</span>
+            <input class="input" type="text" th:field="*{name}" maxlength="120"
+                   autocomplete="organization" required placeholder="Ex: Acme Ltda">
+            <small th:if="${#fields.hasErrors('name')}" th:errors="*{name}"
+                   class="form-hint form-hint-err"></small>
+        </label>
+
+        <div class="form-row">
+            <label>
+                <span>Valor mensal (R$)</span>
+                <input class="input" type="number" step="0.01" min="0.01"
+                       th:field="*{amount}" required placeholder="0,00">
+                <small th:if="${#fields.hasErrors('amount')}" th:errors="*{amount}"
+                       class="form-hint form-hint-err"></small>
+            </label>
+            <label>
+                <span>Dia útil do pagamento</span>
+                <input class="input" type="number" th:field="*{payBusinessDay}" min="1" max="23" required>
+                <small th:if="${#fields.hasErrors('payBusinessDay')}" th:errors="*{payBusinessDay}"
+                       class="form-hint form-hint-err"></small>
+            </label>
+        </div>
+
+        <label th:unless="${editing}">
+            <span>A partir de</span>
+            <input class="input" type="month" th:field="*{startMonth}">
+            <small class="form-hint">Os recebimentos são criados deste mês em diante.</small>
+            <small th:if="${#fields.hasErrors('startMonth')}" th:errors="*{startMonth}"
+                   class="form-hint form-hint-err"></small>
+        </label>
+
+        <small class="form-hint">
+            É o dia <strong>útil</strong>, não o do calendário: no 5º dia útil a data
+            muda a cada mês conforme fim de semana e feriado nacional. Feriado
+            municipal não entra na conta — se empurrar o pagamento, ajuste a data
+            daquele mês no próprio lançamento.
+        </small>
+
+        <label>
+            <span>Observação (opcional)</span>
+            <input class="input" type="text" th:field="*{note}"
+                   maxlength="200" placeholder="ex.: CLT, pagamento em folha">
+        </label>
+
+        <small class="form-hint" th:if="${editing}">
+            A alteração vale do mês corrente em diante; os recebimentos já
+            passados ficam como foram registrados.
+        </small>
+
+        <div class="form-actions">
+            <a class="btn btn-ghost" data-modal-close th:href="@{/app/income}">Cancelar</a>
+            <button type="submit" class="btn btn-primary"
+                    th:text="${editing ? 'Salvar alterações' : 'Cadastrar receita fixa'}">Cadastrar receita fixa</button>
+        </div>
+    </form>
+</section>
+</body>
+</html>

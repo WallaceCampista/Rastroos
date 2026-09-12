@@ -134,7 +134,7 @@ public class ExpenseExtractionService {
         }
         String digits = last4.trim();
         return accounts.findAllByUserIdOrderByNameAsc(userId).stream()
-                .filter(a -> a.getKind() == AccountKind.CARD && digits.equals(a.getLast4()))
+                .filter(a -> a.getKind().isCard() && digits.equals(a.getLast4()))
                 .map(Account::getId)
                 .findFirst()
                 .orElse(null);

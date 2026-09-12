@@ -1,0 +1,98 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Excluir receita · Rastroo$</title>
+    <link rel="stylesheet" th:href="@{/css/tokens.css}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/components.css}">
+    <link rel="stylesheet" th:href="@{/css/screens/income.css}">
+</head>
+<body>
+<!-- modals.js abre [data-modal-content] num modal central (openNode). -->
+<div class="app-content">
+    <div class="inc-del" data-modal-content>
+
+        <header class="inc-del-head">
+            <h3 class="inc-del-title">Excluir “<span th:text="${del.label()}">Receita</span>”</h3>
+            <button type="button" class="icon-btn" data-modal-close aria-label="Fechar">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M6 18L18 6"/></svg>
+            </button>
+        </header>
+
+        <p class="inc-del-sub" th:if="${del.recurring()}">
+            Esta é uma receita fixa com <strong th:text="${del.total()}">0</strong> recebimento(s),
+            sendo <strong th:text="${del.fromMonth()}">0</strong> de
+            <span th:text="${del.monthLabel()}">este mês</span> em diante. Escolha o que apagar.
+        </p>
+        <p class="inc-del-sub" th:unless="${del.recurring()}">
+            Este é um lançamento avulso. Apagar remove só ele.
+        </p>
+
+        <div class="inc-del-options">
+            <!-- Só este lançamento: existe apenas quando a lixeira veio de uma linha. -->
+            <form th:if="${del.incomeId() != null}" method="post"
+                  th:action="@{/app/income/{id}/delete(id=${del.incomeId()})}">
+                <input type="hidden" th:if="${_csrf != null}"
+                       th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <input type="hidden" name="scope" value="ONE">
+                <button type="submit" class="inc-del-opt"
+                        th:classappend="${del.recurring()} ? '' : 'is-danger'">
+                    <span class="inc-del-opt-title">
+                        <th:block th:if="${del.recurring()}">Só este lançamento</th:block>
+                        <th:block th:unless="${del.recurring()}">Apagar</th:block>
+                    </span>
+                    <span class="inc-del-opt-sub">
+                        Remove o recebimento de
+                        <span th:text="${#temporals.format(del.incomeDate(), 'dd/MM/yyyy')}">01/01/2026</span>.
+                        <th:block th:if="${del.recurring()}">A receita fixa continua nos outros meses.</th:block>
+                    </span>
+                </button>
+            </form>
+
+            <th:block th:if="${del.recurring()}">
+                <!-- Deste mês em diante: preserva o histórico já recebido. -->
+                <form th:if="${del.fromMonth() > 0}" method="post"
+                      th:action="@{/app/income/sources/{id}/delete(id=${del.source().id()})}">
+                    <input type="hidden" th:if="${_csrf != null}"
+                           th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                    <input type="hidden" name="scope" value="FROM_MONTH">
+                    <input type="hidden" name="ym" th:value="${del.period()}">
+                    <button type="submit" class="inc-del-opt">
+                        <span class="inc-del-opt-title">Deste mês em diante</span>
+                        <span class="inc-del-opt-sub">
+                            Apaga <span th:text="${del.fromMonth()}">0</span> recebimento(s) de
+                            <span th:text="${del.monthLabel()}">este mês</span> para frente e encerra a
+                            receita fixa. O histórico anterior fica preservado.
+                        </span>
+                    </button>
+                </form>
+
+                <form method="post"
+                      th:action="@{/app/income/sources/{id}/delete(id=${del.source().id()})}">
+                    <input type="hidden" th:if="${_csrf != null}"
+                           th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                    <input type="hidden" name="scope" value="ALL">
+                    <button type="submit" class="inc-del-opt is-danger">
+                        <span class="inc-del-opt-title">Apagar tudo</span>
+                        <span class="inc-del-opt-sub">
+                            <!-- O ponto final fica DENTRO do span: solto na linha seguinte,
+                                 a quebra vira um espaço e sai "dela ." -->
+                            <span>Remove a receita fixa e os
+                                <span th:text="${del.total()}">0</span> recebimento(s) dela.</span>
+                            Não dá para desfazer.
+                        </span>
+                    </button>
+                </form>
+            </th:block>
+        </div>
+
+        <div class="inc-del-foot">
+            <a class="btn btn-ghost" data-modal-close th:href="@{/app/income}">Cancelar</a>
+        </div>
+    </div>
+</div>
+</body>
+</html>

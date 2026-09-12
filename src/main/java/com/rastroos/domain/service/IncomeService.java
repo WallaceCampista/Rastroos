@@ -1,5 +1,6 @@
 package com.rastroos.domain.service;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.HashMap;
@@ -19,9 +20,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.rastroos.domain.entity.Category;
 import com.rastroos.domain.entity.Income;
+import com.rastroos.domain.entity.IncomeSource;
 import com.rastroos.domain.exception.ResourceNotFoundException;
 import com.rastroos.domain.repository.CategoryRepository;
 import com.rastroos.domain.repository.IncomeRepository;
+import com.rastroos.domain.repository.IncomeSourceRepository;
 import com.rastroos.web.dto.IncomeDto;
 import com.rastroos.web.dto.IncomeFilter;
 import com.rastroos.web.dto.IncomesPageView;
@@ -34,6 +37,16 @@ import com.rastroos.web.form.IncomeForm;
  * <p>Isolamento estrito por {@code userId}: nenhuma operação atravessa
  * usuários. Acesso a id de outro usuário → {@link ResourceNotFoundException}
  * (HTTP 404).
+ *
+ * <p>Receita não tem categoria: para lançar bastam o valor e a origem — que
+ * pode vir de uma fonte recorrente já cadastrada ({@code sourceId}) ou ser
+ * digitada. A coluna {@code category} continua no banco por causa dos
+ * registros antigos, mas nada novo a preenche e uma edição não a apaga.
+ *
+ * <p>Lançar aqui é registrar algo que <b>já aconteceu</b>, então o lançamento
+ * avulso nasce confirmado. Os recebimentos programados por uma receita fixa
+ * nascem pendentes e só entram nos totais depois do
+ * {@link #toggleReceived(UUID, UUID)}.
  */
 @Service
 public class IncomeService {
@@ -42,13 +55,20 @@ public class IncomeService {
     public static final int DEFAULT_PAGE_SIZE = 20;
 
     private final IncomeRepository incomes;
+    private final IncomeSourceRepository sources;
     private final CategoryRepository categories;
+    private final Clock clock;
     private final ApplicationEventPublisher events;
 
-    public IncomeService(IncomeRepository incomes, CategoryRepository categories,
+    public IncomeService(IncomeRepository incomes,
+                         IncomeSourceRepository sources,
+                         CategoryRepository categories,
+                         Clock clock,
                          ApplicationEventPublisher events) {
         this.incomes = incomes;
+        this.sources = sources;
         this.categories = categories;
+        this.clock = clock;
         this.events = events;
     }
 
@@ -81,6 +101,8 @@ public class IncomeService {
 
         long totalCents = incomes.totalByFilters(
                 userId, start, end, categoryId, search);
+        long receivedCents = incomes.receivedTotalByFilters(
+                userId, start, end, categoryId, search);
 
         return new IncomesPageView(
                 items,
@@ -88,7 +110,8 @@ public class IncomeService {
                 safeSize,
                 result.getTotalElements(),
                 result.getTotalPages(),
-                MoneyDto.fromCents(totalCents)
+                MoneyDto.fromCents(totalCents),
+                MoneyDto.fromCents(receivedCents)
         );
     }
 
@@ -101,20 +124,18 @@ public class IncomeService {
 
     @Transactional
     public Income create(UUID userId, IncomeForm form) {
-        validateCategory(form.getCategoryId());
-
-        long amountCents = form.getAmount().movePointRight(2).longValueExact();
-        if (amountCents <= 0) {
-            throw new IllegalArgumentException("income.amountPositive");
-        }
+        IncomeSource source = resolveSource(userId, form);
 
         Income i = new Income();
         i.setUserId(userId);
-        i.setSource(form.getSource().trim());
-        i.setAmountCents(amountCents);
+        i.setSourceId(source == null ? null : source.getId());
+        i.setSource(sourceLabel(source, form));
+        i.setAmountCents(amountCentsOf(form));
         i.setIncomeDate(form.getIncomeDate());
-        i.setCategory(blankToNull(form.getCategoryId()));
         i.setNote(blankToNull(form.getNote()));
+        // Lançar é registrar o que já caiu; quem programa é a receita fixa.
+        i.setReceived(true);
+        i.setReceivedAt(clock.instant());
         Income saved = incomes.save(i);
         dataChanged(userId);
         return saved;
@@ -123,18 +144,35 @@ public class IncomeService {
     @Transactional
     public Income update(UUID userId, UUID id, IncomeForm form) {
         Income existing = require(userId, id);
-        validateCategory(form.getCategoryId());
+        IncomeSource source = resolveSource(userId, form);
 
-        long amountCents = form.getAmount().movePointRight(2).longValueExact();
-        if (amountCents <= 0) {
-            throw new IllegalArgumentException("income.amountPositive");
-        }
-        existing.setSource(form.getSource().trim());
-        existing.setAmountCents(amountCents);
+        existing.setSourceId(source == null ? null : source.getId());
+        existing.setSource(sourceLabel(source, form));
+        existing.setAmountCents(amountCentsOf(form));
         existing.setIncomeDate(form.getIncomeDate());
-        existing.setCategory(blankToNull(form.getCategoryId()));
         existing.setNote(blankToNull(form.getNote()));
+        // `category` fica como está: a UI não edita mais categoria, e sobrescrever
+        // aqui apagaria o dado de um registro antigo em toda edição de valor.
         Income saved = incomes.save(existing);
+        dataChanged(userId);
+        return saved;
+    }
+
+    /**
+     * Confirma (ou desfaz) o recebimento. Enquanto não confirmado, o valor não
+     * entra em nenhum total de "recebido" — programado não é recebido.
+     */
+    @Transactional
+    public Income toggleReceived(UUID userId, UUID id) {
+        Income i = require(userId, id);
+        if (i.isReceived()) {
+            i.setReceived(false);
+            i.setReceivedAt(null);
+        } else {
+            i.setReceived(true);
+            i.setReceivedAt(clock.instant());
+        }
+        Income saved = incomes.save(i);
         dataChanged(userId);
         return saved;
     }
@@ -154,11 +192,32 @@ public class IncomeService {
 
     // ── helpers ──────────────────────────────────────────────────────────
 
-    private void validateCategory(String categoryId) {
-        if (categoryId == null || categoryId.isBlank()) return;
-        if (!categories.existsById(categoryId)) {
-            throw new ResourceNotFoundException("category.notFound");
+    /**
+     * A fonte escolhida no formulário, validada como do próprio usuário.
+     * {@code null} quando o lançamento é avulso (origem digitada).
+     */
+    private IncomeSource resolveSource(UUID userId, IncomeForm form) {
+        if (form.getSourceId() == null) {
+            if (blankToNull(form.getSource()) == null) {
+                throw new IllegalArgumentException("income.sourceRequired");
+            }
+            return null;
         }
+        return sources.findByIdAndUserId(form.getSourceId(), userId)
+                .orElseThrow(() -> new ResourceNotFoundException("incomeSource.notFound"));
+    }
+
+    /** Com fonte cadastrada, o nome da empresa vence o que veio digitado. */
+    private static String sourceLabel(IncomeSource source, IncomeForm form) {
+        return source != null ? source.getName() : form.getSource().trim();
+    }
+
+    private static long amountCentsOf(IncomeForm form) {
+        long cents = form.getAmount().movePointRight(2).longValueExact();
+        if (cents <= 0) {
+            throw new IllegalArgumentException("income.amountPositive");
+        }
+        return cents;
     }
 
     private Map<String, Category> mapCategories() {
@@ -176,13 +235,15 @@ public class IncomeService {
         return new IncomeDto(
                 i.getId(),
                 i.getSource(),
+                i.getSourceId(),
                 MoneyDto.fromCents(i.getAmountCents()),
                 i.getIncomeDate(),
                 i.getCategory(),
                 category == null ? null
                         : (english ? category.getNameEn() : category.getNamePt()),
                 category == null ? null : category.getColorHex(),
-                i.getNote()
+                i.getNote(),
+                i.isReceived()
         );
     }
 

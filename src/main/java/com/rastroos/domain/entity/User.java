@@ -86,6 +86,10 @@ public class User {
     @Column(name = "last_login_at")
     private Instant lastLoginAt;
 
+    /** Quando o usuário concluiu (ou dispensou) o wizard de boas-vindas. NULL = ainda não passou por ele. */
+    @Column(name = "onboarding_completed_at")
+    private Instant onboardingCompletedAt;
+
     public User() {
     }
 
@@ -161,6 +165,11 @@ public class User {
 
     public Instant getLastLoginAt() { return lastLoginAt; }
     public void setLastLoginAt(Instant lastLoginAt) { this.lastLoginAt = lastLoginAt; }
+
+    public Instant getOnboardingCompletedAt() { return onboardingCompletedAt; }
+    public void setOnboardingCompletedAt(Instant onboardingCompletedAt) {
+        this.onboardingCompletedAt = onboardingCompletedAt;
+    }
 
     @Override
     public boolean equals(Object o) {

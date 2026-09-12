@@ -37,6 +37,7 @@ class MonthlyFinanceAggregatorTest {
         when(txRepo.aggregateTotalsByPeriod(alice, start, end))
                 .thenReturn(List.<Object[]>of(new Object[] { 300_000L, 100_000L, 120_000L }));
         when(incomeRepo.sumAmountByUserAndPeriod(alice, start, end)).thenReturn(500_000L);
+        when(incomeRepo.sumReceivedByUserAndPeriod(alice, start, end)).thenReturn(500_000L);
 
         MonthSummaryDto s = aggregator.summarize(alice, ym, 42_000L, true);
 
@@ -55,6 +56,27 @@ class MonthlyFinanceAggregatorTest {
     }
 
     @Test
+    void recebidoEhCaixaMasSaldoContinuaSendoPrevisao() {
+        YearMonth ym = YearMonth.of(2026, 5);
+        LocalDate start = ym.atDay(1);
+        LocalDate end = ym.plusMonths(1).atDay(1);
+
+        when(txRepo.aggregateTotalsByPeriod(alice, start, end))
+                .thenReturn(List.<Object[]>of(new Object[] { 300_000L, 0L, 0L }));
+        // Salário lançado para o mês, mas ainda não confirmado.
+        when(incomeRepo.sumAmountByUserAndPeriod(alice, start, end)).thenReturn(500_000L);
+        when(incomeRepo.sumReceivedByUserAndPeriod(alice, start, end)).thenReturn(0L);
+
+        MonthSummaryDto s = aggregator.summarize(alice, ym, 0L, false);
+
+        assertThat(s.received().toPlainString()).isEqualTo("0.00");
+        // O saldo previsto NÃO pode ir a -3000 só porque o salário não caiu:
+        // é a projeção do mês, e ela usa o que está lançado.
+        assertThat(s.net().toPlainString()).isEqualTo("2000.00");
+        assertThat(s.savingsRate()).isEqualTo(40);
+    }
+
+    @Test
     void savingsRateNuloQuandoNaoHaReceita() {
         YearMonth ym = YearMonth.of(2026, 5);
         LocalDate start = ym.atDay(1);
@@ -63,6 +85,7 @@ class MonthlyFinanceAggregatorTest {
         when(txRepo.aggregateTotalsByPeriod(alice, start, end))
                 .thenReturn(List.<Object[]>of(new Object[] { 10_000L, 0L, 0L }));
         when(incomeRepo.sumAmountByUserAndPeriod(alice, start, end)).thenReturn(0L);
+        when(incomeRepo.sumReceivedByUserAndPeriod(alice, start, end)).thenReturn(0L);
 
         MonthSummaryDto s = aggregator.summarize(alice, ym, 0L, false);
 
@@ -81,6 +104,7 @@ class MonthlyFinanceAggregatorTest {
         when(txRepo.aggregateTotalsByPeriod(alice, start, end))
                 .thenReturn(List.<Object[]>of(new Object[] { 1_000L, 1_500L, 2_000L }));
         when(incomeRepo.sumAmountByUserAndPeriod(alice, start, end)).thenReturn(0L);
+        when(incomeRepo.sumReceivedByUserAndPeriod(alice, start, end)).thenReturn(0L);
 
         MonthSummaryDto s = aggregator.summarize(alice, ym, 0L, false);
 

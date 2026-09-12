@@ -149,8 +149,7 @@ class DashboardControllerTest {
     private DashboardModel emptyModel(YearMonth ym) {
         LocalDate start = ym.atDay(1);
         LocalDate end = ym.plusMonths(1).atDay(1);
-        DashboardKpisDto kpis = new DashboardKpisDto(
-                BigDecimal.ZERO, BigDecimal.ZERO,
+        DashboardKpisDto kpis = new DashboardKpisDto(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
                 BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
         return new DashboardModel(start, end, 0L, 0L, kpis,
                 List.of(), List.of(), List.of(), List.of(), List.of(), List.of());

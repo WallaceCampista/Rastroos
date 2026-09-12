@@ -9,15 +9,18 @@ import java.math.BigDecimal;
  *
  * @param yearMonth    chave {@code "YYYY-MM"}
  * @param label        rótulo curto localizado do mês (ex.: {@code "Mai"})
- * @param received     total de receitas no mês
+ * @param received     receita já <b>confirmada</b> como recebida no mês (caixa)
  * @param spent        total lançado (gastos)
  * @param paid         total já pago
  * @param toPay        {@code spent - paid} (mínimo 0)
  * @param fixed        parcela dos gastos marcada como fixa
  * @param oneTime      {@code spent - fixed} (gastos pontuais)
- * @param net          {@code received - spent} (saldo previsto; pode ser negativo)
+ * @param net          saldo <b>previsto</b>: tudo que está lançado de receita
+ *                     no mês menos o gasto — e não {@code received - spent},
+ *                     senão um mês futuro apareceria no vermelho só porque o
+ *                     salário ainda não foi confirmado. Pode ser negativo
  * @param invested     aporte estimado do mês (delta de investimentos − rendimento)
- * @param savingsRate  % da receita que sobrou; {@code null} quando não houve receita
+ * @param savingsRate  % da receita prevista que sobrou; {@code null} sem receita
  * @param current      {@code true} se este é o mês selecionado (destaque na tabela)
  */
 public record MonthSummaryDto(

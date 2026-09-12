@@ -11,7 +11,7 @@
         <div>
             <h1 class="screen-title"
                 th:text="${editing ? 'Editar receita' : 'Lançar receita'}">Lançar receita</h1>
-            <p class="screen-sub">Salário, freelas, vendas, dividendos…</p>
+            <p class="screen-sub">Escolha a empresa cadastrada e informe o valor.</p>
         </div>
         <div class="screen-actions">
             <a class="btn" th:href="@{/app/income}">Voltar</a>
@@ -25,11 +25,25 @@
         <input type="hidden" th:if="${_csrf != null}"
                th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
 
-        <label>
+        <label th:if="${!#lists.isEmpty(sourceOptions)}">
+            <span>Empresa</span>
+            <select class="input" th:field="*{sourceId}" data-income-source>
+                <option value="">Outra origem (digitar)</option>
+                <option th:each="s : ${sourceOptions}" th:value="${s.id()}"
+                        th:text="${s.name()}">Empresa</option>
+            </select>
+            <small class="form-hint">Receita fixa cadastrada — o valor vem preenchido, edite se mudou.</small>
+            <small th:if="${#fields.hasErrors('sourceId')}" th:errors="*{sourceId}"
+                   class="form-hint form-hint-err"></small>
+        </label>
+
+        <label data-income-source-free>
             <span>Origem</span>
             <input class="input" type="text" th:field="*{source}"
-                   maxlength="120" required autocomplete="off" placeholder="Ex: Salário PJ">
+                   maxlength="120" autocomplete="off" placeholder="Ex: Freela, venda, dividendos">
             <small th:if="${#fields.hasErrors('source')}" th:errors="*{source}"
+                   class="form-hint form-hint-err"></small>
+            <small th:if="${#fields.hasErrors('sourceProvided')}" th:errors="*{sourceProvided}"
                    class="form-hint form-hint-err"></small>
         </label>
 
@@ -48,20 +62,6 @@
                        class="form-hint form-hint-err"></small>
             </label>
         </div>
-
-        <label>
-            <span>Categoria</span>
-            <div class="cat-grid" data-cat-grid>
-                <button type="button" class="cat-btn" th:each="c : ${categoryOptions}"
-                        th:attr="data-cat=${c.id},data-color=${c.colorHex}">
-                    <span class="cat-dot"></span>
-                    <span th:text="${c.namePt}">Categoria</span>
-                </button>
-            </div>
-            <input type="hidden" th:field="*{categoryId}" data-cat-input>
-            <small th:if="${#fields.hasErrors('categoryId')}" th:errors="*{categoryId}"
-                   class="form-hint form-hint-err"></small>
-        </label>
 
         <label>
             <span>Observação (opcional)</span>

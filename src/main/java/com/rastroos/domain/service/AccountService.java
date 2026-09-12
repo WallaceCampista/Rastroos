@@ -70,7 +70,8 @@ public class AccountService {
         for (Account a : all) {
             AccountSummaryDto dto = toSummary(a, agg.get(a.getId()), ym);
             switch (a.getKind()) {
-                case CARD -> cards.add(dto);
+                // Débito entra junto do crédito: para o usuário os dois são "meus cartões".
+                case CARD, DEBIT -> cards.add(dto);
                 case BILL -> bills.add(dto);
                 case RECURRENT -> recurrent.add(dto);
             }
@@ -362,15 +363,19 @@ public class AccountService {
     }
 
     private static void applyForm(Account a, AccountForm form) {
+        // Débito é cartão (tem os 4 dígitos), mas não tem fatura: fechamento e
+        // vencimento só fazem sentido no crédito.
+        boolean card = form.getKind() != null && form.getKind().isCard();
+        boolean credit = form.getKind() == AccountKind.CARD;
         a.setName(form.getName().trim());
         a.setKind(form.getKind());
         a.setColorHex(normalizeColor(form.getColorHex()));
         a.setIconText(form.getIconText());
         a.setCategoryId(form.getCategoryId());
-        a.setFixed(form.getKind() != AccountKind.CARD && form.isFixed());
-        a.setCloseDay(form.getKind() == AccountKind.CARD ? form.getCloseDay() : null);
-        a.setDueDay(form.getKind() == AccountKind.CARD ? form.getDueDay() : null);
-        a.setLast4(form.getKind() == AccountKind.CARD ? normalizeLast4(form.getLast4()) : null);
+        a.setFixed(!card && form.isFixed());
+        a.setCloseDay(credit ? form.getCloseDay() : null);
+        a.setDueDay(credit ? form.getDueDay() : null);
+        a.setLast4(card ? normalizeLast4(form.getLast4()) : null);
     }
 
     private static String normalizeLast4(String last4) {

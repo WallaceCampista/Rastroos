@@ -275,7 +275,10 @@ public class InsightFactsBuilder {
         long count = page.totalElements();
 
         List<String> lines = new ArrayList<>();
-        lines.add(fact("Total recebido", page.totalAmount()));
+        lines.add(fact("Total recebido", page.receivedAmount()));
+        if (page.pendingAmount().signum() > 0) {
+            lines.add(fact("Ainda a receber", page.pendingAmount()));
+        }
         lines.add("Receitas registradas: " + count);
         if (count > 0) {
             lines.add(fact("Média por receita",
@@ -290,9 +293,15 @@ public class InsightFactsBuilder {
             return new InsightFacts(InsightScreen.INCOME, periodLabel, lines, text.toString());
         }
 
-        text.append("Em ").append(periodLabel).append(" entraram ").append(money(page.totalAmount()))
+        text.append("Em ").append(periodLabel).append(" entraram ").append(money(page.receivedAmount()))
             .append(" em ").append(count)
             .append(count == 1 ? " receita" : " receitas").append(". ");
+        // Programado não é recebido: dizer "entrou" o que ainda vai cair é o
+        // tipo de número convincente e errado que o Alfredo não pode produzir.
+        if (page.pendingAmount().signum() > 0) {
+            text.append(money(page.pendingAmount()))
+                .append(" ainda estão programados e não foram confirmados como recebidos. ");
+        }
 
         if (count == 1) {
             text.append("Tudo vem de uma única fonte: uma falha nela derruba o mês inteiro,"

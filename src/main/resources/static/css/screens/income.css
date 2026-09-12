@@ -57,3 +57,141 @@
 .income-chart-panel { margin-bottom: 20px; }
 .income-chart-wrap { height: 170px; width: 100%; }
 .income-chart-wrap > canvas { width: 100%; height: 100%; display: block; }
+
+/* ── Ações do hero (lançar avulso + cadastrar receita fixa) ──── */
+.income-hero-actions {
+    position: relative; z-index: 1;
+    display: flex; align-items: center; gap: 8px;
+    flex-wrap: wrap; justify-content: flex-end;
+}
+
+/* ── Marca de lançamento gerado por uma receita fixa ─────────── */
+.income-fixed-tag {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: color-mix(in oklch, var(--primary) 18%, transparent);
+    color: var(--primary);
+    font-size: 10.5px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.05em;
+}
+
+/* ── Painel "Receitas fixas" ─────────────────────────────────── */
+.income-src-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 2px; }
+.income-src-row {
+    display: grid; grid-template-columns: 1fr auto auto;
+    align-items: center; gap: 12px;
+    padding: 10px 12px; border-radius: 12px;
+    transition: background .15s;
+}
+.income-src-row:hover { background: var(--surface-2); }
+.income-src-row.is-closed { opacity: .6; }
+.income-src-mid { min-width: 0; }
+.income-src-name {
+    display: flex; align-items: center; gap: 8px;
+    font-weight: 600; font-size: 14px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.income-src-closed {
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: var(--surface-3);
+    color: var(--text-dim);
+    font-size: 10.5px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.05em;
+}
+
+/* ── Modal "excluir receita" (espelha o de excluir conta) ────── */
+.inc-del { display: flex; flex-direction: column; gap: 16px; width: 100%; }
+.inc-del-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.inc-del-title { margin: 0; font-size: 17px; font-weight: 800; }
+.inc-del-sub { margin: 0; font-size: 13.5px; color: var(--text-dim); line-height: 1.5; }
+.inc-del-options { display: flex; flex-direction: column; gap: 10px; }
+.inc-del-options form { margin: 0; }
+.inc-del-opt {
+    width: 100%;
+    display: flex; flex-direction: column; gap: 4px;
+    text-align: left;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+}
+.inc-del-opt:hover { border-color: var(--primary); background: var(--surface-3); }
+.inc-del-opt.is-danger:hover {
+    border-color: var(--danger);
+    background: color-mix(in oklch, var(--danger) 12%, transparent);
+}
+.inc-del-opt-title { font-size: 14px; font-weight: 700; }
+.inc-del-opt.is-danger .inc-del-opt-title { color: var(--danger); }
+.inc-del-opt-sub { font-size: 12.5px; color: var(--text-dim); line-height: 1.45; }
+.inc-del-foot { display: flex; justify-content: flex-end; }
+
+@media (max-width: 560px) {
+    .income-hero { flex-direction: column; align-items: stretch; }
+    .income-hero-actions { justify-content: stretch; }
+    .income-hero-actions .btn { flex: 1 1 auto; justify-content: center; }
+}
+
+/* ── Recebido x a receber ────────────────────────────────────── */
+.income-hero-pending {
+    display: inline-flex; align-items: center; gap: 6px;
+    margin-top: 6px;
+    font-size: 12.5px; font-weight: 600;
+    color: var(--warn);
+}
+.income-pending-tag {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: color-mix(in oklch, var(--warn) 18%, transparent);
+    color: var(--warn);
+    font-size: 10.5px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.05em;
+}
+/* Ainda não caiu: o valor não pode ter o mesmo peso visual de dinheiro em conta. */
+.income-row.is-pending .income-amount { color: var(--text-dim); }
+.income-row.is-pending .income-icon {
+    background: color-mix(in oklch, var(--warn) 16%, transparent);
+    color: var(--warn);
+}
+
+/* Botão de confirmar (painel de receitas fixas) */
+.income-confirm {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 11px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface-2);
+    color: var(--text-dim);
+    font-size: 11.5px; font-weight: 700;
+    font-family: inherit;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background .15s, color .15s, border-color .15s;
+}
+.income-confirm:hover {
+    border-color: var(--success);
+    color: var(--success);
+    background: color-mix(in oklch, var(--success) 10%, transparent);
+}
+.income-confirm.is-on {
+    border-color: color-mix(in oklch, var(--success) 45%, transparent);
+    background: color-mix(in oklch, var(--success) 16%, transparent);
+    color: var(--success);
+}
+.income-confirm svg { flex-shrink: 0; }
+
+/* Mesmo gesto na linha do mês, em forma de ícone */
+.income-check { color: var(--text-dim); }
+.income-check:hover { color: var(--success); }
+.income-check.is-on { color: var(--success); }
+
+@media (max-width: 640px) {
+    /* No estreito o rótulo some; o ✓ e o title dão conta. */
+    .income-confirm span { display: none; }
+    .income-confirm { padding: 6px 8px; }
+}

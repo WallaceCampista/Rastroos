@@ -209,11 +209,15 @@ public class FinancialContextBuilder {
             sb.append("Nenhuma receita registrada neste mês.\n");
             return;
         }
-        sb.append("Total ").append(money(page.totalAmount()))
+        sb.append("Recebido (confirmado) ").append(money(page.receivedAmount()))
+          .append("; previsto no mês ").append(money(page.totalAmount()))
           .append(" em ").append(page.totalElements()).append(" receitas.\n");
         for (IncomeDto i : page.items()) {
             sb.append("- ").append(i.incomeDate().format(SHORT_DAY)).append(' ')
               .append(i.source()).append(": ").append(money(i.amount()));
+            // Sem esta marca o modelo trata um recebimento programado para daqui
+            // a três anos como dinheiro que já entrou.
+            sb.append(i.received() ? " (recebido)" : " (a receber, ainda não confirmado)");
             if (i.categoryName() != null && !i.categoryName().isBlank()) {
                 sb.append(" (").append(i.categoryName()).append(')');
             }
