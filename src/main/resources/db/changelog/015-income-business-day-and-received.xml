@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ─────────────────────────────────────────────────────────────
+  015 — Receita fixa por dia útil + confirmação de recebimento
+  ─────────────────────────────────────────────────────────────
+  Duas mudanças no mesmo assunto (o salário fixo):
+
+  1. `pay_day` virava data direto ("dia 5"), mas salário cai no
+     N-ÉSIMO DIA ÚTIL — fim de semana e feriado empurram a data.
+     A coluna passa a se chamar `pay_business_day` para o nome não
+     mentir sobre o que ela guarda, e os recebimentos já gerados do
+     mês corrente em diante são recalculados pela regra nova.
+  2. `incomes.received` separa o que foi PROGRAMADO do que de fato
+     CAIU na conta. Um recebimento materializado para daqui a três
+     anos não pode entrar no "total recebido" só por existir.
+
+  A varredura de dias úteis abaixo é um one-shot: as funções são
+  criadas, usadas e removidas na mesma migração. A fonte da verdade
+  do calendário é a classe Java BusinessDayCalendar — não há lógica
+  de feriado sobrevivendo no banco.
+-->
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.27.xsd">
+
+    <changeSet id="015-01-incomes-add-received" author="rastroos">
+        <addColumn tableName="incomes">
+            <column name="received" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="received_at" type="TIMESTAMPTZ"/>
+        </addColumn>
+        <rollback>
+            <dropColumn tableName="incomes" columnName="received_at"/>
+            <dropColumn tableName="incomes" columnName="received"/>
+        </rollback>
+    </changeSet>
+
+    <!-- Lançamento avulso é registro de algo que já aconteceu: nasce recebido.
+         Só o que veio de uma receita fixa (source_id) começa pendente. -->
+    <changeSet id="015-02-incomes-backfill-received" author="rastroos">
+        <sql>
+            UPDATE incomes SET received = true, received_at = created_at
+             WHERE source_id IS NULL;
+        </sql>
+        <rollback>
+            <sql>UPDATE incomes SET received = false, received_at = NULL;</sql>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="015-03-income-sources-pay-business-day" author="rastroos">
+        <renameColumn tableName="income_sources"
+                      oldColumnName="pay_day"
+                      newColumnName="pay_business_day"/>
+        <sql>
+            ALTER TABLE income_sources DROP CONSTRAINT ck_income_sources_pay_day;
+            ALTER TABLE income_sources ADD CONSTRAINT ck_income_sources_pay_business_day
+                CHECK (pay_business_day BETWEEN 1 AND 23);
+        </sql>
+        <rollback>
+            <sql>
+                ALTER TABLE income_sources DROP CONSTRAINT ck_income_sources_pay_business_day;
+                ALTER TABLE income_sources ADD CONSTRAINT ck_income_sources_pay_day
+                    CHECK (pay_business_day BETWEEN 1 AND 31);
+            </sql>
+            <renameColumn tableName="income_sources"
+                          oldColumnName="pay_business_day"
+                          newColumnName="pay_day"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="015-04-recompute-recurring-income-dates" author="rastroos">
+        <sql splitStatements="false"><![CDATA[
+            CREATE FUNCTION rastroos_tmp_easter(p_year int) RETURNS date AS $$
+            DECLARE a int; b int; c int; d int; e int; f int; g int; h int;
+                    i int; k int; l int; m int; mo int; da int;
+            BEGIN
+                a := p_year % 19;  b := p_year / 100;  c := p_year % 100;
+                d := b / 4;        e := b % 4;         f := (b + 8) / 25;
+                g := (b - f + 1) / 3;
+                h := (19 * a + b - d - g + 15) % 30;
+                i := c / 4;        k := c % 4;
+                l := (32 + 2 * e + 2 * i - h - k) % 7;
+                m := (a + 11 * h + 22 * l) / 451;
+                mo := (h + l - 7 * m + 114) / 31;
+                da := ((h + l - 7 * m + 114) % 31) + 1;
+                RETURN make_date(p_year, mo, da);
+            END; $$ LANGUAGE plpgsql IMMUTABLE;
+
+            CREATE FUNCTION rastroos_tmp_is_holiday(p_date date) RETURNS boolean AS $$
+            DECLARE y int; ea date;
+            BEGIN
+                y := extract(year from p_date)::int;
+                ea := rastroos_tmp_easter(y);
+                RETURN p_date IN (
+                    make_date(y, 1, 1), make_date(y, 4, 21), make_date(y, 5, 1),
+                    make_date(y, 9, 7), make_date(y, 10, 12), make_date(y, 11, 2),
+                    make_date(y, 11, 15), make_date(y, 12, 25),
+                    ea - 48, ea - 47, ea - 2, ea + 60
+                ) OR (y >= 2024 AND p_date = make_date(y, 11, 20));
+            END; $$ LANGUAGE plpgsql IMMUTABLE;
+
+            CREATE FUNCTION rastroos_tmp_nth_business_day(p_month_start date, p_nth int)
+            RETURNS date AS $$
+            DECLARE d date; last_bd date; cnt int := 0; target int;
+            BEGIN
+                target := greatest(1, p_nth);
+                FOR d IN
+                    SELECT generate_series(p_month_start,
+                                           (p_month_start + interval '1 month - 1 day')::date,
+                                           interval '1 day')::date
+                LOOP
+                    IF extract(isodow from d) < 6 AND NOT rastroos_tmp_is_holiday(d) THEN
+                        cnt := cnt + 1;
+                        last_bd := d;
+                        IF cnt = target THEN RETURN d; END IF;
+                    END IF;
+                END LOOP;
+                RETURN coalesce(last_bd, (p_month_start + interval '1 month - 1 day')::date);
+            END; $$ LANGUAGE plpgsql IMMUTABLE;
+
+            -- Só do mês corrente em diante: o que já foi recebido fica como
+            -- foi registrado, exatamente como no update() da receita fixa.
+            UPDATE incomes i
+               SET income_date = rastroos_tmp_nth_business_day(
+                       date_trunc('month', i.income_date)::date, s.pay_business_day)
+              FROM income_sources s
+             WHERE i.source_id = s.id
+               AND i.income_date >= date_trunc('month', CURRENT_DATE)::date;
+
+            DROP FUNCTION rastroos_tmp_nth_business_day(date, int);
+            DROP FUNCTION rastroos_tmp_is_holiday(date);
+            DROP FUNCTION rastroos_tmp_easter(int);
+        ]]></sql>
+        <rollback>
+            <sql><![CDATA[
+                UPDATE incomes i
+                   SET income_date = make_date(
+                           extract(year from i.income_date)::int,
+                           extract(month from i.income_date)::int,
+                           least(s.pay_business_day,
+                                 extract(day from (date_trunc('month', i.income_date)
+                                                   + interval '1 month - 1 day'))::int))
+                  FROM income_sources s
+                 WHERE i.source_id = s.id
+                   AND i.income_date >= date_trunc('month', CURRENT_DATE)::date;
+            ]]></sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
