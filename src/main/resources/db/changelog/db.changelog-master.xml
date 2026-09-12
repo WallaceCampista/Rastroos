@@ -20,5 +20,7 @@
     <include file="db/changelog/008-investment-movements.xml"/>
     <include file="db/changelog/010-account-last4.xml"/>
     <include file="db/changelog/011-login-attempt-user-agent.xml"/>
+    <include file="db/changelog/012-ai-vector-store.xml"/>
+    <include file="db/changelog/013-ai-insight-cache.xml"/>
 
 </databaseChangeLog>

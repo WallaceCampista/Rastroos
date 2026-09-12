@@ -4,26 +4,31 @@ import java.util.List;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import com.rastroos.domain.entity.Chat;
 import com.rastroos.domain.entity.ChatMessage;
 import com.rastroos.domain.entity.enums.ChatMessageRole;
-import com.rastroos.domain.exception.ResourceNotFoundException;
-import com.rastroos.domain.repository.ChatMessageRepository;
-import com.rastroos.domain.repository.ChatRepository;
 import com.rastroos.web.dto.ChatDetailDto;
-import com.rastroos.web.dto.ChatMessageDto;
 import com.rastroos.web.dto.ChatSummaryDto;
 import com.rastroos.web.dto.ManagerView;
 
 /**
- * Regras de negócio das conversas com o Alfredo. Persiste conversas e
- * mensagens e orquestra a resposta da IA ({@link AlfredoAiClient}).
+ * Regras das conversas com o Alfredo: persiste a thread e orquestra a resposta
+ * da IA <strong>ancorada nos dados reais do usuário</strong>.
  *
- * <p>Isolamento estrito por {@code userId}: as mensagens não têm coluna de
- * usuário — o acesso é sempre feito via {@code chat} (verificado por
- * {@link ChatRepository#findByIdAndUserId}). Conversa de outro usuário → 404.
+ * <p>Antes de cada resposta, monta um dossiê com os números do dono dos dados
+ * ({@link FinancialContextBuilder}) e o completa com os registros que mais se
+ * parecem com a pergunta ({@link SemanticSearchService}). É esse par que
+ * sustenta a promessa de resposta conferível: o modelo não busca nada sozinho
+ * e não pode citar valor que não esteja no dossiê.
+ *
+ * <p>Deliberadamente <strong>sem {@code @Transactional}</strong>: a persistência
+ * fica em {@link ChatStore}, em transações curtas, e a chamada à IA acontece
+ * fora delas (ver o javadoc do store).
+ *
+ * <p>Isolamento por usuário em {@link ChatScope}: a conversa é gravada na conta
+ * autenticada e os números vêm do dono dos dados — conversa de outro usuário
+ * resulta em 404.
  */
 @Service
 public class ChatService {
@@ -41,32 +46,45 @@ public class ChatService {
 
     /** Saudação inicial do Alfredo numa conversa em branco. */
     private static final String WELCOME =
-            "Oi! Sou o Alfredo, seu gerente financeiro. Pergunte qualquer coisa — "
-            + "tenho acesso a todos os seus lançamentos, contas, investimentos e metas.";
+            "Oi! Sou o Alfredo, seu gerente financeiro. Pergunte o que quiser — eu leio seus "
+            + "lançamentos, contas, receitas e investimentos dos últimos 12 meses antes de "
+            + "responder, e digo quando um dado não está comigo.";
 
-    private final ChatRepository chats;
-    private final ChatMessageRepository messages;
+    /**
+     * Aviso usado no lugar do dossiê quando não há acesso aos números (acessor
+     * com valores mascarados). Entra como contexto para o modelo não tentar
+     * responder com número nenhum.
+     */
+    private static final String NO_DATA_CONTEXT =
+            "DADOS REAIS: indisponíveis. O titular optou por ocultar os valores desta conta.\n"
+            + "Você NÃO tem acesso a nenhum valor, saldo, lançamento ou data. "
+            + "Se perguntarem qualquer número, explique que os valores estão ocultos e "
+            + "ofereça ajuda com organização, prazos e prioridades.";
+
+    private final ChatStore store;
     private final AlfredoAiClient ai;
+    private final FinancialContextBuilder contextBuilder;
+    private final SemanticSearchService semantic;
 
-    public ChatService(ChatRepository chats,
-                       ChatMessageRepository messages,
-                       AlfredoAiClient ai) {
-        this.chats = chats;
-        this.messages = messages;
+    public ChatService(ChatStore store,
+                       AlfredoAiClient ai,
+                       FinancialContextBuilder contextBuilder,
+                       SemanticSearchService semantic) {
+        this.store = store;
         this.ai = ai;
+        this.contextBuilder = contextBuilder;
+        this.semantic = semantic;
     }
 
     /**
      * Monta a tela: histórico + conversa ativa (se {@code activeChatId} for
      * dado). Conversa inexistente ou de outro usuário → 404.
      */
-    @Transactional(readOnly = true)
-    public ManagerView load(UUID userId, UUID activeChatId) {
-        ChatDetailDto active = null;
-        if (activeChatId != null) {
-            active = toDetail(require(userId, activeChatId));
-        }
-        List<ChatSummaryDto> history = chats.findAllByUserIdOrderByCreatedAtDesc(userId).stream()
+    public ManagerView load(UUID ownerId, UUID activeChatId) {
+        ChatDetailDto active = activeChatId == null
+                ? null
+                : store.detail(store.require(ownerId, activeChatId));
+        List<ChatSummaryDto> history = store.historyOf(ownerId).stream()
                 .map(c -> new ChatSummaryDto(
                         c.getId(), c.getTitle(), c.getCreatedAt(),
                         activeChatId != null && c.getId().equals(activeChatId)))
@@ -75,26 +93,15 @@ public class ChatService {
     }
 
     /** Abre uma conversa em branco (botão "Nova conversa"), só com a saudação. */
-    @Transactional
-    public UUID startEmpty(UUID userId) {
-        Chat chat = new Chat();
-        chat.setUserId(userId);
-        chat.setTitle("Nova conversa");
-        chats.save(chat);
-        saveMessage(chat.getId(), ChatMessageRole.ASSISTANT, WELCOME);
+    public UUID startEmpty(UUID ownerId) {
+        Chat chat = store.create(ownerId, "Nova conversa");
+        store.append(chat.getId(), ChatMessageRole.ASSISTANT, WELCOME);
         return chat.getId();
     }
 
     /** Abre uma nova conversa a partir da primeira mensagem e já responde. */
-    @Transactional
-    public UUID start(UUID userId, String message) {
-        String text = message.strip();
-        Chat chat = new Chat();
-        chat.setUserId(userId);
-        chat.setTitle(deriveTitle(text));
-        chats.save(chat);
-        exchange(chat.getId(), text);
-        return chat.getId();
+    public UUID start(ChatScope scope, String message) {
+        return open(scope, null, null, message).id();
     }
 
     /**
@@ -102,14 +109,12 @@ public class ChatService {
      * resumo entra como primeira fala do Alfredo e vira contexto da resposta,
      * e a pergunta do usuário segue logo depois.
      *
-     * <p>Como é uma conversa comum de {@code chats}, ela aparece no histórico
-     * da tela do Alfredo igual às demais — só o título ganha o prefixo da tela
-     * de origem para ficar reconhecível na lista.
+     * <p>Como é uma conversa comum, ela aparece no histórico da tela do Alfredo
+     * igual às demais — só o título ganha o prefixo da tela de origem.
      */
-    @Transactional
-    public ChatDetailDto startFromScreen(UUID userId, String screenLabel,
+    public ChatDetailDto startFromScreen(ChatScope scope, String screenLabel,
                                          String screenSummary, String question) {
-        return open(userId, screenLabel, screenSummary, question);
+        return open(scope, screenLabel, screenSummary, question);
     }
 
     /**
@@ -117,79 +122,61 @@ public class ChatService {
      * mesmo fluxo de {@link #start}, em JSON, para o chat flutuante das telas
      * que não têm resumo.
      */
-    @Transactional
-    public ChatDetailDto startAndDetail(UUID userId, String question) {
-        return open(userId, null, null, question);
-    }
-
-    private ChatDetailDto open(UUID userId, String titlePrefix, String seed, String question) {
-        String text = question.strip();
-        Chat chat = new Chat();
-        chat.setUserId(userId);
-        chat.setTitle(deriveTitle(titlePrefix, text));
-        chats.save(chat);
-        if (seed != null && !seed.isBlank()) {
-            saveMessage(chat.getId(), ChatMessageRole.ASSISTANT, seed);
-        }
-        exchange(chat.getId(), text);
-        return toDetail(chat);
+    public ChatDetailDto startAndDetail(ChatScope scope, String question) {
+        return open(scope, null, null, question);
     }
 
     /** Envia nova mensagem numa conversa existente e responde. */
-    @Transactional
-    public ChatDetailDto send(UUID userId, UUID chatId, String message) {
-        Chat chat = require(userId, chatId);
-        exchange(chat.getId(), message.strip());
-        return toDetail(chat);
+    public ChatDetailDto send(ChatScope scope, UUID chatId, String message) {
+        Chat chat = store.require(scope.chatOwnerId(), chatId);
+        exchange(scope, chat.getId(), message.strip());
+        return store.detail(chat);
     }
 
-    @Transactional
-    public void delete(UUID userId, UUID chatId) {
-        Chat chat = require(userId, chatId);
-        List<ChatMessage> msgs = messages.findAllByChatIdOrderByCreatedAtAsc(chatId);
-        if (!msgs.isEmpty()) {
-            messages.deleteAll(msgs);
-        }
-        chats.delete(chat);
+    public void delete(UUID ownerId, UUID chatId) {
+        store.delete(ownerId, chatId);
     }
 
     // ── helpers ──────────────────────────────────────────────────────────
 
+    private ChatDetailDto open(ChatScope scope, String titlePrefix, String seed, String question) {
+        String text = question.strip();
+        Chat chat = store.create(scope.chatOwnerId(), deriveTitle(titlePrefix, text));
+        if (seed != null && !seed.isBlank()) {
+            store.append(chat.getId(), ChatMessageRole.ASSISTANT, seed);
+        }
+        exchange(scope, chat.getId(), text);
+        return store.detail(chat);
+    }
+
     /**
-     * Persiste a mensagem do usuário, pede a resposta ao Alfredo (com o
-     * histórico anterior como contexto) e persiste a resposta.
+     * Persiste a pergunta, monta o dossiê, pede a resposta e persiste o
+     * retorno. A ordem importa: a pergunta é gravada antes da chamada à IA,
+     * então mesmo que o provedor caia o que a pessoa escreveu não se perde.
      */
-    private void exchange(UUID chatId, String userText) {
-        List<ChatMessage> prior = messages.findAllByChatIdOrderByCreatedAtAsc(chatId);
-        saveMessage(chatId, ChatMessageRole.USER, userText);
-        String answer = ai.reply(userText, prior);
-        saveMessage(chatId, ChatMessageRole.ASSISTANT, answer);
+    private void exchange(ChatScope scope, UUID chatId, String userText) {
+        List<ChatMessage> prior = store.messagesOf(chatId);
+        store.append(chatId, ChatMessageRole.USER, userText);
+
+        String context = buildContext(scope, userText);
+        String answer = ai.reply(scope.chatOwnerId(), userText, prior, context);
+
+        store.append(chatId, ChatMessageRole.ASSISTANT, answer);
     }
 
-    private Chat require(UUID userId, UUID chatId) {
-        return chats.findByIdAndUserId(chatId, userId)
-                .orElseThrow(() -> new ResourceNotFoundException("chat.notFound"));
-    }
-
-    private void saveMessage(UUID chatId, ChatMessageRole role, String content) {
-        ChatMessage m = new ChatMessage();
-        m.setChatId(chatId);
-        m.setRole(role);
-        m.setContent(content);
-        messages.save(m);
-    }
-
-    private ChatDetailDto toDetail(Chat chat) {
-        List<ChatMessageDto> msgs = messages.findAllByChatIdOrderByCreatedAtAsc(chat.getId()).stream()
-                .map(m -> new ChatMessageDto(
-                        m.getRole(), m.getContent(), m.getCreatedAt(),
-                        m.getRole() == ChatMessageRole.ASSISTANT))
-                .toList();
-        return new ChatDetailDto(chat.getId(), chat.getTitle(), msgs);
-    }
-
-    private static String deriveTitle(String text) {
-        return deriveTitle(null, text);
+    /**
+     * Dossiê da pergunta: números exatos do dono dos dados + registros
+     * semelhantes à pergunta. Sem acesso aos valores, devolve só o aviso de
+     * mascaramento.
+     */
+    private String buildContext(ChatScope scope, String question) {
+        if (!scope.hasData()) {
+            return NO_DATA_CONTEXT;
+        }
+        UUID dataOwner = scope.dataOwnerId();
+        String facts = contextBuilder.build(dataOwner, scope.period());
+        String similar = semantic.asPromptSection(semantic.search(dataOwner, question));
+        return similar.isEmpty() ? facts : facts + similar;
     }
 
     /** Título derivado da mensagem, opcionalmente prefixado pela tela de origem. */

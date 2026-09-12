@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -52,13 +53,16 @@ public class InvestmentService {
     private final InvestmentRepository investments;
     private final InvestmentHistoryRepository history;
     private final InvestmentMovementRepository movements;
+    private final ApplicationEventPublisher events;
 
     public InvestmentService(InvestmentRepository investments,
                              InvestmentHistoryRepository history,
-                             InvestmentMovementRepository movements) {
+                             InvestmentMovementRepository movements,
+                             ApplicationEventPublisher events) {
         this.investments = investments;
         this.history = history;
         this.movements = movements;
+        this.events = events;
     }
 
     @Transactional(readOnly = true)
@@ -190,6 +194,7 @@ public class InvestmentService {
             movements.save(new InvestmentMovement(saved.getId(), InvestmentMovementKind.INITIAL,
                     saved.getAmountCents(), saved.getAmountCents(), Instant.now()));
         }
+        dataChanged(userId);
         return saved;
     }
 
@@ -197,7 +202,9 @@ public class InvestmentService {
     public Investment update(UUID userId, UUID id, InvestmentForm form) {
         Investment existing = require(userId, id);
         applyForm(existing, form);
-        return investments.save(existing);
+        Investment saved = investments.save(existing);
+        dataChanged(userId);
+        return saved;
     }
 
     @Transactional
@@ -210,6 +217,7 @@ public class InvestmentService {
         }
         movements.deleteByInvestmentId(id);
         investments.delete(existing);
+        dataChanged(userId);
     }
 
     /** Aporte num investimento existente: soma ao saldo e registra o snapshot do mês. */
@@ -237,6 +245,7 @@ public class InvestmentService {
         history.save(snap);
         movements.save(new InvestmentMovement(id, InvestmentMovementKind.DEPOSIT,
                 addCents, total, Instant.now()));
+        dataChanged(userId);
         return inv;
     }
 
@@ -267,6 +276,7 @@ public class InvestmentService {
         history.save(snap);
         movements.save(new InvestmentMovement(id, InvestmentMovementKind.WITHDRAW,
                 cents, total, Instant.now()));
+        dataChanged(userId);
         return inv;
     }
 
@@ -321,6 +331,7 @@ public class InvestmentService {
 
         inv.setAmountCents(amountCents);
         investments.save(inv);
+        dataChanged(userId);
         return snapshot;
     }
 
@@ -383,4 +394,15 @@ public class InvestmentService {
     private static String blankToNull(String s) {
         return (s == null || s.isBlank()) ? null : s.trim();
     }
+
+    /**
+     * Avisa que os dados financeiros do usuário mudaram. O evento só é
+     * entregue depois do commit ({@code AFTER_COMMIT}), então um rollback não
+     * marca nada — e é essa marca que faz o Alfredo regerar os resumos das
+     * telas. Sem escrita, nenhum resumo é regerado e nada é consumido.
+     */
+    private void dataChanged(UUID userId) {
+        events.publishEvent(new UserDataChangedEvent(userId));
+    }
+
 }

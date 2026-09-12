@@ -14,7 +14,7 @@ name: rastroos-prod
 
 services:
   postgres:
-    image: postgres:16-alpine
+    image: pgvector/pgvector:pg16
     container_name: rastroos-prod-postgres
     restart: unless-stopped
     environment:
@@ -63,8 +63,14 @@ services:
       RASTROOS_ADMIN_PASSWORD_HASH: ${RASTROOS_ADMIN_PASSWORD_HASH:?RASTROOS_ADMIN_PASSWORD_HASH missing}
       RASTROOS_APP_SECRET: ${RASTROOS_APP_SECRET:?RASTROOS_APP_SECRET missing}
       # Integração de IA (vazio = stub, sem tráfego externo)
-      ALFREDO_API_BASE_URL: ${ALFREDO_API_BASE_URL:-}
-      ALFREDO_API_KEY: ${ALFREDO_API_KEY:-}
+      # ── IA (Alfredo: chat, resumos, embeddings e visão) ──
+      # Vazio = modo demonstração (stub, sem tráfego externo).
+      AI_PROVIDER_BASE_URL: ${AI_PROVIDER_BASE_URL:-}
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_MODEL: ${AI_MODEL:-gpt-4o-mini}
+      AI_EMBEDDING_MODEL: ${AI_EMBEDDING_MODEL:-text-embedding-3-small}
+      AI_DAILY_CALLS_PER_USER: ${AI_DAILY_CALLS_PER_USER:-200}
+      AI_DAILY_TOKENS_PER_USER: ${AI_DAILY_TOKENS_PER_USER:-300000}
       # Swagger desligado em prod por padrão
       SPRINGDOC_ENABLED: ${SPRINGDOC_ENABLED:-false}
     ports:

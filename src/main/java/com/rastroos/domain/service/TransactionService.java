@@ -16,6 +16,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -64,13 +65,16 @@ public class TransactionService {
     private final TransactionRepository transactions;
     private final AccountRepository accounts;
     private final CategoryRepository categories;
+    private final ApplicationEventPublisher events;
 
     public TransactionService(TransactionRepository transactions,
                               AccountRepository accounts,
-                              CategoryRepository categories) {
+                              CategoryRepository categories,
+                              ApplicationEventPublisher events) {
         this.transactions = transactions;
         this.accounts = accounts;
         this.categories = categories;
+        this.events = events;
     }
 
     @Transactional(readOnly = true)
@@ -228,7 +232,9 @@ public class TransactionService {
             }
             created.add(t);
         }
-        return transactions.saveAll(created);
+        List<Transaction> saved = transactions.saveAll(created);
+        dataChanged(userId);
+        return saved;
     }
 
     /**
@@ -304,7 +310,9 @@ public class TransactionService {
         } else if (!form.isPaid()) {
             t.setPaidAt(null);
         }
-        return transactions.save(t);
+        Transaction saved = transactions.save(t);
+        dataChanged(userId);
+        return saved;
     }
 
     @Transactional
@@ -317,13 +325,16 @@ public class TransactionService {
             t.setPaid(true);
             t.setPaidAt(Instant.now());
         }
-        return transactions.save(t);
+        Transaction saved = transactions.save(t);
+        dataChanged(userId);
+        return saved;
     }
 
     @Transactional
     public void delete(UUID userId, UUID id) {
         Transaction t = require(userId, id);
         transactions.delete(t);
+        dataChanged(userId);
     }
 
     @Transactional(readOnly = true)
@@ -392,4 +403,15 @@ public class TransactionService {
     private static String blankToNull(String s) {
         return (s == null || s.isBlank()) ? null : s.trim();
     }
+
+    /**
+     * Avisa que os dados financeiros do usuário mudaram. O evento só é
+     * entregue depois do commit ({@code AFTER_COMMIT}), então um rollback não
+     * marca nada — e é essa marca que faz o Alfredo regerar os resumos das
+     * telas. Sem escrita, nenhum resumo é regerado e nada é consumido.
+     */
+    private void dataChanged(UUID userId) {
+        events.publishEvent(new UserDataChangedEvent(userId));
+    }
+
 }

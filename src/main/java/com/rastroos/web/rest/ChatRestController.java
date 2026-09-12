@@ -1,5 +1,7 @@
 package com.rastroos.web.rest;
 
+import java.time.Clock;
+import java.time.YearMonth;
 import java.util.UUID;
 
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -9,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.rastroos.domain.service.ChatScope;
 import com.rastroos.domain.service.ChatService;
 import com.rastroos.security.CurrentUser;
 import com.rastroos.web.dto.ChatDetailDto;
@@ -35,10 +38,12 @@ public class ChatRestController {
 
     private final CurrentUser currentUser;
     private final ChatService service;
+    private final Clock clock;
 
-    public ChatRestController(CurrentUser currentUser, ChatService service) {
+    public ChatRestController(CurrentUser currentUser, ChatService service, Clock clock) {
         this.currentUser = currentUser;
         this.service = service;
+        this.clock = clock;
     }
 
     @PostMapping
@@ -48,7 +53,7 @@ public class ChatRestController {
         @ApiResponse(responseCode = "400", description = "Mensagem vazia ou longa demais")
     })
     public ChatDetailDto start(@Valid @RequestBody ChatPromptForm form) {
-        return service.startAndDetail(currentUser.requireId(), form.getMessage());
+        return service.startAndDetail(scope(), form.getMessage());
     }
 
     @PostMapping("/{id}/messages")
@@ -60,6 +65,14 @@ public class ChatRestController {
     })
     public ChatDetailDto send(@PathVariable("id") UUID id,
                               @Valid @RequestBody ChatPromptForm form) {
-        return service.send(currentUser.requireId(), id, form.getMessage());
+        return service.send(scope(), id, form.getMessage());
+    }
+
+    /**
+     * Conversa na conta autenticada, números do dono dos dados — e nenhum
+     * número quando o titular mascarou os valores para o acessor.
+     */
+    private ChatScope scope() {
+        return currentUser.chatScope(YearMonth.now(clock));
     }
 }

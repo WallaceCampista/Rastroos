@@ -80,6 +80,15 @@ Como o sistema lida com **dinheiro real e dados financeiros**, ele foi construí
 ### 🏦 Investimentos
 - **Cofrinhos** (metas) e **carteira** (CDB, Tesouro, LCI, limite garantido) com histórico e rendimento mensal.
 
+### 🤖 Alfredo (gerente financeiro IA)
+- **Respostas ancoradas nos dados reais.** Antes de cada pergunta o servidor monta um *dossiê* com os números exatos do usuário (KPIs do mês, contas em aberto, categorias, receitas, investimentos e 12 meses de histórico), calculados pelos mesmos services que alimentam as telas. O modelo recebe ordem explícita de não citar nenhum valor fora dele e de dizer "não tenho esse dado" quando faltar — é isso que separa resposta conferível de chute bem escrito.
+- **Busca semântica (pgvector).** Descrições de lançamentos, fontes de receita e nomes de contas/investimentos viram vetores, para localizar registro por descrição vaga ("aquela compra da farmácia"). Entra como *pista*, nunca como base de cálculo — número continua saindo de SQL agregado.
+- **Resumo por tela sem custo recorrente.** O balão flutuante é gerado **uma vez** por combinação de (usuário, tela, período, dados) e fica no banco. Enquanto a impressão digital (SHA-256) dos números não mudar, o texto é servido do banco sem nenhuma chamada ao provedor — não importa se passaram 15 minutos ou 6 meses.
+- **Regeração só por mudança de dado.** Toda escrita financeira publica um evento (após o commit) que marca o usuário; um varredor com *debounce* regera em lote todas as telas afetadas em segundo plano. Dez lançamentos seguidos viram uma geração, não dez — e quem passa um mês sem lançar nada não gera consumo algum.
+- **Leitura de boleto/fatura/notinha por visão**, com saída estruturada estrita (JSON Schema): campo ilegível volta vazio em vez de chutado.
+- **Independente de fornecedor.** `AI_PROVIDER=openai|gemini` troca o motor sem tocar em código; serviços compatíveis com a API da OpenAI (Groq, Together, OpenRouter, Ollama, vLLM, Azure) entram só com a URL.
+- **Controle de custo:** livro-caixa de tokens por chamada, teto diário por usuário, rate limit por conta, circuit breaker por funcionalidade e `max_tokens` em toda requisição. Qualquer falha cai no texto determinístico local — a tela nunca quebra por causa da IA.
+
 ### 🌐 Transversais
 - **Multi-idioma** PT-BR (padrão) / EN, tema claro/escuro, seletor de período e **ocultar valores** (privacidade na tela).
 
@@ -188,11 +197,12 @@ src/main/resources/
 ### Banco, Testes & Infra
 | Tecnologia | Papel |
 |---|---|
-| **PostgreSQL 16** | Banco relacional (container em dev) |
+| **PostgreSQL 16 + pgvector** | Banco relacional e índice vetorial da busca semântica (`pgvector/pgvector:pg16`) |
 | **Testcontainers 1.21** | Postgres real e efêmero nos testes |
 | **JUnit 5 · Mockito · MockMvc** | Unitários e integração |
 | **JaCoCo** | Cobertura com gate mínimo no domínio |
 | **Docker / Docker Compose · Actuator** | Infra local e observabilidade |
+| **Resilience4j · Bucket4j** | Circuit breaker por funcionalidade de IA e rate limit por conta |
 
 ---
 
@@ -263,6 +273,42 @@ cp .env.example .env
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 As migrations do Liquibase rodam no boot. Acesse **http://localhost:8080** · Swagger UI em **/swagger-ui.html**.
+
+### 🤖 4️⃣ Ligar o Alfredo (opcional)
+
+Sem credencial o app roda em **modo demonstração**: resumos determinísticos calculados no servidor, nenhuma chamada externa, nenhum custo. Para ligar a IA de verdade, crie um **`.env.local`** (não versionado, carregado pelo Spring via `spring.config.import`):
+
+```bash
+cat > .env.local <<'EOF'
+AI_PROVIDER=openai          # ou: gemini
+AI_API_KEY=<sua-chave>
+AI_MODEL=                   # vazio = modelo padrão do fornecedor
+AI_EMBEDDING_MODEL=         # vazio = padrão do fornecedor
+EOF
+chmod 600 .env.local
+```
+
+| `AI_PROVIDER` | Endpoint | Modelo padrão | Embeddings padrão |
+|---|---|---|---|
+| `openai` | `https://api.openai.com/v1` | `gpt-4o-mini` | `text-embedding-3-small` (1536) |
+| `gemini` | `.../v1beta/openai` (camada compatível) | `gemini-2.0-flash-lite` | `gemini-embedding-001` (1536) |
+
+Serviços que falam o dialeto da OpenAI (Groq, Together, OpenRouter, Ollama, vLLM, Azure OpenAI) funcionam com `AI_PROVIDER=openai` + `AI_PROVIDER_BASE_URL`. Um motor com API própria entra como uma nova implementação de `AiProvider` — nenhuma outra classe muda.
+
+> ⚠️ **Dimensão dos vetores**: a coluna `ai_documents.embedding` é `vector(1536)`. Trocar para um modelo de outra dimensão exige um changeset alterando a coluna e reindexar; o app avisa no boot se houver divergência, antes de gravar qualquer coisa errada.
+
+**Controles de custo** (todos configuráveis em `application.yml`):
+
+| Controle | Padrão | O que protege |
+|---|---|---|
+| `ai.budget.daily-calls-per-user` | 200 | Teto de chamadas por conta/dia |
+| `ai.budget.daily-tokens-per-user` | 300.000 | Teto de tokens por conta/dia |
+| `rastroos.security.rate-limit.ai-requests-per-window` | 20/min | Rajada (clique repetido, script) |
+| `ai.warmup.debounce-seconds` | 20 | Agrupa uma sequência de lançamentos numa geração só |
+| `ai.warmup.failure-backoff-seconds` | 300 | Evita repetir eternamente quando o provedor está fora |
+| `ai.chat.max-tokens` / `ai.insight.max-tokens` | 700 / 180 | Resposta longa não vira surpresa na fatura |
+
+O consumo fica registrado na tabela `ai_usage` e nas métricas `rastroos.ai.calls` / `rastroos.ai.tokens` (Prometheus).
 
 > O admin inicial é criado uma vez pelo changelog `003-create-default-admin.xml` com `password_must_change=true` — o primeiro login serve só para trocar a senha.
 

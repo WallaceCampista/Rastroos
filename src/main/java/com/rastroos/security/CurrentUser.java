@@ -1,5 +1,6 @@
 package com.rastroos.security;
 
+import java.time.YearMonth;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -8,6 +9,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+
+import com.rastroos.domain.service.ChatScope;
 
 import jakarta.servlet.http.HttpSession;
 
@@ -99,6 +102,22 @@ public class CurrentUser {
     /** {@code true} quando o acessor logado está com valores mascarados pelo titular. */
     public boolean isMaskActive() {
         return get().map(u -> u.isAccessor() && u.isValuesMasked()).orElse(false);
+    }
+
+    /**
+     * Escopo da conversa com o Alfredo: a conversa fica na conta autenticada e
+     * os números vêm do dono dos dados.
+     *
+     * <p>Com valores mascarados pelo titular, o escopo sai <em>sem</em> dono de
+     * dados — o Alfredo então não recebe número nenhum no contexto, em vez de
+     * receber e ser instruído a não usar. Um acessor mascarado não pode extrair
+     * valores fazendo a pergunta certa.
+     */
+    public ChatScope chatScope(YearMonth period) {
+        UUID owner = requireId();
+        return isMaskActive()
+                ? ChatScope.masked(owner, period)
+                : new ChatScope(owner, requireEffectiveId(), period);
     }
 
     /** Nome do usuário-alvo (para o banner), quando a conta é um ACESSOR. */

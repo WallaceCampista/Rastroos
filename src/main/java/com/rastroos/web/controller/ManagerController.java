@@ -82,7 +82,7 @@ public class ManagerController {
             flash.addFlashAttribute("error", "chat.empty");
             return "redirect:/app/manager";
         }
-        UUID chatId = service.start(currentUser.requireId(), form.getMessage());
+        UUID chatId = service.start(currentUser.chatScope(YearMonth.now(clock)), form.getMessage());
         return "redirect:/app/manager?chat=" + chatId;
     }
 
@@ -95,7 +95,7 @@ public class ManagerController {
             flash.addFlashAttribute("error", "chat.empty");
             return "redirect:/app/manager?chat=" + id;
         }
-        service.send(currentUser.requireId(), id, form.getMessage());
+        service.send(currentUser.chatScope(YearMonth.now(clock)), id, form.getMessage());
         return "redirect:/app/manager?chat=" + id;
     }
 

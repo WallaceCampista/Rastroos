@@ -18,6 +18,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import com.rastroos.domain.entity.Investment;
 import com.rastroos.domain.entity.InvestmentHistory;
@@ -38,6 +39,10 @@ class InvestmentServiceTest {
     @Mock private InvestmentRepository invRepo;
     @Mock private InvestmentHistoryRepository historyRepo;
     @Mock private InvestmentMovementRepository movementRepo;
+
+    /** O evento de mudança de dados tem cobertura própria em
+     *  UserDataVersionServiceTest; aqui basta não ser nulo. */
+    @Mock private ApplicationEventPublisher events;
 
     @InjectMocks private InvestmentService service;
 

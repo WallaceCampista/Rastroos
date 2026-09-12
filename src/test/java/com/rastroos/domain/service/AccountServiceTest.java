@@ -45,7 +45,10 @@ class AccountServiceTest {
 
     @org.junit.jupiter.api.BeforeEach
     void initService() {
-        service = new AccountService(accountsRepo, txRepo, categoriesRepo, clock);
+        // Publicador inerte: o evento de mudança de dados é exercitado em
+        // UserDataVersionServiceTest; aqui só interessa a regra de negócio.
+        service = new AccountService(accountsRepo, txRepo, categoriesRepo, clock,
+                event -> { });
     }
 
     @Test

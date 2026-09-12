@@ -1,5 +1,6 @@
 package com.rastroos.web.controller;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
@@ -19,12 +20,14 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -36,6 +39,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.rastroos.domain.entity.enums.ChatMessageRole;
+import com.rastroos.domain.service.ChatScope;
 import com.rastroos.domain.service.ChatService;
 import com.rastroos.domain.service.DashboardService;
 import com.rastroos.web.dto.DashboardKpisDto;
@@ -153,13 +157,16 @@ class ManagerControllerTest {
     @Test
     void startValidoRedirecionaParaConversa() throws Exception {
         UUID chatId = UUID.randomUUID();
-        when(service.start(eq(userId), eq("Quanto gastei?"))).thenReturn(chatId);
+        when(currentUser.chatScope(any())).thenReturn(ChatScope.own(userId, YearMonth.of(2026, 9)));
+        when(service.start(any(ChatScope.class), eq("Quanto gastei?"))).thenReturn(chatId);
 
         mvc.perform(post("/app/manager/new").param("message", "Quanto gastei?"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/app/manager?chat=" + chatId));
 
-        verify(service).start(userId, "Quanto gastei?");
+        ArgumentCaptor<ChatScope> scope = ArgumentCaptor.forClass(ChatScope.class);
+        verify(service).start(scope.capture(), eq("Quanto gastei?"));
+        assertThat(scope.getValue().chatOwnerId()).isEqualTo(userId);
     }
 
     @Test
@@ -174,11 +181,15 @@ class ManagerControllerTest {
     void sendRedirecionaParaConversa() throws Exception {
         UUID chatId = UUID.randomUUID();
 
+        when(currentUser.chatScope(any())).thenReturn(ChatScope.own(userId, YearMonth.of(2026, 9)));
+
         mvc.perform(post("/app/manager/{id}/messages", chatId).param("message", "e agora?"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/app/manager?chat=" + chatId));
 
-        verify(service).send(userId, chatId, "e agora?");
+        ArgumentCaptor<ChatScope> scope = ArgumentCaptor.forClass(ChatScope.class);
+        verify(service).send(scope.capture(), eq(chatId), eq("e agora?"));
+        assertThat(scope.getValue().chatOwnerId()).isEqualTo(userId);
     }
 
     @Test

@@ -9,6 +9,12 @@ spring:
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev}
 
+  # Segredos de DEV fora do versionamento (.env.local, formato KEY=VALUE).
+  # `optional:` = ausência do arquivo não quebra o boot; em prod as mesmas
+  # variáveis chegam pelo ambiente do orquestrador e têm precedência.
+  config:
+    import: "optional:file:./.env.local[.properties]"
+
   # ── JPA / Hibernate ────────────────────────────────────────
   jpa:
     open-in-view: false           # nunca: anti-pattern em apps web
@@ -100,36 +106,109 @@ management:
     tags:
       application: rastroos       # tag comum em todas as métricas
 
-# ── Alfredo (gerente IA) ───────────────────────────────────
-# base-url vazio = modo demonstração (stub, sem chamada externa).
-# Preencha via env para habilitar a integração real.
-alfredo:
-  base-url: ${ALFREDO_API_BASE_URL:}
-  api-key: ${ALFREDO_API_KEY:}
-  model: ${ALFREDO_MODEL:gpt-4o-mini}
+# ── IA (Alfredo: chat, resumos, embeddings e visão) ────────
+# api-key VAZIA = modo demonstração (stub, sem tráfego externo).
+#
+# Independente de fornecedor: `provider` escolhe o dialeto e tudo o mais cai
+# no padrão dele. Trocar de motor é trocar variável de ambiente:
+#
+#   OpenAI  → AI_PROVIDER=openai  AI_API_KEY=sk-...      (gpt-4o-mini)
+#   Gemini  → AI_PROVIDER=gemini  AI_API_KEY=<AI Studio> (gemini-2.0-flash-lite)
+#
+# Serviços que falam o dialeto da OpenAI (Groq, Together, OpenRouter, Ollama,
+# vLLM, Azure OpenAI) funcionam com provider=openai + AI_PROVIDER_BASE_URL.
+# base-url vazio = raiz padrão do fornecedor; model vazio = modelo padrão dele.
+ai:
+  provider: ${AI_PROVIDER:openai}
+  base-url: ${AI_PROVIDER_BASE_URL:}
+  api-key: ${AI_API_KEY:}
+  model: ${AI_MODEL:}
   connect-timeout-ms: 3000
-  read-timeout-ms: 15000
-  history-window: 12
-  # Resumos de tela do widget flutuante: reaproveitados por 15 min enquanto os
-  # números da tela não mudarem (a chave do cache inclui os próprios valores).
-  insight-cache-ttl-seconds: ${ALFREDO_INSIGHT_TTL_SECONDS:900}
+  read-timeout-ms: 30000
+  # Tentativas extras em 429/5xx (respeita Retry-After). 0 = sem retry.
+  max-retries: 2
 
-# ── Extração de gasto (documento / foto da notinha) ────────
-# base-url vazio = modo demonstração (stub, sem chamada externa).
-# Preencha via env para habilitar a IA de visão real (multimodal).
+  # Chat do Alfredo — respostas ancoradas nos dados reais do usuário.
+  chat:
+    max-tokens: 700
+    temperature: 0.2
+    history-window: 12
+
+  # Resumos de tela (balão flutuante). Gerados UMA vez por combinação
+  # (usuário, tela, período, dados) e persistidos: sem mudança de dado,
+  # nunca há nova chamada — independente do tempo decorrido.
+  insight:
+    max-tokens: 180
+    temperature: 0.3
+    # Subir esta versão invalida os resumos salvos (mudou o prompt/persona).
+    prompt-version: 2
+
+  # Busca semântica (pgvector). Números continuam vindo de SQL agregado;
+  # o vetorial serve o texto livre ("aquela compra na farmácia").
+  embedding:
+    enabled: true
+    # Vazios = padrão do fornecedor. A dimensão PRECISA casar com o
+    # vector(N) de ai_documents; o boot avisa se divergir.
+    model: ${AI_EMBEDDING_MODEL:}
+    dimensions: ${AI_EMBEDDING_DIMENSIONS:0}
+    batch-size: 64
+    top-k: 8
+    # Similaridade de cosseno mínima para um trecho entrar no contexto.
+    min-score: 0.30
+    max-chars: 500
+
+  # Leitura de boleto/fatura/notinha por visão (mesmo modelo multimodal).
+  vision:
+    enabled: true
+    max-tokens: 500
+    # 'high' lê texto pequeno de notinha; 'low' custa menos e erra mais.
+    detail: high
+    max-file-size-bytes: 8388608
+    read-timeout-ms: 45000
+
+  # Teto diário por usuário — defesa contra consumo acidental e abuso.
+  budget:
+    enabled: true
+    daily-calls-per-user: ${AI_DAILY_CALLS_PER_USER:200}
+    daily-tokens-per-user: ${AI_DAILY_TOKENS_PER_USER:300000}
+
+  # Pré-aquecimento: quando o usuário grava algo, os resumos de todas as
+  # telas afetadas são regerados de uma vez, em segundo plano. As telas
+  # passam a ler do banco — page load nunca chama a IA.
+  warmup:
+    enabled: true
+    # Espera após a última escrita antes de regerar (agrupa rajadas:
+    # 10 lançamentos seguidos = 1 geração, não 10).
+    debounce-seconds: 20
+    sweep-interval-ms: 15000
+    max-users-per-sweep: 20
+    # Quantos meses anteriores ao corrente também são pré-aquecidos.
+    months-back: 1
+    # Espera após falha do provedor (conta sem crédito, chave revogada) antes
+    # de tentar de novo — evita repetição a cada varredura, indefinidamente.
+    failure-backoff-seconds: 300
+
+# ── Extração de gasto: guarda-corpos de upload (não-IA) ────
 extraction:
-  base-url: ${EXTRACTION_API_BASE_URL:}
-  api-key: ${EXTRACTION_API_KEY:}
-  model: ${EXTRACTION_MODEL:}
   max-file-size-bytes: 8388608
-  connect-timeout-ms: 3000
-  read-timeout-ms: 20000
 
-# ── Resilience4j (circuit breaker do Alfredo) ──────────────
+# ── Rate limit por conta nas rotas que consomem IA ─────────
+# Complementa o teto diário (ai.budget): aqui a proteção é contra rajada —
+# um clique repetido ou um script não pode queimar a cota do dia em 1 minuto.
+# (auth-* são do BruteForceFilter, que já existia.)
+rastroos:
+  security:
+    rate-limit:
+      ai-requests-per-window: ${AI_RATE_LIMIT_PER_WINDOW:20}
+      ai-window-minutes: ${AI_RATE_LIMIT_WINDOW_MINUTES:1}
+
+# ── Resilience4j (circuit breakers da IA) ──────────────────
+# Um breaker por funcionalidade: a visão fora do ar não derruba o chat,
+# e o chat fora do ar não impede os resumos de caírem no texto local.
 resilience4j:
   circuitbreaker:
-    instances:
-      alfredo:
+    configs:
+      ai-default:
         sliding-window-type: COUNT_BASED
         sliding-window-size: 10
         minimum-number-of-calls: 5
@@ -137,6 +216,15 @@ resilience4j:
         wait-duration-in-open-state: 30s
         permitted-number-of-calls-in-half-open-state: 3
         automatic-transition-from-open-to-half-open-enabled: true
+    instances:
+      ai-chat:
+        base-config: ai-default
+      ai-insight:
+        base-config: ai-default
+      ai-embedding:
+        base-config: ai-default
+      ai-vision:
+        base-config: ai-default
 
 # ── OpenAPI / Swagger ──────────────────────────────────────
 springdoc:

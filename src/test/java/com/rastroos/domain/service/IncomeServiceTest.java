@@ -17,6 +17,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import com.rastroos.domain.entity.Income;
 import com.rastroos.domain.exception.ResourceNotFoundException;
@@ -29,6 +30,10 @@ class IncomeServiceTest {
 
     @Mock private IncomeRepository incomesRepo;
     @Mock private CategoryRepository categoriesRepo;
+
+    /** O evento de mudança de dados tem cobertura própria em
+     *  UserDataVersionServiceTest; aqui basta não ser nulo. */
+    @Mock private ApplicationEventPublisher events;
 
     @InjectMocks private IncomeService service;
 

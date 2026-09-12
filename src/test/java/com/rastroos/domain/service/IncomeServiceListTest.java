@@ -44,7 +44,7 @@ class IncomeServiceListTest {
 
     private IncomeService service() {
         if (service == null) {
-            service = new IncomeService(incomes, categories);
+            service = new IncomeService(incomes, categories, event -> { });
         }
         return service;
     }

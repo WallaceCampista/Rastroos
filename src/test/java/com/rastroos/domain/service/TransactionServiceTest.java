@@ -22,6 +22,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import com.rastroos.domain.entity.Account;
 import com.rastroos.domain.entity.Transaction;
@@ -38,6 +39,10 @@ class TransactionServiceTest {
     @Mock private TransactionRepository txRepo;
     @Mock private AccountRepository accountsRepo;
     @Mock private CategoryRepository categoriesRepo;
+
+    /** O evento de mudança de dados tem cobertura própria em
+     *  UserDataVersionServiceTest; aqui basta não ser nulo. */
+    @Mock private ApplicationEventPublisher events;
 
     @InjectMocks private TransactionService service;
 

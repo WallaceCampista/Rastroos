@@ -52,7 +52,7 @@ class TransactionServiceListTest {
 
     private TransactionService service() {
         if (service == null) {
-            service = new TransactionService(transactions, accounts, categories);
+            service = new TransactionService(transactions, accounts, categories, event -> { });
         }
         return service;
     }

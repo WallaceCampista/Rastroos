@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ─────────────────────────────────────────────────────────────
+  013 — Resumos do Alfredo persistidos + estado de IA por usuário
+  ─────────────────────────────────────────────────────────────
+  Antes: o resumo de cada tela era gerado sob demanda a cada page load
+  e guardado só em memória, com TTL de 15 min — ou seja, regenerava
+  (e cobrava) mesmo sem nenhum dado ter mudado, e perdia tudo a cada
+  restart.
+
+  Agora:
+   · `ai_insights` guarda o texto por (usuário, tela, período) junto da
+     impressão digital dos números que o geraram (`facts_hash`). Enquanto
+     o hash bater, o texto é reaproveitado para sempre — zero chamada.
+   · `ai_user_state` mantém um contador `data_version` que sobe a cada
+     escrita financeira do usuário. É o gatilho único: sem escrita, nada
+     é regerado e nada é consumido.
+   · `ai_usage` é o livro-caixa de tokens, base do teto diário por
+     usuário e da observabilidade de custo.
+
+  Tabelas internas (BIGSERIAL, §5) — derivadas, reconstruíveis.
+-->
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.27.xsd">
+
+    <changeSet id="013-01-create-ai-insights" author="rastroos">
+        <createTable tableName="ai_insights">
+            <column name="id" type="BIGSERIAL" autoIncrement="true">
+                <constraints primaryKey="true" primaryKeyName="pk_ai_insights" nullable="false"/>
+            </column>
+            <column name="user_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="screen" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <!-- 'YYYY-MM', ou o sentinela '-' nas telas sem mês (investimentos).
+                 Sentinela em vez de NULL porque no Postgres NULLs são distintos
+                 entre si e a UNIQUE abaixo deixaria passar duplicatas. -->
+            <column name="period" type="VARCHAR(7)">
+                <constraints nullable="false"/>
+            </column>
+            <!-- SHA-256 dos números da tela: mudou o hash, mudou o dado. -->
+            <column name="facts_hash" type="VARCHAR(64)">
+                <constraints nullable="false"/>
+            </column>
+            <!-- Versão do prompt: subir invalida os resumos salvos sem apagar nada. -->
+            <column name="prompt_version" type="INT" defaultValueNumeric="1">
+                <constraints nullable="false"/>
+            </column>
+            <column name="model" type="VARCHAR(60)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="summary_text" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="ai_generated" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="data_version" type="BIGINT" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="generated_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="ai_insights"
+                             columnNames="user_id, screen, period"
+                             constraintName="uq_ai_insights_scope"/>
+
+        <rollback>
+            <dropTable tableName="ai_insights"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="013-02-create-ai-user-state" author="rastroos">
+        <createTable tableName="ai_user_state">
+            <column name="user_id" type="UUID">
+                <constraints primaryKey="true" primaryKeyName="pk_ai_user_state" nullable="false"/>
+            </column>
+            <!-- Sobe a cada escrita financeira. Sem escrita, nada é regerado. -->
+            <column name="data_version" type="BIGINT" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <!-- Última versão já refletida nos resumos / no índice vetorial. -->
+            <column name="warmed_version" type="BIGINT" defaultValueNumeric="-1">
+                <constraints nullable="false"/>
+            </column>
+            <column name="indexed_version" type="BIGINT" defaultValueNumeric="-1">
+                <constraints nullable="false"/>
+            </column>
+            <!-- Marcado na 1ª escrita de uma rajada; o varredor espera o
+                 debounce vencer antes de regerar (10 lançamentos seguidos = 1 geração). -->
+            <column name="dirty_since" type="TIMESTAMP WITH TIME ZONE"/>
+            <column name="last_warm_at" type="TIMESTAMP WITH TIME ZONE"/>
+            <column name="last_warm_error" type="VARCHAR(300)"/>
+        </createTable>
+
+        <createIndex tableName="ai_user_state" indexName="ix_ai_state_dirty">
+            <column name="dirty_since"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="ai_user_state"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="013-03-create-ai-usage" author="rastroos">
+        <createTable tableName="ai_usage">
+            <column name="id" type="BIGSERIAL" autoIncrement="true">
+                <constraints primaryKey="true" primaryKeyName="pk_ai_usage" nullable="false"/>
+            </column>
+            <!-- Nulo em chamadas sem dono (aquecimento administrativo, testes). -->
+            <column name="user_id" type="UUID"/>
+            <!-- CHAT | INSIGHT | EMBEDDING | VISION -->
+            <column name="feature" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="model" type="VARCHAR(60)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="prompt_tokens" type="INT" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="completion_tokens" type="INT" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="total_tokens" type="INT" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <!-- Dia UTC: chave do teto diário por usuário, sem depender de fuso. -->
+            <column name="usage_day" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="ai_usage" indexName="ix_ai_usage_user_day">
+            <column name="user_id"/>
+            <column name="usage_day"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="ai_usage"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

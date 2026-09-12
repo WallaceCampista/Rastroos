@@ -2,6 +2,8 @@ package com.rastroos.domain.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 import java.time.Clock;
@@ -9,6 +11,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -32,6 +35,7 @@ class ExpenseExtractionServiceTest {
     private static final byte[] JPEG = {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF, (byte) 0xE0, 0, 0};
 
     @Mock private AccountRepository accountsRepo;
+    @Mock private ExpenseVisionReader vision;
 
     private final Clock clock = Clock.fixed(Instant.parse("2026-05-18T12:00:00Z"), ZoneOffset.UTC);
     private final UUID alice = UUID.randomUUID();
@@ -41,7 +45,10 @@ class ExpenseExtractionServiceTest {
     @BeforeEach
     void init() {
         props = new ExtractionProperties();
-        service = new ExpenseExtractionService(props, accountsRepo, clock);
+        service = new ExpenseExtractionService(props, accountsRepo, vision, clock);
+        // Visão indisponível por padrão: estes testes cobrem as validações de
+        // upload e o modo demonstração. A leitura real tem testes próprios.
+        lenient().when(vision.read(any(), any(), any())).thenReturn(Optional.empty());
     }
 
     @Test

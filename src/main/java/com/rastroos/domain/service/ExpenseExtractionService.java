@@ -2,6 +2,7 @@ package com.rastroos.domain.service;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.Set;
@@ -25,11 +26,14 @@ import com.rastroos.web.dto.ExtractedExpense;
  * — o usuário valida e ajusta antes de salvar (a criação da transação continua
  * passando pela validação normal do {@code TransactionForm}).
  *
- * <p>Por padrão roda em <strong>modo demonstração</strong> (stub): não há
- * {@code extraction.base-url} configurado, então devolvemos campos-base
- * (descrição do arquivo, vencimento = hoje) e marcamos {@code demo = true}.
- * Configurando o endpoint, a leitura real por IA de visão entra no lugar
- * (próximo passo), reaproveitando toda a validação/segurança de upload abaixo.
+ * <p>Com a IA configurada, {@link ExpenseVisionReader} lê o arquivo de verdade
+ * e devolve valor, data, descrição e os 4 dígitos do cartão. Sem IA — ou se o
+ * provedor falhar — cai no <strong>modo demonstração</strong>: campos-base
+ * editáveis, marcados com {@code demo = true} para a UI avisar.
+ *
+ * <p>Campo que o modelo não conseguiu ler volta {@code null} e continua
+ * {@code null} aqui: num lançamento de dinheiro, campo vazio que a pessoa
+ * preenche é sempre melhor que campo preenchido com palpite.
  *
  * <p>Segurança de upload (§3.2): valida arquivo não-vazio, tamanho máximo,
  * tipo de conteúdo, extensão (allow-list) e assinatura (magic bytes). O arquivo
@@ -53,11 +57,14 @@ public class ExpenseExtractionService {
 
     private final ExtractionProperties props;
     private final AccountRepository accounts;
+    private final ExpenseVisionReader vision;
     private final Clock clock;
 
-    public ExpenseExtractionService(ExtractionProperties props, AccountRepository accounts, Clock clock) {
+    public ExpenseExtractionService(ExtractionProperties props, AccountRepository accounts,
+                                    ExpenseVisionReader vision, Clock clock) {
         this.props = props;
         this.accounts = accounts;
+        this.vision = vision;
         this.clock = clock;
     }
 
@@ -68,20 +75,45 @@ public class ExpenseExtractionService {
     public ExtractedExpense extract(UUID userId, MultipartFile file, ExpenseExtractionSource source) {
         validate(file, source);
 
-        if (props.isEnabled()) {
-            // Costura para a IA de visão real: quando o cliente multimodal for
-            // implementado, ele substitui o stub aqui. Por ora, degrada para o stub.
-            log.info("extraction.base-url configurado, mas o cliente de visão ainda não foi "
-                    + "implementado; usando extração em modo demonstração.");
-        }
+        ExtractedExpense base = vision.read(userId, file, source)
+                .filter(reading -> !reading.isEmpty())
+                .map(reading -> fromVision(reading, file, source))
+                .orElseGet(() -> stub(file, source));
 
-        ExtractedExpense base = stub(file, source);
         UUID accountId = matchAccountByLast4(userId, base.last4());
         if (accountId == null) {
             return base;
         }
         return new ExtractedExpense(base.description(), base.amount(), base.dueDate(), base.fixed(),
                 base.categoryId(), base.last4(), accountId, base.demo());
+    }
+
+    /**
+     * Converte a leitura da IA em sugestão. A data cai para hoje quando o
+     * documento não traz uma legível — um vencimento nunca fica em branco no
+     * formulário; o valor, ao contrário, fica, porque errar o valor é pior do
+     * que pedir para a pessoa digitar.
+     */
+    private ExtractedExpense fromVision(VisionReading reading, MultipartFile file,
+                                        ExpenseExtractionSource source) {
+        String description = reading.description() != null
+                ? trimDescription(reading.description())
+                : fallbackDescription(file, source);
+        LocalDate date = reading.date() != null ? reading.date() : LocalDate.now(clock);
+        BigDecimal amount = reading.amount();
+        return new ExtractedExpense(description, amount, date, false, null,
+                reading.last4(), null, false);
+    }
+
+    private String fallbackDescription(MultipartFile file, ExpenseExtractionSource source) {
+        return source == ExpenseExtractionSource.RECEIPT
+                ? "Compra no cartão"
+                : descriptionFromFilename(file.getOriginalFilename());
+    }
+
+    private static String trimDescription(String raw) {
+        String text = raw.trim();
+        return text.length() > MAX_DESCRIPTION ? text.substring(0, MAX_DESCRIPTION) : text;
     }
 
     /** Extração de demonstração: campos-base editáveis, sem inventar valores monetários. */

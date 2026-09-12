@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,13 +46,16 @@ public class AccountService {
     private final TransactionRepository transactions;
     private final CategoryRepository categories;
     private final Clock clock;
+    private final ApplicationEventPublisher events;
 
     public AccountService(AccountRepository accounts, TransactionRepository transactions,
-                          CategoryRepository categories, Clock clock) {
+                          CategoryRepository categories, Clock clock,
+                          ApplicationEventPublisher events) {
         this.accounts = accounts;
         this.transactions = transactions;
         this.categories = categories;
         this.clock = clock;
+        this.events = events;
     }
 
     @Transactional(readOnly = true)
@@ -144,6 +148,7 @@ public class AccountService {
             }
         }
         transactions.saveAll(txs);
+        dataChanged(userId);
     }
 
     @Transactional(readOnly = true)
@@ -170,14 +175,18 @@ public class AccountService {
         Account a = new Account();
         a.setUserId(userId);
         applyForm(a, form);
-        return accounts.save(a);
+        Account saved = accounts.save(a);
+        dataChanged(userId);
+        return saved;
     }
 
     @Transactional
     public Account update(UUID userId, UUID id, AccountForm form) {
         Account a = require(userId, id);
         applyForm(a, form);
-        return accounts.save(a);
+        Account saved = accounts.save(a);
+        dataChanged(userId);
+        return saved;
     }
 
     /**
@@ -238,10 +247,12 @@ public class AccountService {
             // consultável e nada novo entra nela.
             a.setClosedAt(from.minusDays(1));
             accounts.save(a);
+            dataChanged(userId);
             return;
         }
         transactions.deleteByUserIdAndAccountId(userId, id);
         accounts.delete(a);
+        dataChanged(userId);
     }
 
     private Map<UUID, long[]> aggregateByAccount(UUID userId, YearMonth ym) {
@@ -373,4 +384,15 @@ public class AccountService {
         String trimmed = hex.trim();
         return trimmed.startsWith("#") ? trimmed : "#" + trimmed;
     }
+
+    /**
+     * Avisa que os dados financeiros do usuário mudaram. O evento só é
+     * entregue depois do commit ({@code AFTER_COMMIT}), então um rollback não
+     * marca nada — e é essa marca que faz o Alfredo regerar os resumos das
+     * telas. Sem escrita, nenhum resumo é regerado e nada é consumido.
+     */
+    private void dataChanged(UUID userId) {
+        events.publishEvent(new UserDataChangedEvent(userId));
+    }
+
 }

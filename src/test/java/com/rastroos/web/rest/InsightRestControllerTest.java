@@ -1,5 +1,6 @@
 package com.rastroos.web.rest;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
@@ -19,6 +20,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -32,6 +34,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.rastroos.domain.entity.enums.ChatMessageRole;
+import com.rastroos.domain.service.ChatScope;
 import com.rastroos.domain.service.ChatService;
 import com.rastroos.domain.service.ScreenInsightService;
 import com.rastroos.security.AuditLogger;
@@ -156,12 +159,13 @@ class InsightRestControllerTest {
     void post_abreConversaComOResumoDoServidorENaoComTextoDoCliente() throws Exception {
         when(currentUser.isMaskActive()).thenReturn(false);
         when(currentUser.requireEffectiveId()).thenReturn(dataOwner);
-        when(currentUser.requireId()).thenReturn(account);
+        when(currentUser.chatScope(any())).thenReturn(
+                new ChatScope(account, dataOwner, YearMonth.of(2026, 9)));
         when(insights.insight(eq(dataOwner), eq(InsightScreen.DASHBOARD), any()))
                 .thenReturn(insight("Resumo do servidor."));
         UUID chatId = UUID.randomUUID();
-        when(chats.startFromScreen(eq(account), eq("Visão geral"), eq("Resumo do servidor."),
-                eq("Como melhoro?")))
+        when(chats.startFromScreen(any(ChatScope.class), eq("Visão geral"),
+                eq("Resumo do servidor."), eq("Como melhoro?")))
                 .thenReturn(new ChatDetailDto(chatId, "Visão geral · Como melhoro?", List.of(
                         new ChatMessageDto(ChatMessageRole.ASSISTANT, "Resumo do servidor.",
                                 Instant.parse("2026-09-04T12:00:00Z"), true),
@@ -182,7 +186,8 @@ class InsightRestControllerTest {
     @Test
     void post_conversaVaiParaAContaLogada_naoParaODonoDosDados() throws Exception {
         when(currentUser.requireEffectiveId()).thenReturn(dataOwner);
-        when(currentUser.requireId()).thenReturn(account);
+        when(currentUser.chatScope(any())).thenReturn(
+                new ChatScope(account, dataOwner, YearMonth.of(2026, 9)));
         when(insights.insight(eq(dataOwner), any(), any())).thenReturn(insight("resumo"));
         when(chats.startFromScreen(any(), any(), any(), any()))
                 .thenReturn(new ChatDetailDto(UUID.randomUUID(), "t", List.of()));
@@ -192,7 +197,10 @@ class InsightRestControllerTest {
                         .content("{\"message\":\"Oi\"}"))
                 .andExpect(status().isOk());
 
-        verify(chats).startFromScreen(eq(account), eq("Receitas"), eq("resumo"), eq("Oi"));
+        ArgumentCaptor<ChatScope> scope = ArgumentCaptor.forClass(ChatScope.class);
+        verify(chats).startFromScreen(scope.capture(), eq("Receitas"), eq("resumo"), eq("Oi"));
+        assertThat(scope.getValue().chatOwnerId()).isEqualTo(account);
+        assertThat(scope.getValue().dataOwnerId()).isEqualTo(dataOwner);
     }
 
     @Test

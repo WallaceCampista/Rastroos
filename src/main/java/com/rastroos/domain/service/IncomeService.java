@@ -13,6 +13,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,10 +43,13 @@ public class IncomeService {
 
     private final IncomeRepository incomes;
     private final CategoryRepository categories;
+    private final ApplicationEventPublisher events;
 
-    public IncomeService(IncomeRepository incomes, CategoryRepository categories) {
+    public IncomeService(IncomeRepository incomes, CategoryRepository categories,
+                         ApplicationEventPublisher events) {
         this.incomes = incomes;
         this.categories = categories;
+        this.events = events;
     }
 
     @Transactional(readOnly = true)
@@ -111,7 +115,9 @@ public class IncomeService {
         i.setIncomeDate(form.getIncomeDate());
         i.setCategory(blankToNull(form.getCategoryId()));
         i.setNote(blankToNull(form.getNote()));
-        return incomes.save(i);
+        Income saved = incomes.save(i);
+        dataChanged(userId);
+        return saved;
     }
 
     @Transactional
@@ -128,13 +134,16 @@ public class IncomeService {
         existing.setIncomeDate(form.getIncomeDate());
         existing.setCategory(blankToNull(form.getCategoryId()));
         existing.setNote(blankToNull(form.getNote()));
-        return incomes.save(existing);
+        Income saved = incomes.save(existing);
+        dataChanged(userId);
+        return saved;
     }
 
     @Transactional
     public void delete(UUID userId, UUID id) {
         Income i = require(userId, id);
         incomes.delete(i);
+        dataChanged(userId);
     }
 
     @Transactional(readOnly = true)
@@ -180,4 +189,15 @@ public class IncomeService {
     private static String blankToNull(String s) {
         return (s == null || s.isBlank()) ? null : s.trim();
     }
+
+    /**
+     * Avisa que os dados financeiros do usuário mudaram. O evento só é
+     * entregue depois do commit ({@code AFTER_COMMIT}), então um rollback não
+     * marca nada — e é essa marca que faz o Alfredo regerar os resumos das
+     * telas. Sem escrita, nenhum resumo é regerado e nada é consumido.
+     */
+    private void dataChanged(UUID userId) {
+        events.publishEvent(new UserDataChangedEvent(userId));
+    }
+
 }

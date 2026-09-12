@@ -2,7 +2,6 @@ package com.rastroos.web.rest;
 
 import java.time.Clock;
 import java.time.YearMonth;
-import java.util.UUID;
 
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.rastroos.domain.exception.ResourceNotFoundException;
+import com.rastroos.domain.service.ChatScope;
 import com.rastroos.domain.service.ChatService;
 import com.rastroos.domain.service.ScreenInsightService;
 import com.rastroos.security.CurrentUser;
@@ -92,8 +92,8 @@ public class InsightRestController {
         InsightDto insight = currentUser.isMaskActive()
                 ? insights.maskedInsight(target, period)
                 : insights.insight(currentUser.requireEffectiveId(), target, period);
-        UUID ownerOfChats = currentUser.requireId();
-        return chats.startFromScreen(ownerOfChats, target.label(), insight.text(), form.getMessage());
+        return chats.startFromScreen(currentUser.chatScope(period), target.label(),
+                insight.text(), form.getMessage());
     }
 
     /** Tela desconhecida → 404 (o widget cai no modo "só chat"). */

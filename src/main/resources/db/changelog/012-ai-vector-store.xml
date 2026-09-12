@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ─────────────────────────────────────────────────────────────
+  012 — Memória vetorial do Alfredo (pgvector)
+  ─────────────────────────────────────────────────────────────
+  Índice semântico do texto livre do usuário (descrições de gastos,
+  fontes de receita, nomes de contas/investimentos e falas do chat).
+  Serve a busca por semelhança — "aquela compra na farmácia" — e
+  complementa os números exatos, que continuam vindo de SQL agregado.
+
+  ‼  Requer a extensão `vector` (imagem pgvector/pgvector:pg16). Em
+     Postgres gerenciado (RDS, Cloud SQL) a extensão costuma precisar
+     ser habilitada pelo DBA antes do primeiro boot da aplicação.
+
+  Tabela interna (BIGSERIAL, §5): não é entidade de domínio, é cache
+  derivado — pode ser reconstruída do zero a partir das tabelas-fonte.
+-->
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.27.xsd">
+
+    <changeSet id="012-01-create-extension-vector" author="rastroos">
+        <comment>Habilita pgvector. Idempotente; exige privilégio para criar extensão.</comment>
+        <sql>CREATE EXTENSION IF NOT EXISTS vector</sql>
+        <rollback>
+            <!-- Não derrubamos a extensão: outras tabelas/bancos podem depender dela. -->
+            <empty/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="012-02-create-ai-documents" author="rastroos">
+        <createTable tableName="ai_documents">
+            <column name="id" type="BIGSERIAL" autoIncrement="true">
+                <constraints primaryKey="true" primaryKeyName="pk_ai_documents" nullable="false"/>
+            </column>
+            <column name="user_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <!-- TRANSACTION | INCOME | ACCOUNT | INVESTMENT | CHAT_MESSAGE -->
+            <column name="kind" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <!-- Id da linha de origem (UUID ou BIGSERIAL) como texto. -->
+            <column name="ref_id" type="VARCHAR(64)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="content" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <!-- SHA-256 do conteúdo: texto igual não é re-embeddado (economia). -->
+            <column name="content_hash" type="VARCHAR(64)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="occurred_on" type="DATE"/>
+            <column name="amount_cents" type="BIGINT"/>
+            <column name="model" type="VARCHAR(60)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="ai_documents"
+                             columnNames="user_id, kind, ref_id"
+                             constraintName="uq_ai_documents_source"/>
+
+        <createIndex tableName="ai_documents" indexName="ix_ai_docs_user_kind">
+            <column name="user_id"/>
+            <column name="kind"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="ai_documents"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="012-03-ai-documents-embedding-column" author="rastroos">
+        <comment>Coluna vetorial + índice HNSW cosseno (tipo fora do dicionário do Liquibase).</comment>
+        <sql>ALTER TABLE ai_documents ADD COLUMN embedding vector(1536)</sql>
+        <sql>
+            CREATE INDEX ix_ai_docs_embedding ON ai_documents
+            USING hnsw (embedding vector_cosine_ops)
+        </sql>
+        <rollback>
+            <sql>DROP INDEX IF EXISTS ix_ai_docs_embedding</sql>
+            <sql>ALTER TABLE ai_documents DROP COLUMN embedding</sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

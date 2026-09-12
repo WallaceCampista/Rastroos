@@ -12,10 +12,12 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.access.intercept.AuthorizationFilter;
 import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import org.springframework.security.web.header.writers.XXssProtectionHeaderWriter;
 
+import com.rastroos.security.AiRateLimitFilter;
 import com.rastroos.security.BruteForceFilter;
 import com.rastroos.security.CsrfTokenEagerLoadFilter;
 import com.rastroos.security.CustomUserDetailsService;
@@ -32,17 +34,20 @@ public class SecurityConfig {
     private final LoginFailureHandler failureHandler;
     private final BruteForceFilter bruteForceFilter;
     private final LockoutPreAuthFilter lockoutFilter;
+    private final AiRateLimitFilter aiRateLimitFilter;
 
     public SecurityConfig(CustomUserDetailsService userDetailsService,
                           LoginSuccessHandler successHandler,
                           LoginFailureHandler failureHandler,
                           BruteForceFilter bruteForceFilter,
-                          LockoutPreAuthFilter lockoutFilter) {
+                          LockoutPreAuthFilter lockoutFilter,
+                          AiRateLimitFilter aiRateLimitFilter) {
         this.userDetailsService = userDetailsService;
         this.successHandler = successHandler;
         this.failureHandler = failureHandler;
         this.bruteForceFilter = bruteForceFilter;
         this.lockoutFilter = lockoutFilter;
+        this.aiRateLimitFilter = aiRateLimitFilter;
     }
 
     @Bean
@@ -142,7 +147,10 @@ public class SecurityConfig {
             // em páginas grandes com <form th:action>). Ver CsrfTokenEagerLoadFilter.
             .addFilterAfter(new CsrfTokenEagerLoadFilter(), CsrfFilter.class)
             .addFilterBefore(bruteForceFilter, UsernamePasswordAuthenticationFilter.class)
-            .addFilterBefore(lockoutFilter,    UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(lockoutFilter,    UsernamePasswordAuthenticationFilter.class)
+            // Depois da autorização: o limite é por conta, então precisa do
+            // usuário já no contexto de segurança.
+            .addFilterAfter(aiRateLimitFilter, AuthorizationFilter.class);
 
         return http.build();
     }
