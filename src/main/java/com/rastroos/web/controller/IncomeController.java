@@ -131,8 +131,11 @@ public class IncomeController {
             return "app/income-form";
         }
         try {
-            service.create(userId, form);
-            flash.addFlashAttribute("ok", "income.created");
+            IncomeService.CreateResult result = service.createOrConfirm(userId, form);
+            // Com receita fixa escolhida, a ocorrência do mês é confirmada — a
+            // mensagem precisa dizer isso, senão parece que nada foi lançado.
+            flash.addFlashAttribute("ok",
+                    result.confirmed() ? "income.confirmed" : "income.created");
         } catch (IllegalArgumentException e) {
             rejectDomainError(binding, e);
             prepareFormModel(model, form, false, null);

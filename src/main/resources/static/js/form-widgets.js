@@ -167,7 +167,13 @@
         if (!form) return;
         const free = form.querySelector('[data-income-source-free]');
         const input = free ? free.querySelector('input[name="source"]') : null;
-        const apply = () => {
+        const amount = form.querySelector('input[name="amount"]');
+        const date = form.querySelector('input[name="incomeDate"]');
+        const hint = form.querySelector('[data-income-source-hint]');
+        const submit = form.querySelector('button[type="submit"]');
+        const submitLabel = submit ? submit.textContent.trim() : '';
+
+        const apply = (fromUser) => {
             const chosen = !!select.value;
             // style.display (não [hidden]): .form > label define display, que
             // venceria o atributo.
@@ -178,9 +184,32 @@
                 input.required = !chosen;
                 input.disabled = chosen;
             }
+
+            const opt = chosen ? select.options[select.selectedIndex] : null;
+
+            // Escolher a empresa traz o valor e a data programados. Só na ação
+            // do usuário: no reabrir do form com erro de validação isso
+            // apagaria o que ele tinha digitado.
+            if (fromUser && opt) {
+                const valor = opt.getAttribute('data-amount');
+                if (amount && valor) amount.value = valor;
+                const dia = opt.getAttribute('data-pay-date');
+                if (date && dia) date.value = dia;
+            }
+
+            // Com receita fixa, o botão confirma a ocorrência do mês — não cria
+            // outra. Dizer isso antes do clique evita a surpresa do valor dobrado.
+            if (submit) {
+                submit.textContent = chosen ? 'Confirmar recebimento' : submitLabel;
+            }
+            if (hint && opt) {
+                hint.textContent = opt.getAttribute('data-received') === 'true'
+                    ? 'Esta receita já consta como recebida neste mês — confirmar de novo só atualiza o valor.'
+                    : 'Receita fixa cadastrada — confirma o recebimento do mês, sem criar outro lançamento.';
+            }
         };
-        select.addEventListener('change', apply);
-        apply();
+        select.addEventListener('change', () => apply(true));
+        apply(false);
     }
 
     // Modal de investimento: Tipo em pílulas (Cofrinho / CDI / …) →

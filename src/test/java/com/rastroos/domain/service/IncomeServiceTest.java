@@ -2,6 +2,7 @@ package com.rastroos.domain.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -18,6 +19,7 @@ import java.time.ZoneId;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
@@ -89,12 +91,70 @@ class IncomeServiceTest {
                 LocalDate.of(2026, 5, 5), null);
         form.setSourceId(sourceId);
         when(sourcesRepo.findByIdAndUserId(sourceId, alice)).thenReturn(Optional.of(source));
+        // Sem ocorrência programada no mês → cria uma nova, vinculada à fonte.
+        when(incomesRepo.findFirstByUserIdAndSourceIdAndIncomeDateBetweenOrderByIncomeDateAsc(
+                eq(alice), eq(sourceId), any(), any())).thenReturn(Optional.empty());
         when(incomesRepo.save(any(Income.class))).thenAnswer(inv -> inv.getArgument(0));
 
         Income created = service.create(alice, form);
 
         assertThat(created.getSourceId()).isEqualTo(sourceId);
         assertThat(created.getSource()).isEqualTo("Acme Ltda");
+    }
+
+    @Test
+    void createComReceitaFixaConfirmaAOcorrenciaDoMesEmVezDeDuplicar() {
+        UUID sourceId = UUID.randomUUID();
+        IncomeSource source = newSource(sourceId, alice, "Acme Ltda");
+
+        // A receita fixa já materializou a ocorrência de maio, ainda não recebida.
+        Income programada = new Income();
+        programada.setId(UUID.randomUUID());
+        programada.setUserId(alice);
+        programada.setSourceId(sourceId);
+        programada.setSource("Acme Ltda");
+        programada.setAmountCents(500_000L);
+        programada.setIncomeDate(LocalDate.of(2026, 5, 8));
+        programada.setReceived(false);
+
+        IncomeForm form = makeForm(null, new BigDecimal("5120.00"),
+                LocalDate.of(2026, 5, 7), null);
+        form.setSourceId(sourceId);
+        when(sourcesRepo.findByIdAndUserId(sourceId, alice)).thenReturn(Optional.of(source));
+        when(incomesRepo.findFirstByUserIdAndSourceIdAndIncomeDateBetweenOrderByIncomeDateAsc(
+                alice, sourceId, LocalDate.of(2026, 5, 1), LocalDate.of(2026, 5, 31)))
+                .thenReturn(Optional.of(programada));
+        when(incomesRepo.save(any(Income.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        IncomeService.CreateResult result = service.createOrConfirm(alice, form);
+
+        // O bug era criar uma segunda linha e dobrar o valor do mês.
+        assertThat(result.confirmed()).isTrue();
+        assertThat(result.income().getId()).isEqualTo(programada.getId());
+        assertThat(result.income().isReceived()).isTrue();
+        assertThat(result.income().getReceivedAt()).isNotNull();
+        // O que o usuário digitou vence o programado (o depósito veio diferente).
+        assertThat(result.income().getAmountCents()).isEqualTo(512_000L);
+        assertThat(result.income().getIncomeDate()).isEqualTo(LocalDate.of(2026, 5, 7));
+
+        ArgumentCaptor<Income> salvos = ArgumentCaptor.forClass(Income.class);
+        verify(incomesRepo).save(salvos.capture());
+        assertThat(salvos.getAllValues()).hasSize(1);
+        assertThat(salvos.getValue().getId()).isEqualTo(programada.getId());
+    }
+
+    @Test
+    void createAvulsaNaoProcuraOcorrenciaProgramada() {
+        IncomeForm form = makeForm("Freela", new BigDecimal("300.00"),
+                LocalDate.of(2026, 5, 7), null);
+        when(incomesRepo.save(any(Income.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        IncomeService.CreateResult result = service.createOrConfirm(alice, form);
+
+        assertThat(result.confirmed()).isFalse();
+        verify(incomesRepo, never())
+                .findFirstByUserIdAndSourceIdAndIncomeDateBetweenOrderByIncomeDateAsc(
+                        any(), any(), any(), any());
     }
 
     @Test

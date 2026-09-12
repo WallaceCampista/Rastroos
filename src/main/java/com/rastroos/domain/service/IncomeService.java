@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.context.i18n.LocaleContextHolder;
@@ -123,8 +124,56 @@ public class IncomeService {
     }
 
     @Transactional
+    /**
+     * Resultado de {@link #create}: além da linha, diz se ela já existia.
+     *
+     * @param confirmed {@code true} quando a ocorrência programada da receita
+     *                  fixa foi confirmada, em vez de uma nova linha criada
+     */
+    public record CreateResult(Income income, boolean confirmed) {
+    }
+
     public Income create(UUID userId, IncomeForm form) {
+        return createOrConfirm(userId, form).income();
+    }
+
+    /**
+     * Lança uma receita avulsa — ou, quando o usuário escolhe uma receita fixa
+     * cadastrada, <b>confirma a ocorrência daquele mês</b> em vez de criar
+     * outra.
+     *
+     * <p>Criar uma linha nova ali duplicava o valor do mês: a receita fixa já
+     * materializa 10 anos de ocorrências ao ser cadastrada (ver
+     * {@code IncomeSourceService}), então a do mês escolhido já existe,
+     * apenas ainda não recebida. O que falta é confirmar — não recadastrar.
+     * O valor e a data digitados vencem os programados (o depósito pode ter
+     * vindo diferente do combinado).
+     */
+    @Transactional
+    public CreateResult createOrConfirm(UUID userId, IncomeForm form) {
         IncomeSource source = resolveSource(userId, form);
+
+        if (source != null) {
+            YearMonth mes = YearMonth.from(form.getIncomeDate());
+            Optional<Income> programada = incomes
+                    .findFirstByUserIdAndSourceIdAndIncomeDateBetweenOrderByIncomeDateAsc(
+                            userId, source.getId(), mes.atDay(1), mes.atEndOfMonth());
+            if (programada.isPresent()) {
+                Income i = programada.get();
+                i.setAmountCents(amountCentsOf(form));
+                i.setIncomeDate(form.getIncomeDate());
+                if (blankToNull(form.getNote()) != null) {
+                    i.setNote(blankToNull(form.getNote()));
+                }
+                i.setReceived(true);
+                i.setReceivedAt(clock.instant());
+                Income saved = incomes.save(i);
+                dataChanged(userId);
+                return new CreateResult(saved, true);
+            }
+            // Sem ocorrência no mês (fonte criada depois, ou a linha foi
+            // apagada): cria uma, ainda vinculada à fonte.
+        }
 
         Income i = new Income();
         i.setUserId(userId);
@@ -138,7 +187,7 @@ public class IncomeService {
         i.setReceivedAt(clock.instant());
         Income saved = incomes.save(i);
         dataChanged(userId);
-        return saved;
+        return new CreateResult(saved, false);
     }
 
     @Transactional

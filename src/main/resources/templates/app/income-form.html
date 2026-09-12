@@ -29,10 +29,15 @@
             <span>Empresa</span>
             <select class="input" th:field="*{sourceId}" data-income-source>
                 <option value="">Outra origem (digitar)</option>
+                <!-- O valor/data programados viajam na própria opção: o
+                     form-widgets.js preenche os campos ao escolher a empresa. -->
                 <option th:each="s : ${sourceOptions}" th:value="${s.id()}"
+                        th:attr="data-amount=${s.amount()},
+                                 data-pay-date=${s.currentPayDate()},
+                                 data-received=${s.currentReceived()}"
                         th:text="${s.name()}">Empresa</option>
             </select>
-            <small class="form-hint">Receita fixa cadastrada — o valor vem preenchido, edite se mudou.</small>
+            <small class="form-hint" data-income-source-hint>Receita fixa cadastrada — o valor vem preenchido, edite se mudou.</small>
             <small th:if="${#fields.hasErrors('sourceId')}" th:errors="*{sourceId}"
                    class="form-hint form-hint-err"></small>
         </label>

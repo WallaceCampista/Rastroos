@@ -26,6 +26,10 @@ public interface IncomeRepository extends JpaRepository<Income, UUID> {
     List<Income> findAllByUserIdAndSourceIdAndIncomeDateGreaterThanEqualOrderByIncomeDateAsc(
             UUID userId, UUID sourceId, LocalDate from);
 
+    /** Ocorrência já materializada daquela fonte no intervalo (um mês). */
+    Optional<Income> findFirstByUserIdAndSourceIdAndIncomeDateBetweenOrderByIncomeDateAsc(
+            UUID userId, UUID sourceId, LocalDate from, LocalDate to);
+
     long countByUserIdAndSourceId(UUID userId, UUID sourceId);
 
     long countByUserIdAndSourceIdAndIncomeDateGreaterThanEqual(UUID userId, UUID sourceId,

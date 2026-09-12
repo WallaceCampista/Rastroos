@@ -133,11 +133,49 @@ class IncomeControllerTest {
                 .andExpect(model().attributeExists("sourceOptions"));
     }
 
+    /**
+     * O valor/data programados viajam na própria &lt;option&gt;; sem eles o
+     * form-widgets.js não tem de onde preencher os campos ao escolher a empresa.
+     */
+    @Test
+    void createComReceitaFixaAvisaQueConfirmouEmVezDeLancar() throws Exception {
+        Income saved = new Income();
+        saved.setId(UUID.randomUUID());
+        when(service.createOrConfirm(eq(userId), any(IncomeForm.class)))
+                .thenReturn(new IncomeService.CreateResult(saved, true));
+
+        mvc.perform(post("/app/income/new")
+                        .param("sourceId", UUID.randomUUID().toString())
+                        .param("amount", "5000.00")
+                        .param("incomeDate", "2026-05-07"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(flash().attribute("ok", "income.confirmed"));
+    }
+
+    @Test
+    void newFormCarregaValorProgramadoNaOpcaoDaEmpresa() throws Exception {
+        UUID sourceId = UUID.randomUUID();
+        when(sources.listActive(eq(userId), any(YearMonth.class))).thenReturn(List.of(
+                new IncomeSourceDto(sourceId, "Acme Ltda", new BigDecimal("5000.00"),
+                        (short) 5, null, null, 120L,
+                        UUID.randomUUID(), LocalDate.of(2026, 5, 8), false)));
+
+        String html = mvc.perform(get("/app/income/new"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        org.assertj.core.api.Assertions.assertThat(html)
+                .contains("data-amount=\"5000.00\"")
+                .contains("data-pay-date=\"2026-05-08\"")
+                .contains("data-received=\"false\"");
+    }
+
     @Test
     void createComDadosValidosRedirecionaComFlash() throws Exception {
         Income saved = new Income();
         saved.setId(UUID.randomUUID());
-        when(service.create(eq(userId), any(IncomeForm.class))).thenReturn(saved);
+        when(service.createOrConfirm(eq(userId), any(IncomeForm.class)))
+                .thenReturn(new IncomeService.CreateResult(saved, false));
 
         mvc.perform(post("/app/income/new")
                         .param("source", "Salário")
@@ -147,7 +185,7 @@ class IncomeControllerTest {
                 .andExpect(redirectedUrl("/app/income"))
                 .andExpect(flash().attribute("ok", "income.created"));
 
-        verify(service).create(eq(userId), any(IncomeForm.class));
+        verify(service).createOrConfirm(eq(userId), any(IncomeForm.class));
     }
 
     @Test
