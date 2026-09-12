@@ -15,6 +15,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.time.Clock;
 import java.time.Instant;
+import java.math.BigDecimal;
 import java.time.YearMonth;
 import java.time.ZoneId;
 import java.util.List;
@@ -34,6 +35,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.rastroos.domain.entity.Account;
+import com.rastroos.domain.entity.enums.AccountKind;
 import com.rastroos.domain.exception.ResourceNotFoundException;
 import com.rastroos.domain.service.AccountService;
 import com.rastroos.security.AuditLogger;
@@ -45,8 +47,10 @@ import com.rastroos.security.LockoutPreAuthFilter;
 import com.rastroos.security.LoginFailureHandler;
 import com.rastroos.security.LoginSuccessHandler;
 import com.rastroos.web.interceptor.TopbarChipsInterceptor;
+import com.rastroos.web.dto.AccountSummaryDto;
 import com.rastroos.web.dto.AccountsView;
 import com.rastroos.web.form.AccountForm;
+import com.rastroos.web.support.PeriodResolver;
 
 @WebMvcTest(controllers = AccountController.class,
         excludeAutoConfiguration = {
@@ -67,7 +71,7 @@ import com.rastroos.web.form.AccountForm;
                         TopbarChipsInterceptor.class
                 }))
 @AutoConfigureMockMvc(addFilters = false)
-@Import(AccountControllerTest.Config.class)
+@Import({AccountControllerTest.Config.class, PeriodResolver.class})
 class AccountControllerTest {
 
     @Autowired private MockMvc mvc;
@@ -151,20 +155,46 @@ class AccountControllerTest {
                 .andExpect(status().isNotFound());
     }
 
+    /** Grava o HTML real do modal para o harness de layout (ver scratchpad). */
     @Test
-    void deleteComLancamentosMostraErroNaListagem() throws Exception {
+    void deleteConfirmRenderizaOModalDeEscopo() throws Exception {
         UUID id = UUID.randomUUID();
-        org.mockito.Mockito.doThrow(new IllegalStateException("account.hasTransactions"))
-                .when(accountService).delete(userId, id);
+        AccountSummaryDto resumo = new AccountSummaryDto(
+                id, "Vivo (móvel+wifi)", AccountKind.RECURRENT, "#8b5cf6", null, null, null, null,
+                new BigDecimal("120.00"), BigDecimal.ZERO, new BigDecimal("120.00"),
+                0, 13L, "open");
+        when(accountService.summary(eq(userId), eq(id), any())).thenReturn(resumo);
+        when(accountService.countTransactions(userId, id)).thenReturn(13L);
+        when(accountService.countTransactionsFrom(eq(userId), eq(id), any())).thenReturn(12L);
+
+        String html = mvc.perform(get("/app/cards/{id}/delete", id).param("ym", "2026-07"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("app/account-delete-confirm"))
+                .andReturn().getResponse().getContentAsString();
+        java.nio.file.Files.writeString(java.nio.file.Path.of(
+                System.getProperty("java.io.tmpdir"), "rastroos-acct-del.html"), html);
+
+        org.assertj.core.api.Assertions.assertThat(html)
+                .contains("data-modal-content")
+                .contains("Deste mês em diante")
+                .contains("Apagar tudo")
+                .contains("Julho/2026");
+    }
+
+    @Test
+    void deleteErroDoServicoViraFlashDeErro() throws Exception {
+        UUID id = UUID.randomUUID();
+        org.mockito.Mockito.doThrow(new IllegalStateException("account.deleteScopeInvalid"))
+                .when(accountService).delete(eq(userId), eq(id), any(), any());
 
         mvc.perform(post("/app/cards/{id}/delete", id))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/app/cards"))
-                .andExpect(flash().attribute("error", "account.hasTransactions"));
+                .andExpect(flash().attribute("error", "account.deleteScopeInvalid"));
     }
 
     @Test
-    void deleteFelizRedirecionaComOk() throws Exception {
+    void deleteSemEscopoApagaTudo() throws Exception {
         UUID id = UUID.randomUUID();
 
         mvc.perform(post("/app/cards/{id}/delete", id))
@@ -172,6 +202,22 @@ class AccountControllerTest {
                 .andExpect(redirectedUrl("/app/cards"))
                 .andExpect(flash().attribute("ok", "account.deleted"));
 
-        verify(accountService).delete(userId, id);
+        verify(accountService).delete(eq(userId), eq(id),
+                eq(AccountService.DeleteScope.ALL), any());
+    }
+
+    @Test
+    void deleteFromMonthEncerraAContaEAvisa() throws Exception {
+        UUID id = UUID.randomUUID();
+
+        mvc.perform(post("/app/cards/{id}/delete", id)
+                        .param("scope", "FROM_MONTH")
+                        .param("ym", "2026-05"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/app/cards"))
+                .andExpect(flash().attribute("ok", "account.closedFromMonth"));
+
+        verify(accountService).delete(userId, id,
+                AccountService.DeleteScope.FROM_MONTH, YearMonth.of(2026, 5));
     }
 }

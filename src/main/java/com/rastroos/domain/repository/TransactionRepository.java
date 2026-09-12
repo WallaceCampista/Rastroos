@@ -116,6 +116,14 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
 
     long countByUserIdAndAccountId(UUID userId, UUID accountId);
 
+    long countByUserIdAndAccountIdAndDueDateGreaterThanEqual(UUID userId, UUID accountId,
+                                                             LocalDate from);
+
+    void deleteByUserIdAndAccountId(UUID userId, UUID accountId);
+
+    void deleteByUserIdAndAccountIdAndDueDateGreaterThanEqual(UUID userId, UUID accountId,
+                                                              LocalDate from);
+
     /**
      * Busca paginada com filtros opcionais. Cada filtro nulo é ignorado:
      * passar {@code null} significa "todos". Filtro {@code search} bate no

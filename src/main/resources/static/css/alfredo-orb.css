@@ -1,5 +1,5 @@
 /* ─────────────────────────────────────────────────────────────
-   Rastro$ — widget flutuante do Alfredo
+   Rastroo$ — widget flutuante do Alfredo
    ─────────────────────────────────────────────────────────────
    Orbe animado (ondas tipo Siri) no canto inferior direito, balão
    de resumo com linha do tempo de exibição e chat flutuante que
@@ -601,3 +601,31 @@
         animation-timing-function: linear;
     }
 }
+
+/* ── Silenciar o resumo automático ───────────────────────── */
+.alf-bubble-mute,
+.alf-chat-mute {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    flex: 0 0 auto;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+.alf-bubble-mute:hover,
+.alf-chat-mute:hover {
+    background: var(--surface-3);
+    color: var(--text);
+}
+
+/* O risco aparece só com o resumo desligado — o ícone mostra o estado
+   atual, não a ação (mesma regra do olho de "ocultar valores"). */
+.alf-bell-slash { display: none; }
+.alf.is-bubble-muted .alf-bell-slash { display: inline; }
+.alf.is-bubble-muted .alf-chat-mute { color: var(--text-dim); }

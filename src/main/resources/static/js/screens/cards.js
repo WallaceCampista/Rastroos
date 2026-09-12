@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// Rastro$ — /app/cards
+// Rastroo$ — /app/cards
 // Confirmação inline antes de submeter forms com data-confirm.
 // ─────────────────────────────────────────────────────────────
 (function () {

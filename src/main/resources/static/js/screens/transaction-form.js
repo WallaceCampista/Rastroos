@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// Rastro$ — /app/expenses/{new,edit}
+// Rastroo$ — /app/expenses/{new,edit}
 // Mostra um aviso quando o usuário pede mais de 1 parcela.
 // ─────────────────────────────────────────────────────────────
 (function () {

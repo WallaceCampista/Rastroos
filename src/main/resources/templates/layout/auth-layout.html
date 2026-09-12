@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title th:text="${pageTitle != null ? pageTitle + ' · Rastro$' : 'Rastro$'}">Rastro$</title>
+    <title th:text="${pageTitle != null ? pageTitle + ' · Rastroo$' : 'Rastroo$'}">Rastroo$</title>
+    <link rel="icon" type="image/png" sizes="32x32" th:href="@{/images/favicon-32.png}">
+    <link rel="apple-touch-icon" th:href="@{/images/favicon-180.png}">
     <link rel="stylesheet" th:href="@{/css/tokens.css}">
     <link rel="stylesheet" th:href="@{/css/base.css}">
     <link rel="stylesheet" th:href="@{/css/auth.css}">
@@ -20,7 +22,7 @@
         </section>
 
         <footer class="auth-foot">
-            <small>© <span th:text="${#dates.format(#dates.createNow(), 'yyyy')}">2026</span> Rastro$</small>
+            <small>© <span th:text="${#dates.format(#dates.createNow(), 'yyyy')}">2026</span> Rastroo$</small>
         </footer>
     </main>
 </body>

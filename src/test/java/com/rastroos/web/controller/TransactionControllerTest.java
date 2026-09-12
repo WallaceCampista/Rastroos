@@ -57,6 +57,7 @@ import com.rastroos.web.interceptor.TopbarChipsInterceptor;
 import com.rastroos.web.dto.ExtractedExpense;
 import com.rastroos.web.dto.TransactionsPageView;
 import com.rastroos.web.form.TransactionForm;
+import com.rastroos.web.support.PeriodResolver;
 
 @WebMvcTest(controllers = TransactionController.class,
         excludeAutoConfiguration = {
@@ -77,7 +78,7 @@ import com.rastroos.web.form.TransactionForm;
                         TopbarChipsInterceptor.class
                 }))
 @AutoConfigureMockMvc(addFilters = false)
-@Import(TransactionControllerTest.Config.class)
+@Import({TransactionControllerTest.Config.class, PeriodResolver.class})
 class TransactionControllerTest {
 
     @Autowired private MockMvc mvc;
@@ -118,6 +119,20 @@ class TransactionControllerTest {
                 .andExpect(view().name("app/expenses"))
                 .andExpect(model().attribute("activeNav", "expenses"))
                 .andExpect(model().attributeExists("view", "filter", "accounts", "categories"));
+    }
+
+    /** Grava o HTML real do form para o harness de layout (ver scratchpad). */
+    @Test
+    void newFormGravaHtmlParaInspecao() throws Exception {
+        String html = mvc.perform(get("/app/expenses/new"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        java.nio.file.Files.writeString(java.nio.file.Path.of(
+                System.getProperty("java.io.tmpdir"), "rastroos-tx-form.html"), html);
+
+        org.assertj.core.api.Assertions.assertThat(html)
+                .contains("data-tx-fixed-only")
+                .contains("data-tx-variable-only");
     }
 
     @Test

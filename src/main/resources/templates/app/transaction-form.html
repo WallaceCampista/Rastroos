@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org" lang="pt-BR"
       th:replace="~{layout/base :: layout(~{::title}, ~{::head/link}, ~{::section}, ~{::head/script})}">
 <head>
-    <title th:text="${editing ? 'Editar lançamento · Rastro$' : 'Lançar gasto · Rastro$'}">Lançamento · Rastro$</title>
+    <title th:text="${editing ? 'Editar lançamento · Rastroo$' : 'Lançar gasto · Rastroo$'}">Lançamento · Rastroo$</title>
     <link rel="stylesheet" th:href="@{/css/screens/expenses.css}">
 </head>
 <body>
@@ -118,17 +118,25 @@
             </label>
         </div>
 
-        <label th:unless="${editing}">
-            <span>Parcelas</span>
-            <input class="input" id="installments" type="number" min="1" max="60"
-                   th:field="*{installments}">
-            <small class="form-hint field-help">1 = pagamento único. Acima disso, o valor é o
-                total da compra, dividido nas parcelas a partir do mês seguinte.</small>
-            <small th:if="${#fields.hasErrors('installments')}" th:errors="*{installments}"
-                   class="form-hint form-hint-err"></small>
-        </label>
+        <div class="form-row tx-recurrence" th:unless="${editing}">
+            <label>
+                <span>Parcelas</span>
+                <input class="input" id="installments" type="number" min="1" max="60"
+                       th:field="*{installments}">
+                <small class="form-hint field-help">1 = pagamento único. Acima disso, o valor é o
+                    total da compra, dividido nas parcelas a partir do mês seguinte.</small>
+                <small th:if="${#fields.hasErrors('installments')}" th:errors="*{installments}"
+                       class="form-hint form-hint-err"></small>
+            </label>
+            <!-- Só para gasto fixo: o form-widgets.js mostra/esconde pelo data-tx-fixed-only -->
+            <label class="check-row tx-permanent" data-tx-fixed-only hidden>
+                <input type="checkbox" id="permanent" th:field="*{permanent}" data-tx-permanent>
+                <span>Permanente</span>
+                <small class="form-hint">Lança todo mês pelos próximos 10 anos. Desativa parcelas.</small>
+            </label>
+        </div>
 
-        <label>
+        <label data-tx-variable-only>
             <span>Conta</span>
             <select class="input" th:field="*{accountId}" required>
                 <option value="" disabled>Selecione…</option>
@@ -152,7 +160,7 @@
                    class="form-hint form-hint-err"></small>
         </label>
 
-        <label class="check-row">
+        <label class="check-row" data-tx-variable-only>
             <input type="checkbox" th:field="*{paid}">
             <span>Já está pago</span>
         </label>

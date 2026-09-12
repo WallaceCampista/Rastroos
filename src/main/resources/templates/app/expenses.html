@@ -4,14 +4,14 @@
       lang="pt-BR"
       th:replace="~{layout/base :: layout(~{::title}, ~{::head/link}, ~{::section}, ~{::head/script})}">
 <head>
-    <title>Gastos · Rastro$</title>
+    <title>Gastos · Rastroo$</title>
     <link rel="stylesheet" th:href="@{/css/screens/expenses.css}">
     <script th:src="@{/js/screens/expenses.js}" defer></script>
 </head>
 <body>
 <section class="app-content screen screen-expenses expenses-screen" th:data-period="${period}">
 
-    <div th:if="${ok}" class="flash flash-ok" th:text="#{${ok}}">Ok</div>
+    <div th:if="${ok}" class="flash flash-ok" th:data-flash-key="${ok}" th:text="#{${ok}}">Ok</div>
 
     <div class="filter-bar">
         <form class="search" method="get" th:action="@{/app/expenses}">

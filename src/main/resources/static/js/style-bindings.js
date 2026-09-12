@@ -1,5 +1,5 @@
 /* ─────────────────────────────────────────────────────────────
-   Rastro$ — style bindings (CSP-safe)
+   Rastroo$ — style bindings (CSP-safe)
    ─────────────────────────────────────────────────────────────
    Aplica estilos dinâmicos (cores/larguras vindas de dados do
    usuário) SEM atributo `style="..."` inline — que a CSP

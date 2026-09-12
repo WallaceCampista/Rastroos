@@ -29,6 +29,7 @@ import com.rastroos.web.dto.InvestmentsView;
 import com.rastroos.web.dto.MoneyDto;
 import com.rastroos.web.form.InvestmentForm;
 import com.rastroos.web.form.InvestmentHistoryForm;
+import com.rastroos.web.support.PeriodResolver;
 
 import jakarta.validation.Valid;
 
@@ -44,13 +45,16 @@ public class InvestmentController {
     private final CurrentUser currentUser;
     private final InvestmentService service;
     private final ObjectMapper objectMapper;
+    private final PeriodResolver periodResolver;
 
     public InvestmentController(CurrentUser currentUser,
                                 InvestmentService service,
-                                ObjectMapper objectMapper) {
+                                ObjectMapper objectMapper,
+                                PeriodResolver periodResolver) {
         this.currentUser = currentUser;
         this.service = service;
         this.objectMapper = objectMapper;
+        this.periodResolver = periodResolver;
     }
 
     @GetMapping
@@ -235,12 +239,7 @@ public class InvestmentController {
     }
 
     /** Período só alimenta a top bar (seletor de mês); os dados não mudam por mês. */
-    private static YearMonth parseOrCurrent(String ym) {
-        if (ym == null || ym.isBlank()) return YearMonth.now();
-        try {
-            return YearMonth.parse(ym);
-        } catch (Exception e) {
-            return YearMonth.now();
-        }
+    private YearMonth parseOrCurrent(String ym) {
+        return periodResolver.resolve(ym);
     }
 }

@@ -42,6 +42,7 @@ import com.rastroos.security.LoginSuccessHandler;
 import com.rastroos.web.interceptor.TopbarChipsInterceptor;
 import com.rastroos.web.dto.MonthSummaryDto;
 import com.rastroos.web.dto.ReportsModel;
+import com.rastroos.web.support.PeriodResolver;
 
 @WebMvcTest(controllers = ReportController.class,
         excludeAutoConfiguration = {
@@ -62,7 +63,7 @@ import com.rastroos.web.dto.ReportsModel;
                         TopbarChipsInterceptor.class
                 }))
 @AutoConfigureMockMvc(addFilters = false)
-@Import(ReportControllerTest.Config.class)
+@Import({ReportControllerTest.Config.class, PeriodResolver.class})
 class ReportControllerTest {
 
     @Autowired private MockMvc mvc;

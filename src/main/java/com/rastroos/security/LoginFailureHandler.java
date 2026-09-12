@@ -47,6 +47,7 @@ public class LoginFailureHandler extends SimpleUrlAuthenticationFailureHandler {
         attempt.setIpAddress(clientIp(request));
         attempt.setSuccess(false);
         attempt.setAttemptedAt(Instant.now());
+        attempt.setUserAgent(RequestUserAgent.of(request, 400));
         attempts.save(attempt);
 
         audit.record(null, "LOGIN_FAILURE", "users", email, request, null);

@@ -1,5 +1,5 @@
 /* ─────────────────────────────────────────────────────────────
-   Rastro$ — /app/investments
+   Rastroo$ — /app/investments
    Onda de evolução do patrimônio (hero) + sparklines da carteira.
    Curvas cubic-bézier iguais ao LineChart do protótipo. Canvas
    vanilla (CSP-safe); redesenha em resize e ao trocar a paleta.

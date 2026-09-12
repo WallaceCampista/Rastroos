@@ -156,18 +156,47 @@ class AccountServiceTest {
     }
 
     @Test
-    void deleteFalhaSeContaTemLançamentos() {
+    void deleteAllRemoveAContaEOsLancamentos() {
         UUID id = UUID.randomUUID();
         Account a = newAccount(alice, "X", AccountKind.CARD);
         a.setId(id);
         when(accountsRepo.findByIdAndUserId(id, alice)).thenReturn(Optional.of(a));
-        when(txRepo.countByUserIdAndAccountId(alice, id)).thenReturn(3L);
 
-        assertThatThrownBy(() -> service.delete(alice, id))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessage("account.hasTransactions");
+        // Antes isso era recusado com account.hasTransactions, o que tornava
+        // impossível remover um gasto fixo permanente (10 anos de lançamentos).
+        service.delete(alice, id, AccountService.DeleteScope.ALL, null);
 
+        verify(txRepo).deleteByUserIdAndAccountId(alice, id);
+        verify(accountsRepo).delete(a);
+    }
+
+    @Test
+    void deleteFromMonthApagaSoDoMesEmDianteEEncerraAConta() {
+        UUID id = UUID.randomUUID();
+        Account a = newAccount(alice, "X", AccountKind.RECURRENT);
+        a.setId(id);
+        when(accountsRepo.findByIdAndUserId(id, alice)).thenReturn(Optional.of(a));
+
+        service.delete(alice, id, AccountService.DeleteScope.FROM_MONTH, YearMonth.of(2026, 5));
+
+        verify(txRepo).deleteByUserIdAndAccountIdAndDueDateGreaterThanEqual(
+                alice, id, LocalDate.of(2026, 5, 1));
+        // A conta sobrevive, encerrada no fim do mês anterior: histórico preservado.
         verify(accountsRepo, never()).delete(any(Account.class));
+        assertThat(a.getClosedAt()).isEqualTo(LocalDate.of(2026, 4, 30));
+    }
+
+    @Test
+    void deleteFromMonthSemMesRecusa() {
+        UUID id = UUID.randomUUID();
+        Account a = newAccount(alice, "X", AccountKind.RECURRENT);
+        a.setId(id);
+        when(accountsRepo.findByIdAndUserId(id, alice)).thenReturn(Optional.of(a));
+
+        assertThatThrownBy(() ->
+                service.delete(alice, id, AccountService.DeleteScope.FROM_MONTH, null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("account.deleteScopeInvalid");
     }
 
     @Test
@@ -176,7 +205,6 @@ class AccountServiceTest {
         Account a = newAccount(alice, "X", AccountKind.CARD);
         a.setId(id);
         when(accountsRepo.findByIdAndUserId(id, alice)).thenReturn(Optional.of(a));
-        when(txRepo.countByUserIdAndAccountId(alice, id)).thenReturn(0L);
 
         service.delete(alice, id);
         verify(accountsRepo).delete(a);

@@ -22,6 +22,15 @@
         <div class="alf-bubble-head">
             <span class="alf-bubble-title">Alfredo:</span>
             <span class="alf-bubble-screen" data-alf-bubble-screen th:text="${alfredoScreenLabel}"></span>
+            <button type="button" class="alf-bubble-mute" data-alf-bubble-mute
+                    title="Parar de mostrar o resumo automático"
+                    aria-label="Parar de mostrar o resumo automático">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M18 9a6 6 0 1 0-12 0c0 5-2 6-2 6h16s-2-1-2-6M13.7 20a2 2 0 0 1-3.4 0"/>
+                    <path class="alf-bell-slash" d="M3 3l18 18"/>
+                </svg>
+            </button>
             <button type="button" class="alf-bubble-close" data-alf-bubble-close
                     aria-label="Fechar o resumo">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -69,6 +78,14 @@
                     <path d="M14 4h6v6M20 4l-8 8M10 6H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4"/>
                 </svg>
             </a>
+            <button type="button" class="alf-chat-mute" data-alf-chat-mute aria-pressed="false"
+                    title="Resumo automático" aria-label="Resumo automático">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M18 9a6 6 0 1 0-12 0c0 5-2 6-2 6h16s-2-1-2-6M13.7 20a2 2 0 0 1-3.4 0"/>
+                    <path class="alf-bell-slash" d="M3 3l18 18"/>
+                </svg>
+            </button>
             <button type="button" class="alf-chat-new" data-alf-chat-new
                     title="Nova conversa" aria-label="Começar uma nova conversa">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"

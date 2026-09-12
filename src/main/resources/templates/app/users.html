@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org" lang="pt-BR"
       th:replace="~{layout/base :: layout(~{::title}, ~{::head/link}, ~{::section}, ~{::head/script})}">
 <head>
-    <title>Usuários · Rastro$</title>
+    <title>Usuários · Rastroo$</title>
     <link rel="stylesheet" th:href="@{/css/screens/users.css}">
     <script th:src="@{/js/screens/users.js}" defer></script>
 </head>
@@ -12,7 +12,7 @@
     <header class="screen-header">
         <div>
             <h1 class="screen-title">Usuários</h1>
-            <p class="screen-sub">Gerencie quem tem acesso ao Rastro$</p>
+            <p class="screen-sub">Gerencie quem tem acesso ao Rastroo$</p>
         </div>
         <div class="screen-actions">
             <a class="btn btn-primary" data-modal-url th:href="@{/app/users/new}">
@@ -23,8 +23,8 @@
         </div>
     </header>
 
-    <div th:if="${ok}" class="flash flash-ok" th:text="#{${ok}}">Ok</div>
-    <div th:if="${error}" class="flash flash-error" th:text="#{${error}}">Erro</div>
+    <div th:if="${ok}" class="flash flash-ok" th:data-flash-key="${ok}" th:text="#{${ok}}">Ok</div>
+    <div th:if="${error}" class="flash flash-error" th:data-flash-key="${error}" th:text="#{${error}}">Erro</div>
 
     <section class="user-kpis" aria-label="Resumo de usuários">
         <article class="user-kpi kpi-tone-primary">
@@ -106,7 +106,8 @@
                                   th:text="${u.name() != null and !u.name().isEmpty()
                                             ? u.name().substring(0,1).toUpperCase() : '?'}">R</span>
                             <div class="user-cell-main">
-                                <a class="user-name" th:href="@{/app/users/{id}(id=${u.id()})}"
+                                <a class="user-name" data-modal-url
+                                   th:href="@{/app/users/{id}/edit(id=${u.id()})}"
                                    th:text="${u.name()}">Nome</a>
                                 <span class="user-email">
                                     <span th:text="${u.email()}">email@ex.com</span>
@@ -147,6 +148,27 @@
                         <a class="row-action" data-modal-url th:href="@{/app/users/{id}/edit(id=${u.id()})}" title="Editar usuário" aria-label="Editar usuário">
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l11-11-4-4L4 16z"/></svg>
                         </a>
+                        <form method="post" class="row-action-form"
+                              th:if="${u.status().name() != 'ACTIVE'}"
+                              th:action="@{/app/users/{id}/status(id=${u.id()})}">
+                            <input type="hidden" th:if="${_csrf != null}"
+                                   th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                            <input type="hidden" name="status" value="ACTIVE">
+                            <button type="submit" class="row-action" title="Ativar conta" aria-label="Ativar conta">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                            </button>
+                        </form>
+                        <form method="post" class="row-action-form"
+                              th:if="${u.status().name() == 'ACTIVE' and !u.id().equals(currentUserId)}"
+                              th:action="@{/app/users/{id}/status(id=${u.id()})}"
+                              data-confirm="Desativar esta conta? O usuário não poderá entrar.">
+                            <input type="hidden" th:if="${_csrf != null}"
+                                   th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                            <input type="hidden" name="status" value="DISABLED">
+                            <button type="submit" class="row-action warn" title="Desativar conta" aria-label="Desativar conta">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg>
+                            </button>
+                        </form>
                         <a class="row-action" data-modal-url th:href="@{/app/users/{id}/reset-password(id=${u.id()})}" title="Resetar senha" aria-label="Resetar senha">
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M10.85 12.15L19 4m-3 0h3v3"/></svg>
                         </a>

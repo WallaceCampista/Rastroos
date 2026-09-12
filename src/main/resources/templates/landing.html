@@ -3,8 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Rastro$ — Seu dinheiro, no seu controle.</title>
+  <title>Rastroo$</title>
 
+  <link rel="icon" type="image/png" sizes="32x32" th:href="@{/images/favicon-32.png}">
+  <link rel="apple-touch-icon" th:href="@{/images/favicon-180.png}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet"
@@ -24,9 +26,9 @@
 <div class="grain"></div>
 
 <header class="nav" id="nav">
-  <a class="brand" href="#" aria-label="Rastro$ — início">
-    <span class="brand-logo">R</span>
-    <span>Rastro<span class="brand-dollar">$</span></span>
+  <a class="brand brand-img" href="#" aria-label="Rastroo$ — início">
+    <img th:src="@{/images/logo-rastroos.png}" src="/images/logo-rastroos.png"
+         alt="Rastroo$" width="720" height="133">
   </a>
   <nav class="nav-links" aria-label="Principal">
     <a href="#features">Recursos</a>
@@ -56,8 +58,8 @@
       <span class="line"><span class="grad">do seu dinheiro.</span></span>
     </h1>
     <p class="hero-sub">
-      Como um bom detetive, <strong>Rastro$</strong> investiga cada centavo
-      que sai do seu bolso &mdash; e te entrega, em tempo real, o destino
+      Como um bom detetive, <strong>Rastroo$</strong> investiga cada centavo
+      que sai do seu bolso e te entrega, em tempo real, o destino
       exato de cada real. Cartões, contas, investimentos e metas, num só lugar.
     </p>
     <div class="hero-cta">
@@ -178,10 +180,12 @@
 <!-- ── FEATURES ───────────────────────────────────────────────────────── -->
 <section class="section" id="features">
   <div class="section-head reveal">
+    <img class="section-mark" th:src="@{/images/logo-roos.png}" src="/images/logo-roos.png"
+         alt="" aria-hidden="true" width="480" height="169">
     <div class="section-eyebrow">Recursos</div>
     <h2 class="section-title">Tudo que você precisa, <em class="t-emph">nada que sobra.</em></h2>
     <p class="section-sub">
-      Cada tela foi pensada pra te dar uma resposta &mdash; rápida, honesta e bonita &mdash;
+      Cada tela foi pensada pra te dar uma resposta rápida, honesta e bonita;
       sem te enterrar em gráficos que não dizem nada.
     </p>
   </div>
@@ -232,7 +236,7 @@
         </svg>
       </div>
       <h3>Cofrinhos que celebram com você</h3>
-      <p>Reserva de emergência, viagem, casamento &mdash; cada meta vira um anel
+      <p>Reserva de emergência, viagem, casamento cada meta vira um anel
         animado que enche conforme você guarda. E o sistema te dá um <em>tchau</em> em emoji.</p>
       <div class="feature-demo">
         <div class="demo-piggies">
@@ -273,7 +277,7 @@
       </div>
       <h3>Meu Gerente lê seus números</h3>
       <p>Pergunte em português normal: <em>&ldquo;onde dá pra cortar?&rdquo;</em>,
-        <em>&ldquo;quanto falta pro casamento?&rdquo;</em> &mdash; e receba uma
+        <em>&ldquo;quanto falta pro casamento?&rdquo;</em>e receba uma
         resposta visual, com base no seu mês real.</p>
       <div class="feature-demo">
         <div class="demo-months">
@@ -322,14 +326,14 @@
     <div class="section-eyebrow">Como funciona</div>
     <h2 class="section-title">Três passos. Sem planilha.</h2>
     <p class="section-sub">
-      Você não precisa entender de finanças. O Rastro$ entende por você.
+      Você não precisa entender de finanças. O Rastroo$ entende por você.
     </p>
   </div>
   <div class="steps">
     <div class="step reveal">
       <div class="step-num">1</div>
       <h4>Conecte ou cadastre</h4>
-      <p>Importe sua fatura ou cadastre na mão &mdash; do jeito que for mais rápido pra você.</p>
+      <p>Importe sua fatura ou cadastre na mão do jeito que for mais rápido pra você.</p>
     </div>
     <div class="step reveal">
       <div class="step-num">2</div>
@@ -350,7 +354,7 @@
     <div class="section-eyebrow">Quem usa, recomenda</div>
     <h2 class="section-title">Gente real, <em class="t-emph">no controle.</em></h2>
     <p class="section-sub">
-      Mais de 12 mil pessoas trocaram a planilha bagunçada pelo Rastro$.
+      Mais de 12 mil pessoas trocaram a planilha bagunçada pelo Rastroo$.
     </p>
   </div>
   <div class="tm-grid">
@@ -415,7 +419,7 @@
     <p>Crie sua conta em menos de um minuto. Sem cartão. Sem pegadinha.</p>
     <div class="cta-btns">
       <button class="btn btn-primary" type="button" data-open-login="signup">
-        Entrar no Rastro$
+        Entrar no Rastroo$
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
       </button>
       <a class="btn btn-ghost" href="#features">Ver recursos</a>
@@ -428,11 +432,11 @@
 <footer>
   <div class="footer-main">
     <div class="footer-brand-col">
-      <div class="footer-brand">
-        <span class="brand-logo">R</span>
-        <span>Rastro<span class="brand-dollar">$</span></span>
+      <div class="footer-brand brand-img">
+        <img th:src="@{/images/logo-rastroos.png}" src="/images/logo-rastroos.png"
+             alt="Rastroo$" width="720" height="133">
       </div>
-      <p class="footer-tagline">O detetive do seu bolso. Acompanhe cartões, contas, investimentos e metas &mdash; tudo num só lugar.</p>
+      <p class="footer-tagline">O detetive do seu bolso. Acompanhe cartões, contas, investimentos e metas tudo num só lugar.</p>
       <div class="footer-social">
         <a href="#" aria-label="Instagram"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg></a>
         <a href="#" aria-label="Twitter"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18.2 2h3.3l-7.2 8.3L22.8 22h-6.6l-5.2-6.8L5 22H1.7l7.7-8.8L1.2 2h6.8l4.7 6.2L18.2 2zm-1.2 18h1.8L7.1 3.8H5.2L17 20z"/></svg></a>
@@ -469,7 +473,7 @@
     </div>
   </div>
   <div class="footer-bottom">
-    <span>© <span th:text="${#dates.format(#dates.createNow(), 'yyyy')}">2026</span> Rastro$ · Seu dinheiro, no seu controle.</span>
+    <span>© <span th:text="${#dates.format(#dates.createNow(), 'yyyy')}">2026</span> Rastroo$ · Seu dinheiro, no seu controle.</span>
     <div class="footer-bottom-links">
       <a href="#">Privacidade</a>
       <a href="#">Termos</a>
@@ -491,9 +495,9 @@
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
     </button>
 
-    <div class="login-brand">
-      <span class="brand-logo">R</span>
-      <span>Rastro<span class="brand-dollar">$</span></span>
+    <div class="login-brand brand-img">
+      <img th:src="@{/images/logo-rastroos.png}" src="/images/logo-rastroos.png"
+           alt="Rastroo$" width="720" height="133">
     </div>
 
     <div class="login-views">
@@ -572,7 +576,7 @@
 
         <h2 class="login-title">Esqueceu a senha?</h2>
         <p class="login-sub">
-          Sem stress &mdash; a gente te manda um código no seu email pra você criar uma nova.
+          Sem stress a gente te manda um código no seu email pra você criar uma nova.
         </p>
 
         <form class="login-form" data-form="forgot"

@@ -28,6 +28,7 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.context.annotation.Import;
 
 import com.rastroos.domain.entity.Investment;
 import com.rastroos.domain.entity.enums.InvestmentKind;
@@ -47,6 +48,7 @@ import com.rastroos.web.dto.InvestmentsView;
 import com.rastroos.web.dto.PortfolioSummaryDto;
 import com.rastroos.web.form.InvestmentForm;
 import com.rastroos.web.form.InvestmentHistoryForm;
+import com.rastroos.web.support.PeriodResolver;
 
 @WebMvcTest(controllers = InvestmentController.class,
         excludeAutoConfiguration = {
@@ -67,7 +69,17 @@ import com.rastroos.web.form.InvestmentHistoryForm;
                         TopbarChipsInterceptor.class
                 }))
 @AutoConfigureMockMvc(addFilters = false)
+@Import({InvestmentControllerTest.PeriodConfig.class, PeriodResolver.class})
 class InvestmentControllerTest {
+
+    /** PeriodResolver não entra no slice @WebMvcTest (é @Component simples). */
+    @org.springframework.boot.test.context.TestConfiguration
+    static class PeriodConfig {
+        @org.springframework.context.annotation.Bean
+        java.time.Clock testClock() {
+            return java.time.Clock.systemUTC();
+        }
+    }
 
     @Autowired private MockMvc mvc;
 

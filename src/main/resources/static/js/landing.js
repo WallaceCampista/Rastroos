@@ -1,5 +1,5 @@
 /* ─────────────────────────────────────────────────────────────────────────
-   Rastro$ — landing page (extraído de inline <script>)
+   Rastroo$ — landing page (extraído de inline <script>)
    ──────────────────────────────────────────────────────────────────────────
    Diferença vs. mockup: os forms do drawer fazem POST real para
    /auth/login, /auth/signup, /auth/forgot (com CSRF embutido no template).

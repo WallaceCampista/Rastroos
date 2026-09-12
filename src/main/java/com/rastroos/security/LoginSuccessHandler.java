@@ -69,12 +69,13 @@ public class LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
         attempt.setIpAddress(clientIp(request));
         attempt.setSuccess(true);
         attempt.setAttemptedAt(now);
+        attempt.setUserAgent(RequestUserAgent.of(request, 400));
         attempts.save(attempt);
 
         UserSession session = new UserSession();
         session.setUserId(principal.getId());
         session.setTokenHash(hashSessionToken(request));
-        session.setUserAgent(request.getHeader("User-Agent"));
+        session.setUserAgent(RequestUserAgent.of(request, 255));
         session.setIpAddress(clientIp(request));
         sessions.save(session);
 

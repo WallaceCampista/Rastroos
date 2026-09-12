@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// Rastro$ — motor de gráficos em canvas vanilla, reutilizável
+// Rastroo$ — motor de gráficos em canvas vanilla, reutilizável
 //
 // Sem dependências externas: respeita a CSP `script-src 'self'` sem
 // servir libs de terceiros. Expõe window.RastroCharts com:

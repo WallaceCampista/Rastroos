@@ -1,5 +1,5 @@
 /* ─────────────────────────────────────────────────────────────
-   Rastro$ — widgets de formulário (abas de tipo + grade de categorias)
+   Rastroo$ — widgets de formulário (abas de tipo + grade de categorias)
    ─────────────────────────────────────────────────────────────
    Funciona na página do formulário (DOMContentLoaded) e dentro do
    modal (o modals.js chama RastroosForms.init(container) após injetar).
@@ -65,11 +65,50 @@
         const hint = form.querySelector('[data-tx-hint]');
         const buttons = tabs.querySelectorAll('[data-tx-tab]');
 
+        // Campos que só fazem sentido em um dos modos.
+        const soFixo = form.querySelectorAll('[data-tx-fixed-only]');
+        const soVariavel = form.querySelectorAll('[data-tx-variable-only]');
+        const permanent = form.querySelector('[data-tx-permanent]');
+        const installments = form.querySelector('#installments');
+        const conta = form.querySelector('select[name="accountId"]');
+
+        // Permanente e parcelas se excluem: ou a despesa repete para sempre,
+        // ou ela é uma compra dividida num número de vezes.
+        const syncPermanente = () => {
+            const ligado = !!(permanent && permanent.checked && !permanent.closest('[hidden]'));
+            if (installments) {
+                installments.disabled = ligado;
+                if (ligado) installments.value = '1';
+            }
+        };
+
         const sync = () => {
             const isFixed = !!(fixed && fixed.checked);
             buttons.forEach((b) => b.classList.toggle('on', (b.dataset.txTab === 'fixed') === isFixed));
             if (hint) hint.textContent = isFixed ? HINTS.fixed : HINTS.variable;
+
+            soFixo.forEach((el) => { el.hidden = !isFixed; });
+            soVariavel.forEach((el) => { el.hidden = isFixed; });
+            // O select de conta é required no HTML: escondido e ainda exigido,
+            // o browser bloquearia o submit com um erro que ninguém vê.
+            if (conta) {
+                conta.required = !isFixed;
+                conta.disabled = isFixed;
+            }
+            if (!isFixed && permanent) permanent.checked = false;
+            syncPermanente();
         };
+
+        if (permanent) permanent.addEventListener('change', syncPermanente);
+        if (installments) {
+            installments.addEventListener('input', () => {
+                // Escolheu parcelar: permanente sai de cena.
+                if (permanent && parseInt(installments.value, 10) > 1) {
+                    permanent.checked = false;
+                    syncPermanente();
+                }
+            });
+        }
         buttons.forEach((btn) => {
             btn.addEventListener('click', () => {
                 if (fixed) fixed.checked = (btn.dataset.txTab === 'fixed');

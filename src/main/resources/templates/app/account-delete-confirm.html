@@ -1,0 +1,76 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Excluir conta · Rastroo$</title>
+    <link rel="stylesheet" th:href="@{/css/tokens.css}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/components.css}">
+    <link rel="stylesheet" th:href="@{/css/screens/cards.css}">
+</head>
+<body>
+<!-- modals.js abre [data-modal-content] num modal central (openNode). -->
+<div class="app-content">
+    <div class="acct-del" data-modal-content>
+
+        <header class="acct-del-head">
+            <h3 class="acct-del-title">Excluir “<span th:text="${account.name()}">Conta</span>”</h3>
+            <button type="button" class="icon-btn" data-modal-close aria-label="Fechar">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M6 18L18 6"/></svg>
+            </button>
+        </header>
+
+        <p class="acct-del-sub" th:if="${txTotal > 0}">
+            Esta conta tem <strong th:text="${txTotal}">0</strong> lançamento(s),
+            sendo <strong th:text="${txFuture}">0</strong> de
+            <span th:text="${monthLabel}">este mês</span> em diante. Escolha o que apagar.
+        </p>
+        <p class="acct-del-sub" th:if="${txTotal == 0}">
+            Esta conta não tem lançamentos. Pode ser removida com segurança.
+        </p>
+
+        <div class="acct-del-options">
+            <!-- Só do mês atual em diante: preserva o histórico já pago. -->
+            <form th:if="${txFuture > 0}" method="post"
+                  th:action="@{/app/cards/{id}/delete(id=${account.id()})}">
+                <input type="hidden" th:if="${_csrf != null}"
+                       th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <input type="hidden" name="scope" value="FROM_MONTH">
+                <input type="hidden" name="ym" th:value="${period}">
+                <button type="submit" class="acct-del-opt">
+                    <span class="acct-del-opt-title">Deste mês em diante</span>
+                    <span class="acct-del-opt-sub">
+                        Apaga <span th:text="${txFuture}">0</span> lançamento(s) de
+                        <span th:text="${monthLabel}">este mês</span> para frente e encerra a conta.
+                        O histórico anterior fica preservado.
+                    </span>
+                </button>
+            </form>
+
+            <form method="post" th:action="@{/app/cards/{id}/delete(id=${account.id()})}">
+                <input type="hidden" th:if="${_csrf != null}"
+                       th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <input type="hidden" name="scope" value="ALL">
+                <button type="submit" class="acct-del-opt is-danger">
+                    <span class="acct-del-opt-title">Apagar tudo</span>
+                    <span class="acct-del-opt-sub">
+                        <!-- O ponto final fica DENTRO do span: solto na linha seguinte,
+                             a quebra vira um espaço e sai "dela ." -->
+                        <span th:if="${txTotal > 0}">Remove a conta e os
+                            <span th:text="${txTotal}">0</span> lançamento(s) dela.</span>
+                        <span th:if="${txTotal == 0}">Remove o cadastro da conta.</span>
+                        Não dá para desfazer.
+                    </span>
+                </button>
+            </form>
+        </div>
+
+        <div class="acct-del-foot">
+            <a class="btn btn-ghost" data-modal-close th:href="@{/app/cards}">Cancelar</a>
+        </div>
+    </div>
+</div>
+</body>
+</html>

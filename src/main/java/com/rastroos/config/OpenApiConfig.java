@@ -32,15 +32,15 @@ public class OpenApiConfig {
     public OpenAPI rastroosOpenAPI() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("Rastro$ API")
+                        .title("Rastroo$ API")
                         .description("""
-                                API REST do sistema de controle financeiro pessoal Rastro$.
+                                API REST do sistema de controle financeiro pessoal Rastroo$.
 
                                 Todos os recursos são isolados por usuário: cada operação enxerga \
                                 apenas os dados do usuário autenticado (acesso cruzado retorna 404). \
                                 Rotas sob /api/admin exigem o papel ADMIN.""")
                         .version("v0.1.0")
-                        .contact(new Contact().name("Rastro$ team"))
+                        .contact(new Contact().name("Rastroo$ team"))
                         .license(new License().name("Private")))
                 .components(new Components()
                         .addSecuritySchemes(SESSION_COOKIE_SCHEME, new SecurityScheme()
@@ -48,7 +48,7 @@ public class OpenApiConfig {
                                 .in(SecurityScheme.In.COOKIE)
                                 .name("JSESSIONID")
                                 .description("""
-                                        Sessão autenticada do Rastro$. Faça login no app (landing em /) no \
+                                        Sessão autenticada do Rastroo$. Faça login no app (landing em /) no \
                                         mesmo navegador; o cookie JSESSIONID é enviado automaticamente \
                                         (same-origin, with-credentials). Operações de escrita \
                                         (POST/PUT/PATCH/DELETE) também exigem o token CSRF.""")))

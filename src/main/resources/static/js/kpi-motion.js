@@ -1,5 +1,5 @@
 /* ─────────────────────────────────────────────────────────────
-   Rastro$ — micro-interações de valores (AnimatedMoney + useTilt
+   Rastroo$ — micro-interações de valores (AnimatedMoney + useTilt
    do protótipo React), global para todas as telas:
      • count-up: o valor conta de 0 até o total no load
      • tilt: leve inclinação 3D dos cards clicáveis seguindo o cursor

@@ -27,6 +27,7 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.rastroos.domain.service.CompareService;
@@ -42,6 +43,7 @@ import com.rastroos.web.interceptor.TopbarChipsInterceptor;
 import com.rastroos.web.dto.CompareModel;
 import com.rastroos.web.dto.MonthSummaryDto;
 import com.rastroos.web.dto.SavingsBarView;
+import com.rastroos.web.support.PeriodResolver;
 
 @WebMvcTest(controllers = CompareController.class,
         excludeAutoConfiguration = {
@@ -62,7 +64,7 @@ import com.rastroos.web.dto.SavingsBarView;
                         TopbarChipsInterceptor.class
                 }))
 @AutoConfigureMockMvc(addFilters = false)
-@Import(CompareControllerTest.Config.class)
+@Import({CompareControllerTest.Config.class, PeriodResolver.class})
 class CompareControllerTest {
 
     @Autowired private MockMvc mvc;
@@ -83,6 +85,24 @@ class CompareControllerTest {
     @BeforeEach
     void setUp() {
         when(currentUser.requireEffectiveId()).thenReturn(userId);
+    }
+
+    @Test
+    void mesEscolhidoSobreviveAProximaTelaSemYm() throws Exception {
+        when(compare.load(eq(userId), any())).thenReturn(emptyModel());
+
+        MockHttpSession session = new MockHttpSession();
+        mvc.perform(get("/app/compare").param("ym", "2026-07").session(session))
+                .andExpect(model().attribute("period", YearMonth.of(2026, 7)));
+
+        // Os links da sidebar não carregam ym — antes isso jogava o usuário de
+        // volta para o mês corrente a cada troca de tela.
+        mvc.perform(get("/app/compare").session(session))
+                .andExpect(model().attribute("period", YearMonth.of(2026, 7)));
+
+        // Sessão nova (novo login) volta ao mês corrente.
+        mvc.perform(get("/app/compare").session(new MockHttpSession()))
+                .andExpect(model().attribute("period", YearMonth.of(2026, 5)));
     }
 
     @Test

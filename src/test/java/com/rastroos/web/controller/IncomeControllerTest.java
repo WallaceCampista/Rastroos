@@ -53,6 +53,7 @@ import com.rastroos.web.interceptor.TopbarChipsInterceptor;
 import com.rastroos.web.dto.IncomesPageView;
 import com.rastroos.web.dto.MonthSummaryDto;
 import com.rastroos.web.form.IncomeForm;
+import com.rastroos.web.support.PeriodResolver;
 
 @WebMvcTest(controllers = IncomeController.class,
         excludeAutoConfiguration = {
@@ -73,7 +74,7 @@ import com.rastroos.web.form.IncomeForm;
                         TopbarChipsInterceptor.class
                 }))
 @AutoConfigureMockMvc(addFilters = false)
-@Import(IncomeControllerTest.Config.class)
+@Import({IncomeControllerTest.Config.class, PeriodResolver.class})
 class IncomeControllerTest {
 
     @Autowired private MockMvc mvc;

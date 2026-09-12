@@ -36,6 +36,10 @@ public class LoginAttempt {
     @Column(name = "attempted_at", nullable = false, updatable = false)
     private Instant attemptedAt;
 
+    /** User-Agent cru da tentativa; a redução ao nome do SO é da camada Web. */
+    @Column(name = "user_agent", length = 400)
+    private String userAgent;
+
     public LoginAttempt() {
     }
 
@@ -58,6 +62,9 @@ public class LoginAttempt {
 
     public Instant getAttemptedAt() { return attemptedAt; }
     public void setAttemptedAt(Instant attemptedAt) { this.attemptedAt = attemptedAt; }
+
+    public String getUserAgent() { return userAgent; }
+    public void setUserAgent(String userAgent) { this.userAgent = userAgent; }
 
     @Override
     public boolean equals(Object o) {

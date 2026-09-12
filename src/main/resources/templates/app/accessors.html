@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org" lang="pt-BR"
       th:replace="~{layout/base :: layout(~{::title}, ~{::head/link}, ~{::section}, ~{::head/script})}">
 <head>
-    <title>Acessores · Rastro$</title>
+    <title>Acessores · Rastroo$</title>
     <link rel="stylesheet" th:href="@{/css/screens/accessors.css}">
 </head>
 <body>
@@ -22,8 +22,8 @@
         </div>
     </header>
 
-    <div th:if="${ok}" class="flash flash-ok" th:text="#{${ok}}">Ok</div>
-    <div th:if="${error}" class="flash flash-error" th:text="#{${error}}">Erro</div>
+    <div th:if="${ok}" class="flash flash-ok" th:data-flash-key="${ok}" th:text="#{${ok}}">Ok</div>
+    <div th:if="${error}" class="flash flash-error" th:data-flash-key="${error}" th:text="#{${error}}">Erro</div>
 
     <!-- KPIs ─────────────────────────────────────────────── -->
     <section class="acc-kpis" aria-label="Resumo de acessores">

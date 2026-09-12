@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// Rastro$ — tela /app/compare
+// Rastroo$ — tela /app/compare
 // Liga o JSON inline à linha multi-série (recebido, gasto, saldo,
 // aporte) dos últimos 6 meses. As barras de taxa de poupança são
 // renderizadas em CSS (larguras via atributos Thymeleaf), sem canvas.

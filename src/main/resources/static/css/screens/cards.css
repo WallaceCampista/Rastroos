@@ -1,5 +1,5 @@
 /* ─────────────────────────────────────────────────────────────
-   Rastro$ — Cartões & Contas — espelha o protótipo (card-tiles)
+   Rastroo$ — Cartões & Contas — espelha o protótipo (card-tiles)
    ───────────────────────────────────────────────────────────── */
 
 .cards-toolbar {
@@ -205,3 +205,35 @@
 .acct-tx-amount { font-variant-numeric: tabular-nums; }
 .acct-tx-amount.tx-paid { color: var(--text-dim); }
 .acct-tx-empty { padding: 8px 4px; font-size: 13px; }
+
+/* ── Modal: excluir conta (escopo) ───────────────────────── */
+/* Sem min-width: dentro do .modal-body (padding 22px) de um .modal de 480px
+   sobram ~434px, então um mínimo de 460px estourava para a direita e era
+   cortado pelo overflow:hidden do modal. Quem define a largura é o modal. */
+.acct-del { display: flex; flex-direction: column; gap: 16px; width: 100%; }
+.acct-del-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.acct-del-title { margin: 0; font-size: 17px; font-weight: 800; }
+.acct-del-sub { margin: 0; font-size: 13.5px; color: var(--text-dim); line-height: 1.5; }
+.acct-del-options { display: flex; flex-direction: column; gap: 10px; }
+.acct-del-options form { margin: 0; }
+.acct-del-opt {
+    width: 100%;
+    display: flex; flex-direction: column; gap: 4px;
+    text-align: left;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+}
+.acct-del-opt:hover { border-color: var(--primary); background: var(--surface-3); }
+.acct-del-opt.is-danger:hover {
+    border-color: var(--danger);
+    background: color-mix(in oklch, var(--danger) 12%, transparent);
+}
+.acct-del-opt-title { font-size: 14px; font-weight: 700; }
+.acct-del-opt.is-danger .acct-del-opt-title { color: var(--danger); }
+.acct-del-opt-sub { font-size: 12.5px; color: var(--text-dim); line-height: 1.45; }
+.acct-del-foot { display: flex; justify-content: flex-end; }

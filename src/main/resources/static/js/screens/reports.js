@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// Rastro$ — tela /app/reports
+// Rastroo$ — tela /app/reports
 // Liga os dados JSON inline aos gráficos (RastroCharts): dois donuts
 // (categoria e conta) e a linha fixo vs variável dos 6 meses.
 // ─────────────────────────────────────────────────────────────

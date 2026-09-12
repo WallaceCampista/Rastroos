@@ -1,5 +1,5 @@
 /* ─────────────────────────────────────────────────────────────
-   Rastro$ — tokens de design (CSS vars)
+   Rastroo$ — tokens de design (CSS vars)
    Espelha o sistema visual do protótipo (styles.css):
    dark como baseline no :root, [data-theme="light"] sobrescreve,
    densidade via [data-density]. Aliases de compatibilidade mantêm

@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// Rastro$ — /app/income
+// Rastroo$ — /app/income
 //   - Gráfico "Últimos 6 meses" (área verde) em canvas vanilla.
 //   - Confirm para forms com data-confirm.
 // ─────────────────────────────────────────────────────────────

@@ -23,7 +23,7 @@ public class AlfredoProperties {
 
     /** Instrução de sistema que define a persona do Alfredo. */
     private String systemPrompt =
-            "Você é o Alfredo, o gerente financeiro pessoal do Rastro$. "
+            "Você é o Alfredo, o gerente financeiro pessoal do Rastroo$. "
             + "Responda em português do Brasil, de forma objetiva e acolhedora, "
             + "com foco em organização financeira, sem prometer rendimentos.";
 
@@ -42,7 +42,7 @@ public class AlfredoProperties {
      * dados vêm prontos no prompt, calculados pelo servidor.
      */
     private String insightSystemPrompt =
-            "Você é o Alfredo, gerente financeiro pessoal do Rastro$. "
+            "Você é o Alfredo, gerente financeiro pessoal do Rastroo$. "
             + "Escreva UM resumo curto (2 a 3 frases, no máximo 55 palavras) em português do Brasil "
             + "sobre a situação atual da tela e o cuidado mais importante a tomar. "
             + "Use SOMENTE os números fornecidos; nunca invente valores, percentuais ou datas. "

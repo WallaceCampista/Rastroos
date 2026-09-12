@@ -1,5 +1,5 @@
 /* ─────────────────────────────────────────────────────────────
-   Rastro$ — tema (claro/escuro), paleta e densidade
+   Rastroo$ — tema (claro/escuro), paleta e densidade
    ─────────────────────────────────────────────────────────────
    O servidor define os defaults via data-theme/density/palette
    no <body>. Aqui aplicamos overrides locais (localStorage) e

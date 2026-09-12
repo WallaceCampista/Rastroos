@@ -1,5 +1,5 @@
 /* ─────────────────────────────────────────────────────────────
-   Rastro$ — /app/users (listagem, formulário e detalhe — admin)
+   Rastroo$ — /app/users (listagem, formulário e detalhe — admin)
    ───────────────────────────────────────────────────────────── */
 
 .screen-users {
@@ -284,6 +284,11 @@
     background: var(--surface-2);
     border-color: var(--border-2);
 }
+.role-acessor {
+    color: var(--accent);
+    background: color-mix(in oklch, var(--accent) 16%, transparent);
+    border-color: color-mix(in oklch, var(--accent) 34%, transparent);
+}
 
 /* ── Status (pill com bolinha) ──────────────────────────── */
 .st-pill {
@@ -365,6 +370,14 @@
 .user-table td.actions .btn-link + .btn-link { margin-left: 12px; }
 
 .inline-form { display: inline; }
+
+/* Ações de linha em <form> (ativar/desativar): o form não pode virar caixa
+   própria, senão a célula quebraria a fila de ícones. */
+.row-action-form { display: inline; }
+.row-action.warn:hover {
+    background: color-mix(in oklch, var(--warn) 16%, transparent);
+    color: var(--warn);
+}
 
 /* ── Variantes de botão desta tela ───────────────────────── */
 .btn-success {
@@ -484,6 +497,10 @@
 .lh-head-user { font-weight: 600; color: var(--text-dim); }
 .lh-head-sub { font-size: 13px; color: var(--text-dim); margin-top: 2px; }
 .lh-body { display: flex; flex-direction: column; gap: 20px; }
+.lh-section-head {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+}
+.lh-section-head .lh-section-title { margin-bottom: 10px; }
 .lh-section-title {
     font-size: 12px; font-weight: 700; letter-spacing: 0.06em;
     text-transform: uppercase; color: var(--text-dim); margin: 0 0 10px;

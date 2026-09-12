@@ -3,6 +3,7 @@ package com.rastroos.domain.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -52,7 +53,7 @@ class TransactionServiceTest {
         when(accountsRepo.findByIdAndUserId(accountId, alice))
                 .thenReturn(Optional.of(accountOf(alice)));
         when(categoriesRepo.existsById("outros")).thenReturn(true);
-        when(txRepo.save(any(Transaction.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(txRepo.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
 
         List<Transaction> created = service.create(alice, form);
 
@@ -71,7 +72,10 @@ class TransactionServiceTest {
         assertThat(created).extracting(Transaction::getAmountCents)
                 .containsOnly(15_000L);
         assertThat(created).extracting(Transaction::isPaid).containsOnly(false);
-        verify(txRepo, times(3)).save(any(Transaction.class));
+        // create() grava em lote: 10 anos de gasto permanente são 120 inserts.
+        ArgumentCaptor<java.util.List<Transaction>> lote = ArgumentCaptor.forClass(java.util.List.class);
+        verify(txRepo).saveAll(lote.capture());
+        assertThat(lote.getValue()).hasSize(3);
     }
 
     @Test
@@ -82,7 +86,7 @@ class TransactionServiceTest {
         when(accountsRepo.findByIdAndUserId(accountId, alice))
                 .thenReturn(Optional.of(accountOf(alice)));
         when(categoriesRepo.existsById("outros")).thenReturn(true);
-        when(txRepo.save(any(Transaction.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(txRepo.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
 
         List<Transaction> created = service.create(alice, form);
 
@@ -119,7 +123,7 @@ class TransactionServiceTest {
         when(accountsRepo.findByIdAndUserId(accountId, alice))
                 .thenReturn(Optional.of(accountOf(alice)));
         when(categoriesRepo.existsById("outros")).thenReturn(true);
-        when(txRepo.save(any(Transaction.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(txRepo.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
 
         List<Transaction> created = service.create(alice, form);
 
@@ -139,15 +143,106 @@ class TransactionServiceTest {
         TransactionForm form = makeForm("Aluguel", new BigDecimal("1500.00"),
                 LocalDate.of(2026, 5, 5), 1);
         form.setFixed(true);
+        form.setAccountId(null); // gasto fixo não escolhe conta
 
-        when(accountsRepo.findByIdAndUserId(accountId, alice))
-                .thenReturn(Optional.of(accountOf(alice)));
+        // Nenhuma conta recorrente chamada "Aluguel" ainda: o service cria uma.
+        when(accountsRepo.findAllByUserIdAndKindOrderByNameAsc(alice, AccountKind.RECURRENT))
+                .thenReturn(List.of());
+        when(accountsRepo.save(any(Account.class))).thenAnswer(inv -> {
+            Account a = inv.getArgument(0);
+            a.setId(accountId);
+            return a;
+        });
         when(categoriesRepo.existsById("outros")).thenReturn(true);
-        when(txRepo.save(any(Transaction.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(txRepo.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
 
         List<Transaction> created = service.create(alice, form);
 
         assertThat(created.get(0).isFixed()).isTrue();
+        // A despesa virou a conta recorrente ("conta fixa").
+        ArgumentCaptor<Account> conta = ArgumentCaptor.forClass(Account.class);
+        verify(accountsRepo).save(conta.capture());
+        assertThat(conta.getValue().getName()).isEqualTo("Aluguel");
+        assertThat(conta.getValue().getKind()).isEqualTo(AccountKind.RECURRENT);
+    }
+
+    @Test
+    void createFixoPermanenteGera120LancamentosMensaisComOMesmoValor() {
+        TransactionForm form = makeForm("Aluguel", new BigDecimal("1500.00"),
+                LocalDate.of(2026, 5, 5), 1);
+        form.setFixed(true);
+        form.setPermanent(true);
+        form.setAccountId(null);
+
+        when(accountsRepo.findAllByUserIdAndKindOrderByNameAsc(alice, AccountKind.RECURRENT))
+                .thenReturn(List.of());
+        when(accountsRepo.save(any(Account.class))).thenAnswer(inv -> {
+            Account a = inv.getArgument(0);
+            a.setId(accountId);
+            return a;
+        });
+        when(categoriesRepo.existsById("outros")).thenReturn(true);
+        when(txRepo.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+        List<Transaction> created = service.create(alice, form);
+
+        assertThat(created).hasSize(10 * 12);
+        // Mensalidade: o MESMO valor todo mês (não o total dividido).
+        assertThat(created).extracting(Transaction::getAmountCents).containsOnly(150_000L);
+        assertThat(created).extracting(Transaction::isFixed).containsOnly(true);
+        // Permanente não é parcelamento: sem metadados de parcela.
+        assertThat(created).extracting(Transaction::getInstallmentTotal).containsOnlyNulls();
+        // Começa no próprio mês informado e anda de mês em mês.
+        assertThat(created.get(0).getDueDate()).isEqualTo(LocalDate.of(2026, 5, 5));
+        assertThat(created.get(1).getDueDate()).isEqualTo(LocalDate.of(2026, 6, 5));
+        assertThat(created.get(119).getDueDate()).isEqualTo(LocalDate.of(2036, 4, 5));
+    }
+
+    @Test
+    void createFixoReusaAContaRecorrenteJaExistente() {
+        TransactionForm form = makeForm("Aluguel", new BigDecimal("1500.00"),
+                LocalDate.of(2026, 5, 5), 1);
+        form.setFixed(true);
+        form.setAccountId(null);
+
+        Account existente = newRecurrent("Aluguel");
+        when(accountsRepo.findAllByUserIdAndKindOrderByNameAsc(alice, AccountKind.RECURRENT))
+                .thenReturn(List.of(existente));
+        when(categoriesRepo.existsById("outros")).thenReturn(true);
+        when(txRepo.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+        List<Transaction> created = service.create(alice, form);
+
+        // Lançar "Aluguel" de novo não cria uma segunda conta.
+        verify(accountsRepo, never()).save(any(Account.class));
+        assertThat(created.get(0).getAccountId()).isEqualTo(existente.getId());
+    }
+
+    @Test
+    void createFixoIgnoraJaEstaPago() {
+        TransactionForm form = makeForm("Luz", new BigDecimal("200.00"),
+                LocalDate.of(2026, 5, 5), 1);
+        form.setFixed(true);
+        form.setAccountId(null);
+        form.setPaid(true); // o form nem exibe o campo no modo fixo
+
+        when(accountsRepo.findAllByUserIdAndKindOrderByNameAsc(alice, AccountKind.RECURRENT))
+                .thenReturn(List.of(newRecurrent("Luz")));
+        when(categoriesRepo.existsById("outros")).thenReturn(true);
+        when(txRepo.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+        List<Transaction> created = service.create(alice, form);
+
+        assertThat(created).extracting(Transaction::isPaid).containsOnly(false);
+    }
+
+    private Account newRecurrent(String name) {
+        Account a = new Account();
+        a.setId(accountId);
+        a.setUserId(alice);
+        a.setName(name);
+        a.setKind(AccountKind.RECURRENT);
+        return a;
     }
 
     @Test

@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org" lang="pt-BR"
       th:replace="~{layout/base :: layout(~{::title}, ~{::head/link}, ~{::section}, ~{::head/script})}">
 <head>
-    <title th:text="'Chamado ' + ${view.id()} + ' · Rastro$'">Chamado · Rastro$</title>
+    <title th:text="'Chamado ' + ${view.id()} + ' · Rastroo$'">Chamado · Rastroo$</title>
     <link rel="stylesheet" th:href="@{/css/screens/support.css}">
     <script th:src="@{/js/screens/support.js}" defer></script>
 </head>
@@ -24,8 +24,8 @@
         </div>
     </header>
 
-    <div th:if="${ok}" class="flash flash-ok" th:text="#{${ok}}">Ok</div>
-    <div th:if="${error}" class="flash flash-error" th:text="#{${error}}">Erro</div>
+    <div th:if="${ok}" class="flash flash-ok" th:data-flash-key="${ok}" th:text="#{${ok}}">Ok</div>
+    <div th:if="${error}" class="flash flash-error" th:data-flash-key="${error}" th:text="#{${error}}">Erro</div>
 
     <article class="card support-ticket">
         <div class="support-ticket-meta">

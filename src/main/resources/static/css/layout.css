@@ -1,5 +1,5 @@
 /* ─────────────────────────────────────────────────────────────
-   Rastro$ — layout autenticado (app shell)
+   Rastroo$ — layout autenticado (app shell)
    Espelha a seção "App layout / Sidebar / TopBar" do protótipo.
    Mantém integrações de servidor: banner de acessor, ocultar
    valores, menu do usuário, placeholder de gráfico mascarado.
@@ -7,8 +7,11 @@
 
 /* ── App grid ────────────────────────────────────────────── */
 .app {
+    --side-w: 268px;
+    --side-w-collapsed: 76px;
+    --side-pad-x: 14px;
     display: grid;
-    grid-template-columns: 268px 1fr;
+    grid-template-columns: var(--side-w) 1fr;
     height: 100vh;
     overflow: hidden;
 }
@@ -16,7 +19,7 @@
    Assim o estado recolhido, renderizado pelo servidor, não "escorrega"
    aberto→fechado a cada navegação — anima apenas no clique do usuário. */
 .app.is-collapsible { transition: grid-template-columns .25s cubic-bezier(.3, .7, .4, 1); }
-.app.side-collapsed { grid-template-columns: 76px 1fr; }
+.app.side-collapsed { grid-template-columns: var(--side-w-collapsed) 1fr; }
 
 .sidebar-wrap { position: relative; z-index: 30; }
 
@@ -55,7 +58,7 @@
     border-right: 1px solid var(--border);
     display: flex;
     flex-direction: column;
-    padding: 20px 14px;
+    padding: 20px var(--side-pad-x);
     gap: 14px;
     overflow: hidden;
 }
@@ -78,21 +81,15 @@
     text-decoration: none;
 }
 .brand:hover { text-decoration: none; }
-.brand-logo {
-    width: 34px; height: 34px; border-radius: 10px;
-    background: linear-gradient(135deg, var(--primary), color-mix(in oklch, var(--primary) 70%, black));
-    color: white; font-weight: 800; font-size: 17px;
-    display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 8px 24px -10px var(--primary);
-    letter-spacing: -0.04em;
-    flex-shrink: 0;
+/* Marca: wordmark quando aberta, só as moedas quando recolhida. */
+.brand-mark {
+    display: flex; align-items: center;
+    min-width: 0;
+    overflow: hidden;
 }
-.brand-name {
-    font-weight: 800; font-size: 18px; letter-spacing: -0.02em;
-    white-space: nowrap;
-    color: var(--text);
-    transition: opacity .2s;
-}
+.brand-mark img { width: auto; }
+.brand-mark-full { display: block; height: 30px; max-width: 100%; }
+.brand-mark-icon { display: none; height: 32px; }
 
 /* Estado colapsado — só ícones */
 .sidebar.is-collapsed .brand {
@@ -101,7 +98,8 @@
     padding-bottom: 16px;
     align-items: center;
 }
-.sidebar.is-collapsed .brand-name { display: none; }
+.sidebar.is-collapsed .brand-mark-full { display: none; }
+.sidebar.is-collapsed .brand-mark-icon { display: block; }
 .sidebar.is-collapsed .nav-item span { display: none; }
 .sidebar.is-collapsed .nav-item.active::before { display: none; }
 .sidebar.is-collapsed .nav-item.active { box-shadow: inset 0 0 0 1.5px var(--primary); }
@@ -118,6 +116,7 @@
 .sidebar.is-collapsed .btn-block { padding: 9px; }
 .sidebar.is-collapsed .sidebar-user {
     grid-template-columns: 1fr; justify-items: center; padding: 8px; gap: 6px;
+    width: calc(var(--side-w-collapsed) - 2 * var(--side-pad-x));
 }
 .sidebar.is-collapsed .sidebar-user .user-info { display: none; }
 .sidebar.is-collapsed .sidebar-user .user-logout { width: 32px; height: 32px; }
@@ -219,6 +218,12 @@
     gap: 10px;
     padding: 10px;
     margin-top: 6px;
+    /* Largura fixada na largura final: enquanto o grid da shell anima, o card
+       é recortado pela sidebar em vez de refluir (mesma ideia da .brand-mark).
+       Sem isso o nome quebra em 2 linhas e o botão de sair sobrepõe o texto. */
+    width: calc(var(--side-w) - 2 * var(--side-pad-x));
+    flex-shrink: 0;
+    overflow: hidden;
     background: var(--surface-2);
     border: 1px solid var(--border);
     border-radius: 12px;
@@ -234,7 +239,10 @@
     flex-shrink: 0;
 }
 .user-info { min-width: 0; }
-.sidebar-user-name { font-size: 13px; font-weight: 700; }
+.sidebar-user-name {
+    font-size: 13px; font-weight: 700;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
 .sidebar-user-email { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .user-logout {
     width: 32px; height: 32px;
@@ -307,6 +315,11 @@
     transition: all .15s;
 }
 .title-eye:hover { background: var(--surface-2); color: var(--text); border-color: var(--border-2); }
+/* O risco só aparece com os valores ocultos — o ícone diz o estado atual,
+   não a ação. */
+.title-eye-slash { display: none; }
+.app-body.values-hidden .title-eye-slash { display: inline; }
+.app-body.values-hidden .title-eye { color: var(--text); border-color: var(--border-2); }
 
 /* ── Admin "ver como usuário" ─────────────────────────────── */
 .view-as {
@@ -703,7 +716,7 @@
 
 /* ── Responsivo ──────────────────────────────────────────── */
 @media (max-width: 768px) {
-    .app { grid-template-columns: 1fr; }
+    .app { --side-w: 252px; grid-template-columns: 1fr; }
     .sidebar-wrap {
         position: fixed; inset: 0 auto 0 0;
         width: 252px;

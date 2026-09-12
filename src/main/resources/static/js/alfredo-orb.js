@@ -1,5 +1,5 @@
 /* ─────────────────────────────────────────────────────────────
-   Rastro$ — widget flutuante do Alfredo
+   Rastroo$ — widget flutuante do Alfredo
    ─────────────────────────────────────────────────────────────
    Fluxo:
    1. a página carrega → o orbe entra em "pensando" (ondas rápidas)
@@ -44,6 +44,8 @@
     const bubbleText = root.querySelector('[data-alf-bubble-text]');
     const summaryEl  = root.querySelector('[data-alf-bubble-summary]');
     const bubbleHide = root.querySelector('[data-alf-bubble-close]');
+    const bubbleMute = root.querySelector('[data-alf-bubble-mute]');
+    const chatMute   = root.querySelector('[data-alf-chat-mute]');
     const timeline   = root.querySelector('[data-alf-timeline]');
     const chat       = root.querySelector('[data-alf-chat]');
     const chatSub    = root.querySelector('[data-alf-chat-sub]');
@@ -57,7 +59,7 @@
     const chatError  = root.querySelector('[data-alf-chat-error]');
 
     /** Estado local: resumo carregado, conversa criada e envio em curso. */
-    const state = { summary: null, chatId: null, sending: false, seeded: false };
+    const state = { summary: null, chatId: null, sending: false, seeded: false, muted: false };
 
     // ── Rede ─────────────────────────────────────────────────────
 
@@ -139,9 +141,63 @@
         if (markUnread && state.summary) badge.hidden = false;
     };
 
+    // ── Silenciar o resumo automático ────────────────────────────
+    // O sininho do balão desliga a abertura automática; o mesmo ícone no
+    // cabeçalho do chat (riscado quando desligado) religa. A preferência é
+    // por navegador, como as outras de UI (rastroos.hideValues, sideCollapsed).
+
+    const MUTE_KEY = 'rastroos.alfredoBubbleMuted';
+
+    const readMuted = () => {
+        try {
+            return localStorage.getItem(MUTE_KEY) === '1';
+        } catch (e) {
+            return false; // localStorage bloqueado: o resumo continua aparecendo
+        }
+    };
+
+    const applyMuted = () => {
+        root.classList.toggle('is-bubble-muted', state.muted);
+        chatMute.setAttribute('aria-pressed', String(state.muted));
+        const label = state.muted
+            ? 'Voltar a mostrar o resumo automático'
+            : 'Parar de mostrar o resumo automático';
+        chatMute.setAttribute('aria-label', label);
+        chatMute.setAttribute('title', label);
+    };
+
+    const setMuted = (muted) => {
+        state.muted = muted;
+        try {
+            localStorage.setItem(MUTE_KEY, muted ? '1' : '0');
+        } catch (e) {
+            // Sem persistência: vale só para esta página. Não quebra nada.
+        }
+        applyMuted();
+    };
+
+    state.muted = readMuted();
+    applyMuted();
+
     timeline.addEventListener('animationend', () => hideBubble(true));
 
     bubbleHide.addEventListener('click', () => hideBubble(true));
+
+    bubbleMute.addEventListener('click', () => {
+        setMuted(true);
+        hideBubble(false); // sem ponto de aviso: o usuário pediu silêncio
+    });
+
+    chatMute.addEventListener('click', () => {
+        setMuted(!state.muted);
+        // O efeito só aparece na próxima tela, então confirma por toast —
+        // senão o clique parece não fazer nada.
+        if (window.RastroosToast) {
+            window.RastroosToast.show(state.muted
+                ? 'Resumo automático desativado.'
+                : 'Resumo automático reativado. Aparece na próxima tela.', 'ok');
+        }
+    });
 
     bubbleText.addEventListener('click', () => openChat());
 
@@ -257,13 +313,15 @@
     const newChat = () => {
         if (state.sending) return;
         state.chatId = null;
-        state.seeded = false;
+        // seeded = true (e sem seedThread()): o "+" abre a conversa em branco.
+        // O resumo da tela é a fala de abertura do widget, não de toda conversa
+        // nova — quem clica em "+" quer começar do zero.
+        state.seeded = true;
         thread.replaceChildren();
         chatInput.value = '';
         growInput();
         chatOpen.hidden = true;
         clearError();
-        seedThread();
         chatInput.focus();
     };
 
@@ -379,6 +437,9 @@
             settle();
             if (!insight) return;
             state.summary = insight.text;
+            // Silenciado: nem balão nem ponto de aviso. O resumo continua vivo
+            // em state.summary, então abrir o chat ainda começa por ele.
+            if (state.muted) return;
             // "Ocultar valores" borra o texto: não faz sentido abrir sozinho,
             // então o resumo fica disponível pelo orbe (ponto de aviso).
             if (document.body.classList.contains('values-hidden')) {

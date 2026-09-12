@@ -1,5 +1,5 @@
 /* ─────────────────────────────────────────────────────────────
-   Rastro$ — extração de gasto por documento (clip) / foto (câmera)
+   Rastroo$ — extração de gasto por documento (clip) / foto (câmera)
    ─────────────────────────────────────────────────────────────
    Os botões [data-tx-extract] no modal "Lançar gasto" disparam o
    file input correspondente; ao escolher/tirar a foto, o arquivo é

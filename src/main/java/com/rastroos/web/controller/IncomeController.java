@@ -1,6 +1,5 @@
 package com.rastroos.web.controller;
 
-import java.time.Clock;
 import java.time.YearMonth;
 import java.time.format.TextStyle;
 import java.util.List;
@@ -31,6 +30,7 @@ import com.rastroos.web.dto.IncomeFilter;
 import com.rastroos.web.dto.IncomesPageView;
 import com.rastroos.web.dto.MoneyDto;
 import com.rastroos.web.form.IncomeForm;
+import com.rastroos.web.support.PeriodResolver;
 
 import jakarta.validation.Valid;
 
@@ -47,18 +47,18 @@ public class IncomeController {
     private final IncomeService service;
     private final CategoryRepository categories;
     private final MonthlyFinanceAggregator aggregator;
-    private final Clock clock;
+    private final PeriodResolver periodResolver;
 
     public IncomeController(CurrentUser currentUser,
                             IncomeService service,
                             CategoryRepository categories,
                             MonthlyFinanceAggregator aggregator,
-                            Clock clock) {
+                            PeriodResolver periodResolver) {
         this.currentUser = currentUser;
         this.service = service;
         this.categories = categories;
         this.aggregator = aggregator;
-        this.clock = clock;
+        this.periodResolver = periodResolver;
     }
 
     /** Série dos últimos 6 meses de receita (para o gráfico do topo). */
@@ -196,11 +196,6 @@ public class IncomeController {
     }
 
     private YearMonth parseOrCurrent(String ym) {
-        if (ym == null || ym.isBlank()) return YearMonth.now(clock);
-        try {
-            return YearMonth.parse(ym);
-        } catch (Exception e) {
-            return YearMonth.now(clock);
-        }
+        return periodResolver.resolve(ym);
     }
 }

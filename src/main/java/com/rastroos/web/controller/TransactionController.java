@@ -36,6 +36,7 @@ import com.rastroos.web.dto.MoneyDto;
 import com.rastroos.web.dto.TransactionFilter;
 import com.rastroos.web.dto.TransactionsPageView;
 import com.rastroos.web.form.TransactionForm;
+import com.rastroos.web.support.PeriodResolver;
 
 import jakarta.validation.Valid;
 
@@ -55,6 +56,7 @@ public class TransactionController {
     private final CategoryRepository categories;
     private final MessageSource messages;
     private final Clock clock;
+    private final PeriodResolver periodResolver;
 
     public TransactionController(CurrentUser currentUser,
                                  TransactionService service,
@@ -62,7 +64,8 @@ public class TransactionController {
                                  AccountRepository accounts,
                                  CategoryRepository categories,
                                  MessageSource messages,
-                                 Clock clock) {
+                                 Clock clock,
+                                 PeriodResolver periodResolver) {
         this.currentUser = currentUser;
         this.service = service;
         this.extraction = extraction;
@@ -70,6 +73,7 @@ public class TransactionController {
         this.categories = categories;
         this.messages = messages;
         this.clock = clock;
+        this.periodResolver = periodResolver;
     }
 
     @GetMapping
@@ -117,6 +121,11 @@ public class TransactionController {
                          Model model,
                          RedirectAttributes flash) {
         UUID userId = currentUser.requireEffectiveId();
+        // A conta deixou de ser @NotNull no bean porque o gasto fixo não pede
+        // conta (ele mesmo vira a conta recorrente). Fora do fixo, segue obrigatória.
+        if (form.isAccountRequiredAndMissing()) {
+            binding.rejectValue("accountId", "transaction.accountRequired");
+        }
         if (binding.hasErrors()) {
             prepareFormModel(model, userId, form, false, null);
             return "app/transaction-form";
@@ -254,11 +263,6 @@ public class TransactionController {
     }
 
     private YearMonth parseOrCurrent(String ym) {
-        if (ym == null || ym.isBlank()) return YearMonth.now(clock);
-        try {
-            return YearMonth.parse(ym);
-        } catch (Exception e) {
-            return YearMonth.now(clock);
-        }
+        return periodResolver.resolve(ym);
     }
 }

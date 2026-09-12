@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// Rastro$ — /app/expenses
+// Rastroo$ — /app/expenses
 //   - Confirmação inline antes de submeter forms com data-confirm.
 //   - Auto-submit do filtro ao mudar selects (UX).
 // ─────────────────────────────────────────────────────────────

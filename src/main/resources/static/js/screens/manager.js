@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// Rastro$ — /app/manager (Alfredo)
+// Rastroo$ — /app/manager (Alfredo)
 //   - Rola o thread para a última mensagem ao abrir.
 //   - Confirm para forms com data-confirm (apagar conversa).
 //   - Enter envia; Shift+Enter quebra linha.

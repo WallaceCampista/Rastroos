@@ -68,6 +68,11 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/", "/landing", "/auth/**",
                                  "/css/**", "/js/**", "/images/**", "/fonts/**",
+                                 // WHY: o navegador pede /favicon.ico sozinho, antes de
+                                 // qualquer login. Sem liberar, cada aba gerava um 302
+                                 // para /auth/login no log. É asset estático, mesma
+                                 // categoria de /images/** — não expõe nada.
+                                 "/favicon.ico",
                                  "/webjars/**",
                                  // health + probes (liveness/readiness) públicos p/ orquestrador;
                                  // demais actuator (prometheus, env, ...) exigem auth (§3.2)

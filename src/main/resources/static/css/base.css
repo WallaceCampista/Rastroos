@@ -1,5 +1,5 @@
 /* ─────────────────────────────────────────────────────────────
-   Rastro$ — base global (reset + tipografia + botões + utils)
+   Rastroo$ — base global (reset + tipografia + botões + utils)
    Espelha a seção Base/Buttons do protótipo (styles.css).
    ───────────────────────────────────────────────────────────── */
 *, *::before, *::after {
@@ -117,3 +117,12 @@ button {
     transition: background .15s, color .15s, border-color .15s;
 }
 .icon-btn:hover { background: var(--surface-2); color: var(--text); }
+
+/* ── Atributo hidden vence o display do autor ────────────────────
+   A regra [hidden]{display:none} do navegador vem do UA stylesheet e
+   perde para QUALQUER regra de autor. Como .form > label, .check-row e
+   afins usam display:flex, esconder por JS (el.hidden = true) não
+   surtia efeito — o campo continuava na tela. Cada caso vinha sendo
+   remendado isolado (.alf [hidden], .tx-extract-note[hidden],
+   .modal-backdrop[hidden]); aqui a regra passa a valer para o app todo. */
+[hidden] { display: none !important; }

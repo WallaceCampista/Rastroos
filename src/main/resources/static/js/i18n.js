@@ -1,5 +1,5 @@
 /* ─────────────────────────────────────────────────────────────
-   Rastro$ — helpers de i18n no cliente
+   Rastroo$ — helpers de i18n no cliente
    ─────────────────────────────────────────────────────────────
    A internacionalização real vive no servidor (MessageSource).
    Este módulo expõe utilitários para formatar números/datas

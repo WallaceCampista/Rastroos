@@ -118,13 +118,14 @@ public class UserAdminService {
 
         List<UserSessionDto> activeSessions =
                 sessions.findByUserIdAndRevokedAtIsNullOrderByLastSeenAtDesc(id).stream()
-                        .map(s -> new UserSessionDto(s.getId(), s.getUserAgent(),
+                        .map(s -> new UserSessionDto(s.getId(), DeviceLabel.of(s.getUserAgent()),
                                 s.getIpAddress(), s.getCreatedAt(), s.getLastSeenAt()))
                         .toList();
 
         List<LoginAttemptDto> history =
                 loginAttempts.findTop50ByEmailIgnoreCaseOrderByAttemptedAtDesc(u.getEmail()).stream()
-                        .map(a -> new LoginAttemptDto(a.getIpAddress(), a.isSuccess(), a.getAttemptedAt()))
+                        .map(a -> new LoginAttemptDto(DeviceLabel.of(a.getUserAgent()),
+                                a.getIpAddress(), a.isSuccess(), a.getAttemptedAt()))
                         .toList();
 
         String targetName = u.getAccessesUserId() == null ? null

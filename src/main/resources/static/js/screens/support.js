@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// Rastro$ — /app/support
+// Rastroo$ — /app/support
 //   - Confirm para forms com data-confirm (cancelar chamado).
 //   - Busca com debounce (submete o form da busca).
 //   - Linha da tabela clicável → abre o chamado.

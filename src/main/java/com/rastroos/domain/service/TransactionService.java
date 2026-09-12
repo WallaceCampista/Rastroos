@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.rastroos.domain.entity.Account;
 import com.rastroos.domain.entity.Category;
+import com.rastroos.domain.entity.enums.AccountKind;
 import com.rastroos.domain.entity.Transaction;
 import com.rastroos.domain.exception.ResourceNotFoundException;
 import com.rastroos.domain.repository.AccountRepository;
@@ -167,44 +168,96 @@ public class TransactionService {
         return toDto(t, accountById, categoryById, english);
     }
 
+    /** Horizonte do gasto fixo permanente: 10 anos de lançamentos mensais. */
+    public static final int PERMANENT_YEARS = 10;
+    static final int PERMANENT_MONTHS = PERMANENT_YEARS * 12;
+
     @Transactional
     public List<Transaction> create(UUID userId, TransactionForm form) {
-        ensureAccountBelongsToUser(userId, form.getAccountId());
+        // Gasto fixo não escolhe conta: a própria despesa É a conta recorrente
+        // ("conta fixa"). Ela é criada na primeira vez e reusada nas seguintes,
+        // então lançar "Aluguel" duas vezes não gera duas contas. No gasto
+        // variável a conta vem do form e precisa ser do próprio usuário — essa
+        // checagem vem antes da categoria para o erro mais específico vencer.
+        final UUID accountId;
+        if (form.isFixed()) {
+            accountId = recurrentAccountFor(userId, form).getId();
+        } else {
+            ensureAccountBelongsToUser(userId, form.getAccountId());
+            accountId = form.getAccountId();
+        }
         ensureCategoryExists(form.getCategoryId());
 
-        int n = Math.max(1, Math.min(60, form.getInstallments()));
+        boolean permanent = form.isFixed() && form.isPermanent();
+        int n = permanent ? PERMANENT_MONTHS : Math.max(1, Math.min(60, form.getInstallments()));
+
         long totalCents = form.getAmount().movePointRight(2).longValueExact();
         if (totalCents <= 0) {
             throw new IllegalArgumentException("transaction.amountPositive");
         }
         // Cada parcela precisa ser > 0 (CHECK ck_tx_amount_positive no banco).
-        if (n > 1 && totalCents < n) {
+        if (!permanent && n > 1 && totalCents < n) {
             throw new IllegalArgumentException("transaction.installmentTooSmall");
         }
 
-        long[] installmentCents = splitCents(totalCents, n);
+        // Permanente repete o MESMO valor todo mês (é uma mensalidade, não uma
+        // compra dividida); parcelado divide o total entre as parcelas.
+        long[] monthlyCents = permanent ? repeatCents(totalCents, n) : splitCents(totalCents, n);
         // Compra parcelada: 1ª parcela cai no mês seguinte ao vencimento informado.
-        LocalDate firstDueDate = (n > 1) ? form.getDueDate().plusMonths(1) : form.getDueDate();
+        // Permanente começa no próprio mês informado.
+        LocalDate firstDueDate = (!permanent && n > 1)
+                ? form.getDueDate().plusMonths(1)
+                : form.getDueDate();
 
         List<Transaction> created = new ArrayList<>(n);
         for (int i = 0; i < n; i++) {
             Transaction t = new Transaction();
             t.setUserId(userId);
-            t.setAccountId(form.getAccountId());
+            t.setAccountId(accountId);
             t.setCategoryId(form.getCategoryId());
             t.setDescription(form.getDescription().trim());
-            t.setAmountCents(installmentCents[i]);
+            t.setAmountCents(monthlyCents[i]);
             t.setDueDate(firstDueDate.plusMonths(i));
             t.setFixed(form.isFixed());
-            t.setPaid(n == 1 && form.isPaid());
+            // "Já está pago" não se aplica a fixo (o form nem mostra o campo).
+            t.setPaid(!form.isFixed() && n == 1 && form.isPaid());
             if (t.isPaid()) t.setPaidAt(Instant.now());
-            if (n > 1) {
+            if (!permanent && n > 1) {
                 t.setInstallmentCurrent((short) (i + 1));
                 t.setInstallmentTotal((short) n);
             }
-            created.add(transactions.save(t));
+            created.add(t);
         }
-        return created;
+        return transactions.saveAll(created);
+    }
+
+    /**
+     * Conta recorrente que representa um gasto fixo. Procura pelo nome (a
+     * descrição da despesa) entre as contas RECURRENT do usuário e cria se não
+     * existir — assim o gasto fixo aparece em Cartões &amp; Contas como
+     * qualquer outra conta, sem exigir cadastro prévio.
+     */
+    private Account recurrentAccountFor(UUID userId, TransactionForm form) {
+        String name = form.getDescription().trim();
+        return accounts.findAllByUserIdAndKindOrderByNameAsc(userId, AccountKind.RECURRENT).stream()
+                .filter(a -> a.getName().equalsIgnoreCase(name))
+                .findFirst()
+                .orElseGet(() -> {
+                    Account a = new Account();
+                    a.setUserId(userId);
+                    a.setName(name);
+                    a.setKind(AccountKind.RECURRENT);
+                    a.setFixed(true);
+                    a.setCategoryId(form.getCategoryId());
+                    return accounts.save(a);
+                });
+    }
+
+    /** O mesmo valor repetido n vezes (mensalidade fixa). */
+    private static long[] repeatCents(long cents, int n) {
+        long[] out = new long[n];
+        java.util.Arrays.fill(out, cents);
+        return out;
     }
 
     /**
@@ -228,7 +281,10 @@ public class TransactionService {
     @Transactional
     public Transaction update(UUID userId, UUID id, TransactionForm form) {
         Transaction t = require(userId, id);
-        ensureAccountBelongsToUser(userId, form.getAccountId());
+        // No gasto fixo o form não envia conta (o campo nem é exibido): mantém
+        // a que o lançamento já tinha em vez de apagá-la.
+        UUID accountId = form.getAccountId() != null ? form.getAccountId() : t.getAccountId();
+        ensureAccountBelongsToUser(userId, accountId);
         ensureCategoryExists(form.getCategoryId());
 
         long amountCents = form.getAmount().movePointRight(2).longValueExact();
@@ -236,7 +292,7 @@ public class TransactionService {
             throw new IllegalArgumentException("transaction.amountPositive");
         }
         t.setDescription(form.getDescription().trim());
-        t.setAccountId(form.getAccountId());
+        t.setAccountId(accountId);
         t.setCategoryId(form.getCategoryId());
         t.setAmountCents(amountCents);
         t.setDueDate(form.getDueDate());

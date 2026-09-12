@@ -4,8 +4,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title th:replace="${title}">Rastro$</title>
+    <title th:replace="${title}">Rastroo$</title>
 
+    <link rel="icon" type="image/png" sizes="32x32" th:href="@{/images/favicon-32.png}">
+    <link rel="apple-touch-icon" th:href="@{/images/favicon-180.png}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet"
@@ -23,6 +25,9 @@
     <script th:src="@{/js/theme.js}" defer></script>
     <script th:src="@{/js/app.js}" defer></script>
     <script th:src="@{/js/modals.js}" defer></script>
+    <script th:src="@{/js/table-paginate.js}" defer></script>
+    <script th:src="@{/js/toast.js}" defer></script>
+    <script th:src="@{/js/celebrate.js}" defer></script>
     <script th:src="@{/js/tx-extract.js}" defer></script>
     <script th:src="@{/js/form-widgets.js}" defer></script>
     <script th:src="@{/js/auth-password.js}" defer></script>

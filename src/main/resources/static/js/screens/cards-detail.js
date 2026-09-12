@@ -1,5 +1,5 @@
 /* ─────────────────────────────────────────────────────────────
-   Rastro$ — /app/cards
+   Rastroo$ — /app/cards
    Clique num card → busca os lançamentos da conta (fetch) e abre
    o detalhe logo abaixo do grid (equivale ao AccountDetailPanel do
    protótipo). Clicar de novo no mesmo card fecha. Degrada para

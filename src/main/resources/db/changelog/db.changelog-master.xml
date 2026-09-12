@@ -19,5 +19,6 @@
     <include file="db/changelog/006-investment-contributions.xml"/>
     <include file="db/changelog/008-investment-movements.xml"/>
     <include file="db/changelog/010-account-last4.xml"/>
+    <include file="db/changelog/011-login-attempt-user-agent.xml"/>
 
 </databaseChangeLog>

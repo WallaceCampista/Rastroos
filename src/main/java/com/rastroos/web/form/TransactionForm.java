@@ -23,8 +23,14 @@ public class TransactionForm {
     @Schema(description = "Descrição do lançamento", example = "Mercado")
     private String description;
 
-    @NotNull
-    @Schema(description = "Conta/cartão de origem", example = "3f2504e0-4f89-11d3-9a0c-0305e82c3301")
+    /**
+     * Conta/cartão de origem. Obrigatória no gasto variável; no gasto fixo fica
+     * nula, porque a própria despesa vira a conta recorrente (ver
+     * {@code TransactionService.create}). A validação é condicional, em
+     * {@link #isAccountRequiredAndMissing()}.
+     */
+    @Schema(description = "Conta/cartão de origem (não se aplica ao gasto fixo)",
+            example = "3f2504e0-4f89-11d3-9a0c-0305e82c3301")
     private UUID accountId;
 
     @NotBlank
@@ -58,6 +64,13 @@ public class TransactionForm {
     @Schema(description = "Número de parcelas (1 = à vista); gera N lançamentos mensais", example = "1")
     private int installments = 1;
 
+    /**
+     * Gasto fixo sem fim previsto: lança o valor em todos os meses dos próximos
+     * {@code PERMANENT_YEARS} anos. Mutuamente exclusivo com parcelas.
+     */
+    @Schema(description = "Gasto fixo permanente (10 anos de lançamentos mensais)")
+    private boolean permanent;
+
     public TransactionForm() {
     }
 
@@ -84,4 +97,12 @@ public class TransactionForm {
 
     public int getInstallments() { return installments; }
     public void setInstallments(int installments) { this.installments = installments; }
+
+    public boolean isPermanent() { return permanent; }
+    public void setPermanent(boolean permanent) { this.permanent = permanent; }
+
+    /** Conta só é exigida fora do gasto fixo — lá ela é criada a partir da despesa. */
+    public boolean isAccountRequiredAndMissing() {
+        return !fixed && accountId == null;
+    }
 }

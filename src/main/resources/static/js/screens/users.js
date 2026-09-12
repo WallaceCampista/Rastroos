@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// Rastro$ — /app/users (admin)
+// Rastroo$ — /app/users (admin)
 //   Confirmação para ações destrutivas (forms com data-confirm):
 //   desativar, resetar senha, excluir, encerrar sessões.
 // ─────────────────────────────────────────────────────────────

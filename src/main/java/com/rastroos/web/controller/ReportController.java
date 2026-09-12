@@ -1,6 +1,5 @@
 package com.rastroos.web.controller;
 
-import java.time.Clock;
 import java.time.YearMonth;
 import java.time.format.TextStyle;
 import java.util.ArrayList;
@@ -23,6 +22,7 @@ import com.rastroos.security.CurrentUser;
 import com.rastroos.web.dto.CategoryBreakdownDto;
 import com.rastroos.web.dto.MonthSummaryDto;
 import com.rastroos.web.dto.ReportsModel;
+import com.rastroos.web.support.PeriodResolver;
 
 /**
  * Renderiza /app/reports com os agregados do mês selecionado. O parâmetro
@@ -36,17 +36,17 @@ public class ReportController {
 
     private final CurrentUser currentUser;
     private final ReportService reports;
-    private final Clock clock;
     private final ObjectMapper objectMapper;
+    private final PeriodResolver periodResolver;
 
     public ReportController(CurrentUser currentUser,
                             ReportService reports,
-                            Clock clock,
-                            ObjectMapper objectMapper) {
+                            ObjectMapper objectMapper,
+                            PeriodResolver periodResolver) {
         this.currentUser = currentUser;
         this.reports = reports;
-        this.clock = clock;
         this.objectMapper = objectMapper;
+        this.periodResolver = periodResolver;
     }
 
     @GetMapping
@@ -112,11 +112,6 @@ public class ReportController {
     }
 
     private YearMonth parseOrCurrent(String ym) {
-        if (ym == null || ym.isBlank()) return YearMonth.now(clock);
-        try {
-            return YearMonth.parse(ym);
-        } catch (Exception e) {
-            return YearMonth.now(clock);
-        }
+        return periodResolver.resolve(ym);
     }
 }

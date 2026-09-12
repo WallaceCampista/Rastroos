@@ -1,5 +1,5 @@
 /* ─────────────────────────────────────────────────────────────
-   Rastro$ — Gastos (lista + filtros) — espelha o protótipo
+   Rastroo$ — Gastos (lista + filtros) — espelha o protótipo
    ───────────────────────────────────────────────────────────── */
 .expenses-screen { display: flex; flex-direction: column; }
 
@@ -43,7 +43,7 @@
     border: 1px solid color-mix(in oklch, var(--primary) 30%, var(--border));
 }
 /* Placeholders alternados por JS (loading/erro): o atributo hidden precisa
-   vencer o display:flex acima — o app não tem um [hidden] global. */
+   vencer o display:flex acima (hoje o [hidden] global do base.css já cobre). */
 .tx-extract-note[hidden] { display: none; }
 .tx-extract-note svg { flex: 0 0 auto; color: var(--primary); }
 .tx-extract-note.is-demo {
@@ -67,4 +67,20 @@
 @keyframes tx-extract-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) {
     .tx-extract-spinner { animation-duration: 2s; }
+}
+
+/* ── Parcelas × Permanente (gasto fixo) ──────────────────── */
+.tx-recurrence { align-items: start; }
+.tx-permanent {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    align-self: center;
+    padding-top: 22px; /* alinha com o campo Parcelas, que tem rótulo acima */
+}
+.tx-permanent .form-hint { flex-basis: 100%; margin: 0; }
+.tx-recurrence input:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }

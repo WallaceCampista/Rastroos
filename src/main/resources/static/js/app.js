@@ -1,5 +1,5 @@
 /* ─────────────────────────────────────────────────────────────
-   Rastro$ — boot do app autenticado
+   Rastroo$ — boot do app autenticado
    ─────────────────────────────────────────────────────────────
    Responsável por:
    • montar dropdown do user-menu
@@ -140,6 +140,7 @@
         const apply = (hidden) => {
             document.body.classList.toggle('values-hidden', hidden);
             hideToggle.setAttribute('aria-pressed', String(hidden));
+            hideToggle.setAttribute('aria-label', hidden ? 'Mostrar valores' : 'Ocultar valores');
         };
         apply(localStorage.getItem(KEY) === 'true');
         hideToggle.addEventListener('click', () => {

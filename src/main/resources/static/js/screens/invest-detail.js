@@ -1,5 +1,5 @@
 /* ─────────────────────────────────────────────────────────────
-   Rastro$ — /app/investments
+   Rastroo$ — /app/investments
    Clique num cofrinho/ativo → busca as movimentações e abre o
    detalhe num MODAL central (equivale ao InvestmentDetailModal do
    protótipo). Ignora cliques nas ações internas.

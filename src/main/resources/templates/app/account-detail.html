@@ -1,7 +1,7 @@
 <!doctype html>
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security" lang="pt-BR">
-<head><title>Detalhe da conta · Rastro$</title></head>
+<head><title>Detalhe da conta · Rastroo$</title></head>
 <body>
 <!-- O cards-detail.js extrai .acct-detail e injeta abaixo do card clicado. -->
 <div class="acct-detail" th:with="a=${detail.account()}">
@@ -25,12 +25,14 @@
             <a class="icon-btn" data-modal-url th:href="@{/app/cards/{id}/edit(id=${a.id()})}" title="Editar" aria-label="Editar">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l11-11-4-4L4 16v4z"/></svg>
             </a>
-            <form th:action="@{/app/cards/{id}/delete(id=${a.id()})}" method="post" data-confirm="Remover esta conta?" class="inline-form">
-                <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                <button type="submit" class="icon-btn danger" title="Remover" aria-label="Remover">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14M9 7V4h6v3m-7 0v13h8V7"/></svg>
-                </button>
-            </form>
+            <!-- Abre o modal de escopo (apagar tudo × deste mês em diante) em vez
+                 de um confirm() cru: um gasto fixo permanente tem 10 anos de
+                 lançamentos, e apagar tudo raramente é o que se quer. -->
+            <a class="icon-btn danger" data-modal-url
+               th:href="@{/app/cards/{id}/delete(id=${a.id()}, ym=${period})}"
+               title="Remover" aria-label="Remover">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14M9 7V4h6v3m-7 0v13h8V7"/></svg>
+            </a>
         </div>
         <button type="button" class="icon-btn acct-detail-close" data-account-detail-close aria-label="Fechar">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M6 18L18 6"/></svg>

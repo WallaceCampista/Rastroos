@@ -96,6 +96,56 @@ class UserAdminControllerTest {
     }
 
     @Test
+    void listExpoeCurrentUserIdParaEsconderDesativarNaPropriaLinha() throws Exception {
+        when(service.list(any(), any(), eq(0), eq(20))).thenReturn(listView());
+
+        mvc.perform(get("/app/users"))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("currentUserId", adminId));
+    }
+
+    @Test
+    void historyRenderizaModalComSessoesEAcessos() throws Exception {
+        when(service.detail(eq(targetId), eq(adminId))).thenReturn(detailView(false));
+
+        mvc.perform(get("/app/users/{id}/history", targetId))
+                .andExpect(status().isOk())
+                .andExpect(view().name("app/user-history"))
+                .andExpect(model().attributeExists("view"));
+    }
+
+    /**
+     * O modal é montado pelo modals.js a partir de [data-modal-content]. Este
+     * teste grava o HTML renderizado para que o harness de seleção (ver
+     * scratchpad) confira a precedência: o histórico não pode ser sequestrado
+     * pelos <form> de "Encerrar sessão" que vivem dentro dele.
+     */
+    @Test
+    void historyMarcaOConteudoDoModalEListaOsAcessos() throws Exception {
+        when(service.detail(eq(targetId), eq(adminId))).thenReturn(detailView(false));
+
+        String html = mvc.perform(get("/app/users/{id}/history", targetId))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        java.nio.file.Path out = java.nio.file.Path.of(
+                System.getProperty("java.io.tmpdir"), "rastroos-user-history.html");
+        java.nio.file.Files.writeString(out, html);
+
+        org.assertj.core.api.Assertions.assertThat(html)
+                .contains("data-modal-content")
+                .contains("Últimos acessos")
+                .contains("Sessões ativas")
+                .contains("data-paginate=\"10\"");
+    }
+
+    @Test
+    void detalheDoUsuarioNaoExisteMais() throws Exception {
+        mvc.perform(get("/app/users/{id}", targetId))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     void newFormRenderiza() throws Exception {
         mvc.perform(get("/app/users/new"))
                 .andExpect(status().isOk())
@@ -118,7 +168,7 @@ class UserAdminControllerTest {
                         .param("role", "USER")
                         .param("status", "ACTIVE"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/app/users/" + targetId))
+                .andExpect(redirectedUrl("/app/users"))
                 .andExpect(flash().attribute("ok", "users.created"));
 
         verify(service).create(any());
@@ -153,16 +203,6 @@ class UserAdminControllerTest {
     }
 
     @Test
-    void detailRenderiza() throws Exception {
-        when(service.detail(eq(targetId), eq(adminId))).thenReturn(detailView(false));
-
-        mvc.perform(get("/app/users/{id}", targetId))
-                .andExpect(status().isOk())
-                .andExpect(view().name("app/user-detail"))
-                .andExpect(model().attributeExists("view"));
-    }
-
-    @Test
     void editFormRenderizaComEditTrue() throws Exception {
         when(service.detail(eq(targetId), eq(adminId))).thenReturn(detailView(false));
 
@@ -184,7 +224,7 @@ class UserAdminControllerTest {
                         .param("role", "USER")
                         .param("status", "ACTIVE"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/app/users/" + targetId))
+                .andExpect(redirectedUrl("/app/users"))
                 .andExpect(flash().attribute("ok", "users.updated"));
     }
 
@@ -195,7 +235,7 @@ class UserAdminControllerTest {
 
         mvc.perform(post("/app/users/{id}/status", targetId).param("status", "DISABLED"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/app/users/" + targetId))
+                .andExpect(redirectedUrl("/app/users"))
                 .andExpect(flash().attribute("ok", "users.statusUpdated"));
     }
 
@@ -224,13 +264,13 @@ class UserAdminControllerTest {
     }
 
     @Test
-    void revokeSessionRedirecionaParaDetalhe() throws Exception {
+    void revokeSessionRedirecionaParaLista() throws Exception {
         UUID sessionId = UUID.randomUUID();
         when(service.terminateSession(targetId, sessionId)).thenReturn(true);
 
         mvc.perform(post("/app/users/{id}/sessions/{sid}/revoke", targetId, sessionId))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/app/users/" + targetId))
+                .andExpect(redirectedUrl("/app/users"))
                 .andExpect(flash().attribute("ok", "users.sessionRevoked"));
     }
 
@@ -251,7 +291,7 @@ class UserAdminControllerTest {
                 Instant.parse("2026-05-01T10:00:00Z"),
                 Instant.parse("2026-05-01T11:00:00Z"));
         LoginAttemptDto a = new LoginAttemptDto(
-                "192.0.2.1", true, Instant.parse("2026-05-01T10:00:00Z"));
+                "Mac OS", "192.0.2.1", true, Instant.parse("2026-05-01T10:00:00Z"));
         return new UserDetailView(
                 targetId, "Maria", "maria@example.com", true,
                 UserRole.USER, UserStatus.ACTIVE, "pt-BR",

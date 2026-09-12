@@ -1,7 +1,7 @@
 package com.rastroos.web.controller;
 
-import java.time.Clock;
 import java.time.YearMonth;
+import java.util.Locale;
 import java.util.UUID;
 
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -22,6 +22,7 @@ import com.rastroos.domain.service.AccountService;
 import com.rastroos.security.CurrentUser;
 import com.rastroos.web.dto.AccountsView;
 import com.rastroos.web.form.AccountForm;
+import com.rastroos.web.support.PeriodResolver;
 
 import jakarta.validation.Valid;
 
@@ -35,12 +36,13 @@ public class AccountController {
 
     private final CurrentUser currentUser;
     private final AccountService accounts;
-    private final Clock clock;
+    private final PeriodResolver periodResolver;
 
-    public AccountController(CurrentUser currentUser, AccountService accounts, Clock clock) {
+    public AccountController(CurrentUser currentUser, AccountService accounts,
+                             PeriodResolver periodResolver) {
         this.currentUser = currentUser;
         this.accounts = accounts;
-        this.clock = clock;
+        this.periodResolver = periodResolver;
     }
 
     @GetMapping
@@ -146,16 +148,47 @@ public class AccountController {
         return "redirect:/app/cards";
     }
 
+    /** Corpo do modal de confirmação: escolhe apagar tudo ou só do mês em diante. */
+    @GetMapping("/{id}/delete")
+    @PreAuthorize("isAuthenticated() and !hasRole('ACESSOR')")
+    public String deleteConfirm(@PathVariable UUID id,
+                                @RequestParam(value = "ym", required = false) String ym,
+                                Model model) {
+        UUID userId = currentUser.requireEffectiveId();
+        YearMonth period = parseOrCurrent(ym);
+        model.addAttribute("activeNav", "cards");
+        model.addAttribute("account", accounts.summary(userId, id, period));
+        model.addAttribute("period", period);
+        model.addAttribute("monthLabel", monthLabel(period));
+        model.addAttribute("txTotal", accounts.countTransactions(userId, id));
+        model.addAttribute("txFuture", accounts.countTransactionsFrom(userId, id, period));
+        return "app/account-delete-confirm";
+    }
+
     @PostMapping("/{id}/delete")
     @PreAuthorize("isAuthenticated() and !hasRole('ACESSOR')")
-    public String delete(@PathVariable UUID id, RedirectAttributes flash) {
+    public String delete(@PathVariable UUID id,
+                         @RequestParam(value = "scope", required = false) String scope,
+                         @RequestParam(value = "ym", required = false) String ym,
+                         RedirectAttributes flash) {
+        AccountService.DeleteScope chosen = "FROM_MONTH".equalsIgnoreCase(scope)
+                ? AccountService.DeleteScope.FROM_MONTH
+                : AccountService.DeleteScope.ALL;
         try {
-            accounts.delete(currentUser.requireEffectiveId(), id);
-            flash.addFlashAttribute("ok", "account.deleted");
-        } catch (IllegalStateException e) {
+            accounts.delete(currentUser.requireEffectiveId(), id, chosen, parseOrCurrent(ym));
+            flash.addFlashAttribute("ok", chosen == AccountService.DeleteScope.FROM_MONTH
+                    ? "account.closedFromMonth"
+                    : "account.deleted");
+        } catch (IllegalStateException | IllegalArgumentException e) {
             flash.addFlashAttribute("error", e.getMessage());
         }
         return "redirect:/app/cards";
+    }
+
+    private static String monthLabel(YearMonth ym) {
+        String mes = ym.atDay(1)
+                .format(java.time.format.DateTimeFormatter.ofPattern("MMMM", new Locale("pt", "BR")));
+        return Character.toUpperCase(mes.charAt(0)) + mes.substring(1) + "/" + ym.getYear();
     }
 
     private static AccountForm emptyForm() {
@@ -165,11 +198,6 @@ public class AccountController {
     }
 
     private YearMonth parseOrCurrent(String ym) {
-        if (ym == null || ym.isBlank()) return YearMonth.now(clock);
-        try {
-            return YearMonth.parse(ym);
-        } catch (Exception e) {
-            return YearMonth.now(clock);
-        }
+        return periodResolver.resolve(ym);
     }
 }

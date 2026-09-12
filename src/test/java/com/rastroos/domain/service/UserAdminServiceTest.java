@@ -297,7 +297,7 @@ class UserAdminServiceTest {
         UserSession s = new UserSession();
         s.setId(UUID.randomUUID());
         s.setUserId(adminId);
-        s.setUserAgent("Firefox");
+        s.setUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Firefox/141.0");
         s.setIpAddress("192.0.2.1");
         s.setCreatedAt(Instant.parse("2026-05-01T10:00:00Z"));
         s.setLastSeenAt(Instant.parse("2026-05-01T11:00:00Z"));
@@ -308,6 +308,7 @@ class UserAdminServiceTest {
         a.setEmail("me@example.com");
         a.setSuccess(true);
         a.setAttemptedAt(Instant.parse("2026-05-01T10:00:00Z"));
+        a.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/140.0");
         when(loginAttempts.findTop50ByEmailIgnoreCaseOrderByAttemptedAtDesc("me@example.com"))
                 .thenReturn(List.of(a));
 
@@ -315,9 +316,11 @@ class UserAdminServiceTest {
 
         assertThat(view.self()).isTrue();
         assertThat(view.sessions()).hasSize(1);
-        assertThat(view.sessions().get(0).userAgent()).isEqualTo("Firefox");
+        // O User-Agent cru é reduzido ao SO antes de cruzar a camada Web.
+        assertThat(view.sessions().get(0).device()).isEqualTo("Mac OS");
         assertThat(view.loginHistory()).hasSize(1);
         assertThat(view.loginHistory().get(0).success()).isTrue();
+        assertThat(view.loginHistory().get(0).device()).isEqualTo("Windows");
     }
 
     @Test

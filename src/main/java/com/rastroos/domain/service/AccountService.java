@@ -180,12 +180,67 @@ public class AccountService {
         return accounts.save(a);
     }
 
+    /**
+     * Resumo da conta + contagem de lançamentos, para o modal de exclusão.
+     * Entity não atravessa a camada Web (§2.1), por isso devolve o DTO.
+     */
+    @Transactional(readOnly = true)
+    public AccountSummaryDto summary(UUID userId, UUID accountId, YearMonth ym) {
+        Account a = require(userId, accountId);
+        return toSummary(a, aggregateByAccount(userId, ym).get(accountId), ym);
+    }
+
+    @Transactional(readOnly = true)
+    public long countTransactions(UUID userId, UUID accountId) {
+        return transactions.countByUserIdAndAccountId(userId, accountId);
+    }
+
+    /** Quantos lançamentos da conta caem no mês informado ou depois dele. */
+    @Transactional(readOnly = true)
+    public long countTransactionsFrom(UUID userId, UUID accountId, YearMonth ym) {
+        return transactions.countByUserIdAndAccountIdAndDueDateGreaterThanEqual(
+                userId, accountId, ym.atDay(1));
+    }
+
+    /** O que fazer com os lançamentos ao remover uma conta. */
+    public enum DeleteScope {
+        /** Apaga a conta e todos os lançamentos dela. */
+        ALL,
+        /** Apaga só do mês informado em diante e encerra a conta, preservando o histórico. */
+        FROM_MONTH
+    }
+
     @Transactional
     public void delete(UUID userId, UUID id) {
+        delete(userId, id, DeleteScope.ALL, null);
+    }
+
+    /**
+     * Remove uma conta segundo o escopo escolhido.
+     *
+     * <p>Antes isso simplesmente recusava contas com lançamentos
+     * ({@code account.hasTransactions}), o que tornava impossível remover um
+     * gasto fixo permanente (10 anos de lançamentos). Agora quem decide é o
+     * usuário, no modal de confirmação.
+     *
+     * @param ym mês de corte, obrigatório em {@link DeleteScope#FROM_MONTH}
+     */
+    @Transactional
+    public void delete(UUID userId, UUID id, DeleteScope scope, YearMonth ym) {
         Account a = require(userId, id);
-        if (transactions.countByUserIdAndAccountId(userId, id) > 0) {
-            throw new IllegalStateException("account.hasTransactions");
+        if (scope == DeleteScope.FROM_MONTH) {
+            if (ym == null) {
+                throw new IllegalArgumentException("account.deleteScopeInvalid");
+            }
+            LocalDate from = ym.atDay(1);
+            transactions.deleteByUserIdAndAccountIdAndDueDateGreaterThanEqual(userId, id, from);
+            // A conta fica, encerrada no fim do mês anterior: o passado continua
+            // consultável e nada novo entra nela.
+            a.setClosedAt(from.minusDays(1));
+            accounts.save(a);
+            return;
         }
+        transactions.deleteByUserIdAndAccountId(userId, id);
         accounts.delete(a);
     }
 

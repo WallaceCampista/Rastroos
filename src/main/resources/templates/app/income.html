@@ -4,14 +4,14 @@
       lang="pt-BR"
       th:replace="~{layout/base :: layout(~{::title}, ~{::head/link}, ~{::section}, ~{::head/script})}">
 <head>
-    <title>Receitas · Rastro$</title>
+    <title>Receitas · Rastroo$</title>
     <link rel="stylesheet" th:href="@{/css/screens/income.css}">
     <script th:src="@{/js/screens/income.js}" defer></script>
 </head>
 <body>
 <section class="app-content screen screen-income income-screen" th:data-period="${period}">
 
-    <div th:if="${ok}" class="flash flash-ok" th:text="#{${ok}}">Ok</div>
+    <div th:if="${ok}" class="flash flash-ok" th:data-flash-key="${ok}" th:text="#{${ok}}">Ok</div>
 
     <div class="income-hero">
         <div>

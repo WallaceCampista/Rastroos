@@ -66,6 +66,9 @@ public class UserAdminController {
                        @RequestParam(value = "size", required = false, defaultValue = "20") int size,
                        Model model) {
         UserAdminListView view = service.list(status, q, page, size);
+        // Identifica a própria conta do admin: a ação "desativar" some na linha
+        // dela (o service já recusa, mas oferecer o botão seria só frustração).
+        model.addAttribute("currentUserId", currentUser.requireId());
         model.addAttribute("activeNav", "users");
         model.addAttribute("view", view);
         model.addAttribute("filter", new UserFilter(status, q));
@@ -128,17 +131,7 @@ public class UserAdminController {
             accessorService.markApproved(requestId, currentUser.requireId(), result.user().getId());
         }
         flash.addFlashAttribute("ok", "users.created");
-        return "redirect:/app/users/" + result.user().getId();
-    }
-
-    @GetMapping("/{id}")
-    public String detail(@PathVariable UUID id, Model model) {
-        UserDetailView view = service.detail(id, currentUser.requireId());
-        model.addAttribute("activeNav", "users");
-        model.addAttribute("view", view);
-        model.addAttribute("statuses", UserStatus.values());
-        model.addAttribute("accessors", service.accessorsOf(id));
-        return "app/user-detail";
+        return "redirect:/app/users";
     }
 
     /** Corpo do modal "Histórico de login" (somente leitura: sessões + tentativas). */
@@ -187,7 +180,7 @@ public class UserAdminController {
         }
         audit.record(currentUser.requireId(), "USER_UPDATE", "user", id.toString(), request, null);
         flash.addFlashAttribute("ok", "users.updated");
-        return "redirect:/app/users/" + id;
+        return "redirect:/app/users";
     }
 
     @PostMapping("/{id}/status")
@@ -203,7 +196,7 @@ public class UserAdminController {
         } catch (BusinessRuleException e) {
             flash.addFlashAttribute("error", e.getMessage());
         }
-        return "redirect:/app/users/" + id;
+        return "redirect:/app/users";
     }
 
     /** Corpo do modal "Resetar senha": admin define uma nova senha para o alvo. */
@@ -261,7 +254,7 @@ public class UserAdminController {
             return "redirect:/app/users";
         } catch (BusinessRuleException e) {
             flash.addFlashAttribute("error", e.getMessage());
-            return "redirect:/app/users/" + id;
+            return "redirect:/app/users";
         }
     }
 
@@ -275,7 +268,7 @@ public class UserAdminController {
                 sessionId.toString(), request, null);
         flash.addFlashAttribute(revoked ? "ok" : "error",
                 revoked ? "users.sessionRevoked" : "users.sessionNotFound");
-        return "redirect:/app/users/" + id;
+        return "redirect:/app/users";
     }
 
     @PostMapping("/{id}/sessions/revoke-all")
@@ -286,7 +279,7 @@ public class UserAdminController {
         audit.record(currentUser.requireId(), "USER_SESSION_REVOKE_ALL", "user", id.toString(),
                 request, null);
         flash.addFlashAttribute("ok", "users.sessionsRevoked");
-        return "redirect:/app/users/" + id;
+        return "redirect:/app/users";
     }
 
     // ── helpers ──────────────────────────────────────────────

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Histórico de login · Rastro$</title>
+    <title>Histórico de login · Rastroo$</title>
     <link rel="stylesheet" th:href="@{/css/tokens.css}">
     <link rel="stylesheet" th:href="@{/css/base.css}">
     <link rel="stylesheet" th:href="@{/css/components.css}">
@@ -36,19 +36,36 @@
         <div class="lh-body">
             <!-- Sessões ativas -->
             <section class="lh-section">
-                <h3 class="lh-section-title">Sessões ativas</h3>
+                <header class="lh-section-head">
+                    <h3 class="lh-section-title">Sessões ativas</h3>
+                    <form method="post" th:unless="${view.sessions().isEmpty()}"
+                          th:action="@{/app/users/{id}/sessions/revoke-all(id=${view.id()})}"
+                          data-confirm="Encerrar todas as sessões deste usuário?">
+                        <input type="hidden" th:if="${_csrf != null}"
+                               th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                        <button type="submit" class="btn-link btn-link-danger">Encerrar todas</button>
+                    </form>
+                </header>
                 <p class="empty-inline" th:if="${view.sessions().isEmpty()}">Nenhuma sessão ativa.</p>
                 <div class="table-scroll" th:unless="${view.sessions().isEmpty()}">
-                    <table class="mini-table">
+                    <table class="mini-table" data-paginate="10">
                         <thead>
-                            <tr><th>Dispositivo</th><th>IP</th><th>Início</th><th>Última atividade</th></tr>
+                            <tr><th>Dispositivo</th><th>IP</th><th>Início</th><th>Última atividade</th><th class="actions"></th></tr>
                         </thead>
                         <tbody>
                             <tr th:each="s : ${view.sessions()}">
-                                <td class="ua" th:text="${s.userAgent() != null ? s.userAgent() : '—'}">Navegador</td>
+                                <td th:text="${s.device()}">Mac OS</td>
                                 <td th:text="${s.ipAddress() != null ? s.ipAddress() : '—'}">0.0.0.0</td>
                                 <td th:text="${#temporals.format(s.createdAt().atZone(T(java.time.ZoneOffset).UTC), 'dd/MM/yyyy HH:mm')}">--</td>
                                 <td th:text="${#temporals.format(s.lastSeenAt().atZone(T(java.time.ZoneOffset).UTC), 'dd/MM/yyyy HH:mm')}">--</td>
+                                <td class="actions">
+                                    <form method="post" class="inline-form"
+                                          th:action="@{/app/users/{id}/sessions/{sid}/revoke(id=${view.id()}, sid=${s.id()})}">
+                                        <input type="hidden" th:if="${_csrf != null}"
+                                               th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                        <button type="submit" class="btn-link btn-link-danger">Encerrar</button>
+                                    </form>
+                                </td>
                             </tr>
                         </tbody>
                     </table>
@@ -60,9 +77,9 @@
                 <h3 class="lh-section-title">Últimos acessos</h3>
                 <p class="empty-inline" th:if="${view.loginHistory().isEmpty()}">Sem registros de login.</p>
                 <div class="table-scroll" th:unless="${view.loginHistory().isEmpty()}">
-                    <table class="mini-table">
+                    <table class="mini-table" data-paginate="10">
                         <thead>
-                            <tr><th>Resultado</th><th>IP</th><th>Quando</th></tr>
+                            <tr><th>Resultado</th><th>Dispositivo</th><th>IP</th><th>Quando</th></tr>
                         </thead>
                         <tbody>
                             <tr th:each="a : ${view.loginHistory()}">
@@ -70,6 +87,7 @@
                                     <span class="login-result" th:classappend="${a.success()} ? 'ok' : 'fail'"
                                           th:text="${a.success()} ? 'Sucesso' : 'Falha'">Resultado</span>
                                 </td>
+                                <td th:text="${a.device()}">Mac OS</td>
                                 <td th:text="${a.ipAddress() != null ? a.ipAddress() : '—'}">0.0.0.0</td>
                                 <td th:text="${#temporals.format(a.attemptedAt().atZone(T(java.time.ZoneOffset).UTC), 'dd/MM/yyyy HH:mm')}">--</td>
                             </tr>

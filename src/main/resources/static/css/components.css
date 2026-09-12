@@ -1,5 +1,5 @@
 /* ─────────────────────────────────────────────────────────────
-   Rastro$ — componentes reutilizáveis (cards, pills, modais)
+   Rastroo$ — componentes reutilizáveis (cards, pills, modais)
    ─────────────────────────────────────────────────────────────
    Etapa 6: estabelece a paleta de componentes que as telas
    das Etapas 7+ vão consumir. Conteúdo conservador para não
@@ -469,6 +469,16 @@
 .row-action:hover { background: var(--surface-3); color: var(--text); text-decoration: none; }
 .row-action.danger:hover { background: color-mix(in oklch, var(--danger) 14%, transparent); color: var(--danger); }
 
+/* Rodapé de paginação de tabela (montado por table-paginate.js). */
+.table-pagination {
+    display: flex; align-items: center; justify-content: center; gap: 16px;
+    padding-top: 10px;
+}
+.table-pagination-info { font-size: 12.5px; color: var(--text-dim); }
+.table-pagination .btn-link:disabled {
+    opacity: 0.35; cursor: default; text-decoration: none;
+}
+
 .pill-info { color: var(--info); border-color: color-mix(in oklch, var(--info) 35%, transparent); background: color-mix(in oklch, var(--info) 12%, transparent); }
 
 /* ── Panel (compartilhado) ───────────────────────────────── */
@@ -477,3 +487,131 @@
 .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .panel-head h3 { font-size: 14px; font-weight: 700; letter-spacing: -0.005em; margin: 0; }
 .panel-sub { font-size: 12px; }
+
+/* ── Toast (mensagens do servidor) ───────────────────────── */
+/* Fica abaixo da topbar e acima do orbe do Alfredo (z-index 90),
+   mas sempre sob o backdrop do modal (100). */
+.toast-stack {
+    position: fixed;
+    top: 76px; right: 22px;
+    z-index: 95;
+    display: flex; flex-direction: column; gap: 10px;
+    width: min(360px, calc(100vw - 44px));
+    pointer-events: none;
+}
+.toast {
+    position: relative;
+    pointer-events: auto;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 12px 14px;
+    border-radius: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    box-shadow: 0 18px 40px -18px rgba(0, 0, 0, 0.55);
+    overflow: hidden;
+    animation: toast-in .22s cubic-bezier(.2, .8, .3, 1) both;
+}
+.toast.is-leaving { animation: toast-out .3s ease forwards; }
+
+.toast-icon {
+    width: 26px; height: 26px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 8px;
+    flex-shrink: 0;
+}
+.toast-icon svg { width: 15px; height: 15px; }
+.toast-text {
+    margin: 0;
+    font-size: 13px; font-weight: 600; line-height: 1.4;
+    color: var(--text);
+    min-width: 0;
+}
+.toast-close {
+    width: 24px; height: 24px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border: 0; border-radius: 6px;
+    background: transparent; color: var(--muted);
+    cursor: pointer; flex-shrink: 0;
+    transition: background .12s, color .12s;
+}
+.toast-close svg { width: 13px; height: 13px; }
+.toast-close:hover { background: var(--surface-2); color: var(--text); }
+
+.toast-ok .toast-icon {
+    color: var(--success);
+    background: color-mix(in oklch, var(--success) 16%, transparent);
+}
+.toast-error .toast-icon {
+    color: var(--danger);
+    background: color-mix(in oklch, var(--danger) 16%, transparent);
+}
+
+/* Linha do tempo: esvazia durante a exibição e, ao terminar, fecha o
+   toast (o toast.js escuta o animationend dela). */
+.toast-bar {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 3px;
+    background: var(--surface-3);
+}
+.toast-bar-fill {
+    display: block;
+    height: 100%;
+    transform-origin: left center;
+    animation: toast-drain var(--toast-duration, 5000ms) linear forwards;
+}
+.toast-ok .toast-bar-fill { background: var(--success); }
+.toast-error .toast-bar-fill { background: var(--danger); }
+/* Passar o mouse congela a barra — e, com ela, a contagem. */
+.toast:hover .toast-bar-fill { animation-play-state: paused; }
+
+@keyframes toast-drain { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+@keyframes toast-in { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: none; } }
+@keyframes toast-out { to { opacity: 0; transform: translateX(16px); } }
+
+/* A barra nunca é desligada aqui: ela é o cronômetro do toast. Só a
+   entrada/saída deixam de animar. */
+@media (prefers-reduced-motion: reduce) {
+    .toast { animation: none; }
+    .toast.is-leaving { animation: none; opacity: 0; }
+}
+
+@media (max-width: 768px) {
+    .toast-stack { top: auto; bottom: 104px; right: 16px; left: 16px; width: auto; }
+}
+
+/* ── Comemoração ao quitar (emojis subindo) ──────────────── */
+.celebrate-layer {
+    position: fixed;
+    inset: 0;
+    z-index: 96; /* acima do toast (95), abaixo do modal (100) */
+    pointer-events: none;
+    overflow: hidden;
+}
+.celebrate-emoji {
+    position: absolute;
+    left: var(--cl-left, 50vw);
+    bottom: -40px;
+    font-size: 26px;
+    line-height: 1;
+    will-change: transform, opacity;
+    transform: scale(var(--cl-scale, 1));
+    animation: celebrate-rise var(--cl-duration, 2200ms) var(--cl-delay, 0ms)
+               cubic-bezier(.25, .6, .35, 1) forwards;
+}
+@keyframes celebrate-rise {
+    0%   { opacity: 0; transform: translate3d(0, 0, 0) scale(var(--cl-scale, 1)) rotate(0deg); }
+    12%  { opacity: 1; }
+    75%  { opacity: 1; }
+    100% {
+        opacity: 0;
+        transform: translate3d(var(--cl-drift, 0), -85vh, 0)
+                   scale(var(--cl-scale, 1)) rotate(var(--cl-rot, 0deg));
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .celebrate-layer { display: none; }
+}

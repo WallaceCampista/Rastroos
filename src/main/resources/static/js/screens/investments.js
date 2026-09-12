@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// Rastro$ — /app/investments
+// Rastroo$ — /app/investments
 // Cor dos cofrinhos (--c) + anel de progresso (stroke/offset) via
 // CSSOM (compatível com a CSP). Confirmação de forms com data-confirm.
 // ─────────────────────────────────────────────────────────────

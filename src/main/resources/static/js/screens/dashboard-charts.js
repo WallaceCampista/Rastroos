@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// Rastro$ — gráficos do dashboard em canvas vanilla
+// Rastroo$ — gráficos do dashboard em canvas vanilla
 //
 // Sem dependências externas: respeita CSP `script-src 'self'` sem
 // precisar servir uma lib de gráficos. Apenas dois desenhos —

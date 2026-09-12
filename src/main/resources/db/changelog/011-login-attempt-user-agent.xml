@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ─────────────────────────────────────────────────────────────
+  011 — Dispositivo na tentativa de login
+  ─────────────────────────────────────────────────────────────
+  Guarda o User-Agent de cada tentativa (sucesso ou falha) para que
+  o admin veja "de que máquina veio" na coluna Dispositivo do
+  histórico de login. Até aqui esse dado só existia em
+  user_sessions, e portanto sumia quando a sessão era encerrada.
+
+  Coluna opcional (nullable): tentativas já registradas ficam com
+  NULL e são exibidas como "—". O valor é o cabeçalho cru; a
+  redução para o nome do SO acontece na camada Web (DeviceLabel).
+-->
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.27.xsd">
+
+    <changeSet id="011-01-login-attempts-add-user-agent" author="rastroos">
+        <addColumn tableName="login_attempts">
+            <column name="user_agent" type="VARCHAR(400)"/>
+        </addColumn>
+        <rollback>
+            <dropColumn tableName="login_attempts" columnName="user_agent"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

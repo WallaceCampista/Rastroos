@@ -1,5 +1,5 @@
 /* ─────────────────────────────────────────────────────────────
-   Rastro$ — modais (overlay sobre a página atual)
+   Rastroo$ — modais (overlay sobre a página atual)
    ─────────────────────────────────────────────────────────────
    Elementos com [data-modal-url] abrem o formulário daquela rota
    por cima da página (sem navegar). A estratégia é 100% client-side:
@@ -81,6 +81,8 @@
         if (window.RastroosForms) window.RastroosForms.init(container);
         backdrop.hidden = false;
         document.addEventListener('keydown', onKey);
+        document.dispatchEvent(new CustomEvent('rastroos:modal-opened',
+            { detail: { container: container } }));
     }
 
     // Ajuda dinâmica do campo de parcelas (equivalente ao transaction-form.js,
@@ -107,7 +109,7 @@
         const head = document.createElement('div');
         head.className = 'modal-head';
         const h3 = document.createElement('h3');
-        h3.textContent = title || 'Rastro$';
+        h3.textContent = title || 'Rastroo$';
         const close = document.createElement('button');
         close.type = 'button';
         close.className = 'modal-close';
@@ -138,6 +140,8 @@
         wireInstallments();
         const first = form.querySelector('input:not([type=hidden]):not([readonly]), select, textarea');
         if (first) first.focus();
+        document.dispatchEvent(new CustomEvent('rastroos:modal-opened',
+            { detail: { container: container } }));
     };
 
     const onSubmit = async (e) => {
@@ -177,6 +181,20 @@
         try {
             const resp = await fetch(url, { headers: { 'X-Requested-With': 'fetch' } });
             const doc = new DOMParser().parseFromString(await resp.text(), 'text/html');
+
+            // [data-modal-content] vem PRIMEIRO: é a página dizendo exatamente o
+            // que abrir (ex.: histórico de login, que traz o próprio cabeçalho).
+            // FORM_SELECTOR é só o palpite para as telas que não marcam nada —
+            // se ele viesse antes, um único <form> dentro do conteúdo marcado
+            // (um botão "Encerrar sessão", digamos) sequestraria o modal e o
+            // resto do conteúdo sumiria.
+            const content = doc.querySelector('[data-modal-content]');
+            if (content) {
+                ensureStyles(doc);
+                openNode(document.importNode(content, true),
+                         { wide: content.hasAttribute('data-modal-wide') });
+                return;
+            }
             const form = doc.querySelector(FORM_SELECTOR);
             if (form) {
                 ensureStyles(doc);
@@ -184,15 +202,6 @@
                 render(t ? t.textContent.trim() : '', form);
                 backdrop.hidden = false;
                 document.addEventListener('keydown', onKey);
-                return;
-            }
-            // Conteúdo não-formulário (ex.: histórico de login): a página traz o
-            // próprio cabeçalho/rodapé dentro de [data-modal-content].
-            const content = doc.querySelector('[data-modal-content]');
-            if (content) {
-                ensureStyles(doc);
-                openNode(document.importNode(content, true),
-                         { wide: content.hasAttribute('data-modal-wide') });
                 return;
             }
             window.location.href = url;
