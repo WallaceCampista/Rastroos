@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -113,8 +114,42 @@ public class AlfredoAiClient {
         }
     }
 
+    /**
+     * Mesma resposta de {@link #reply}, entregue em pedaços conforme o modelo
+     * escreve. Devolve o texto completo — é ele que vai para o banco e para a
+     * tela no evento final, então uma falha no meio do caminho não deixa
+     * resposta pela metade persistida.
+     *
+     * <p>Também nunca lança: cai no texto de contingência como o irmão.
+     */
+    public String replyStreaming(UUID userId, String userMessage, List<ChatMessage> history,
+                                 String context, Consumer<String> onDelta) {
+        if (!client.isEnabled()) {
+            return stubReply(userMessage);
+        }
+        try {
+            budget.check(userId, AiFeature.CHAT);
+            return breakers.call(AiCircuitBreakers.CHAT, () ->
+                    client.chatStream(AiFeature.CHAT, userId,
+                            chatMessages(userMessage, history, context),
+                            props.getChat().getMaxTokens(),
+                            props.getChat().getTemperature(),
+                            onDelta).content());
+        } catch (RuntimeException e) {
+            return contingencyReply(e);
+        }
+    }
+
     private String askRemote(UUID userId, String userMessage, List<ChatMessage> history,
                              String context) {
+        return client.chat(AiFeature.CHAT, userId,
+                chatMessages(userMessage, history, context),
+                props.getChat().getMaxTokens(), props.getChat().getTemperature(), null).content();
+    }
+
+    /** Prompt de sistema + dossiê + janela do histórico + a pergunta. */
+    private List<Map<String, Object>> chatMessages(String userMessage, List<ChatMessage> history,
+                                                   String context) {
         List<Map<String, Object>> messages = new ArrayList<>();
         messages.add(message("system", CHAT_SYSTEM_PROMPT));
         if (context != null && !context.isBlank()) {
@@ -130,9 +165,7 @@ public class AlfredoAiClient {
             messages.add(message(role, m.getContent()));
         }
         messages.add(message("user", userMessage));
-
-        return client.chat(AiFeature.CHAT, userId, messages,
-                props.getChat().getMaxTokens(), props.getChat().getTemperature(), null).content();
+        return messages;
     }
 
     /**

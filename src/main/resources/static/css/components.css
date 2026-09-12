@@ -615,3 +615,33 @@
 @media (prefers-reduced-motion: reduce) {
     .celebrate-layer { display: none; }
 }
+
+/* ── Markdown das respostas do Alfredo (markdown.js) ─────────── */
+/* O modelo responde em Markdown; estes são os elementos que o
+   renderizador monta dentro de um balão de chat. Margens colapsadas
+   nas pontas para o balão não ganhar respiro dobrado. */
+.md-p,
+.md-list,
+.md-h { margin: 0 0 8px; }
+.md-p:last-child,
+.md-list:last-child,
+.md-h:last-child { margin-bottom: 0; }
+.md-h {
+    font-size: 13.5px; font-weight: 700;
+    letter-spacing: -0.01em;
+    margin-top: 12px;
+}
+.md-h:first-child { margin-top: 0; }
+.md-list { padding-left: 20px; }
+.md-list li { margin: 3px 0; }
+.md-list li::marker { color: var(--text-dim); }
+.chat-bubble strong,
+.alf-msg-bubble strong { font-weight: 700; }
+.chat-bubble code,
+.alf-msg-bubble code {
+    font-family: var(--mono);
+    font-size: 0.9em;
+    padding: 1px 5px;
+    border-radius: 5px;
+    background: color-mix(in oklch, var(--text) 10%, transparent);
+}

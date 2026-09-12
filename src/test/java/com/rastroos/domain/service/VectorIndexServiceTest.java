@@ -54,6 +54,8 @@ class VectorIndexServiceTest {
     @Mock private EmbeddingService embeddings;
 
     private final Clock clock = Clock.fixed(Instant.parse("2026-09-12T12:00:00Z"), ZoneOffset.UTC);
+    private static final String MODEL = "text-embedding-3-small";
+
     private final UUID alice = UUID.randomUUID();
 
     private AiProperties props;
@@ -77,7 +79,7 @@ class VectorIndexServiceTest {
     @Test
     void primeiraIndexacao_vetorizaLancamentoEConta() {
         enableWithOneTransaction();
-        when(store.hashesByUser(alice)).thenReturn(Map.of());
+        when(store.fingerprintsByUser(alice)).thenReturn(Map.of());
         when(embeddings.embedAll(eq(alice), anyList()))
                 .thenReturn(List.of(new float[] {0.1f}, new float[] {0.2f}));
         when(embeddings.modelName()).thenReturn("text-embedding-3-small");
@@ -94,7 +96,8 @@ class VectorIndexServiceTest {
     void nadaMudou_naoGeraNenhumEmbedding() {
         // O índice já contém exatamente o que seria produzido agora.
         Map<String, String> indexed = currentlyIndexed();
-        when(store.hashesByUser(alice)).thenReturn(indexed);
+        when(store.fingerprintsByUser(alice)).thenReturn(indexed);
+        when(embeddings.modelName()).thenReturn(MODEL);
         enableWithOneTransaction();
 
         assertThat(service.reindex(alice)).isZero();
@@ -107,7 +110,7 @@ class VectorIndexServiceTest {
     void umTextoMudou_vetorizaSoEle_naoOIndiceInteiro() {
         Map<String, String> indexed = new java.util.HashMap<>(currentlyIndexed());
         indexed.put(txKey(), "hash-antigo");   // só o lançamento mudou
-        when(store.hashesByUser(alice)).thenReturn(indexed);
+        when(store.fingerprintsByUser(alice)).thenReturn(indexed);
         enableWithOneTransaction();
         when(embeddings.embedAll(eq(alice), anyList())).thenReturn(List.of(new float[] {0.1f}));
         when(embeddings.modelName()).thenReturn("text-embedding-3-small");
@@ -124,7 +127,8 @@ class VectorIndexServiceTest {
     void linhaQueSumiu_ehRemovidaDoIndice() {
         Map<String, String> indexed = new java.util.HashMap<>(currentlyIndexed());
         indexed.put("TRANSACTION|apagada", "x");
-        when(store.hashesByUser(alice)).thenReturn(indexed);
+        when(store.fingerprintsByUser(alice)).thenReturn(indexed);
+        when(embeddings.modelName()).thenReturn(MODEL);
         enableWithOneTransaction();
 
         service.reindex(alice);
@@ -132,6 +136,25 @@ class VectorIndexServiceTest {
         ArgumentCaptor<Set<String>> removed = ArgumentCaptor.forClass(Set.class);
         verify(store).deleteByKeys(eq(alice), removed.capture());
         assertThat(removed.getValue()).containsExactly("TRANSACTION|apagada");
+    }
+
+    /**
+     * Vetor de outro fornecedor vive em outro espaço: mesmo com o texto
+     * intacto, trocar de motor precisa reindexar — senão a busca semântica
+     * compara vetores incomparáveis sem erro nenhum.
+     */
+    @Test
+    void trocaDeFornecedorReindexaMesmoSemMudancaDeTexto() {
+        Map<String, String> indexed = currentlyIndexed();
+        when(store.fingerprintsByUser(alice)).thenReturn(indexed);
+        when(embeddings.modelName()).thenReturn("gemini-embedding-001");
+        when(embeddings.embedAll(eq(alice), anyList()))
+                .thenReturn(List.of(new float[] {0.1f}, new float[] {0.2f}));
+        enableWithOneTransaction();
+
+        assertThat(service.reindex(alice)).isEqualTo(2);
+
+        verify(store).upsertAll(eq(alice), anyList(), anyList(), eq("gemini-embedding-001"));
     }
 
     @Test
@@ -145,7 +168,7 @@ class VectorIndexServiceTest {
     void textoIndexadoRespeitaOTetoDeCaracteres() {
         props.getEmbedding().setMaxChars(20);
         enableWithOneTransaction();
-        when(store.hashesByUser(alice)).thenReturn(Map.of());
+        when(store.fingerprintsByUser(alice)).thenReturn(Map.of());
         when(embeddings.embedAll(eq(alice), anyList()))
                 .thenReturn(List.of(new float[] {0.1f}, new float[] {0.2f}));
         when(embeddings.modelName()).thenReturn("m");
@@ -201,11 +224,11 @@ class VectorIndexServiceTest {
     private Map<String, String> currentlyIndexed() {
         VectorStoreRepository probeStore = org.mockito.Mockito.mock(VectorStoreRepository.class);
         EmbeddingService probeEmbeddings = org.mockito.Mockito.mock(EmbeddingService.class);
-        when(probeStore.hashesByUser(alice)).thenReturn(Map.of());
+        when(probeStore.fingerprintsByUser(alice)).thenReturn(Map.of());
         when(probeEmbeddings.isEnabled()).thenReturn(true);
         when(probeEmbeddings.embedAll(eq(alice), anyList()))
                 .thenReturn(List.of(new float[] {0f}, new float[] {0f}));
-        when(probeEmbeddings.modelName()).thenReturn("probe");
+        when(probeEmbeddings.modelName()).thenReturn(MODEL);
 
         VectorIndexService probe = new VectorIndexService(transactions, incomes, accounts,
                 investments, categories, probeStore, probeEmbeddings, props, clock);
@@ -214,10 +237,11 @@ class VectorIndexServiceTest {
 
         ArgumentCaptor<List<VectorDocument>> docs = ArgumentCaptor.forClass(List.class);
         verify(probeStore).upsertAll(eq(alice), docs.capture(), anyList(), anyString());
-        Map<String, String> hashes = new java.util.HashMap<>();
+        Map<String, String> fingerprints = new java.util.HashMap<>();
         for (VectorDocument d : docs.getValue()) {
-            hashes.put(d.key(), d.contentHash());
+            fingerprints.put(d.key(),
+                    VectorStoreRepository.fingerprint(d.contentHash(), MODEL));
         }
-        return hashes;
+        return fingerprints;
     }
 }

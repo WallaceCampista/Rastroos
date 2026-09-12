@@ -113,7 +113,7 @@ management:
 # no padrão dele. Trocar de motor é trocar variável de ambiente:
 #
 #   OpenAI  → AI_PROVIDER=openai  AI_API_KEY=sk-...      (gpt-4o-mini)
-#   Gemini  → AI_PROVIDER=gemini  AI_API_KEY=<AI Studio> (gemini-2.0-flash-lite)
+#   Gemini  → AI_PROVIDER=gemini  AI_API_KEY=<AI Studio> (gemini-3.5-flash-lite)
 #
 # Serviços que falam o dialeto da OpenAI (Groq, Together, OpenRouter, Ollama,
 # vLLM, Azure OpenAI) funcionam com provider=openai + AI_PROVIDER_BASE_URL.

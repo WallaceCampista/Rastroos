@@ -50,6 +50,21 @@ management:
     health:
       show-details: always
 
+# ── Alfredo / IA ─────────────────────────────────────────────
+# DEV fala com o Gemini; produção continua no OpenAI (bloco `ai` do
+# application.yml, alimentado por AI_PROVIDER/AI_API_KEY do orquestrador).
+#
+# A chave NÃO mora aqui: vem de AI_API_KEY_DEV, definida em `.env.local`
+# (não versionado). Variável própria, sem cair para AI_API_KEY — mandar a
+# chave da OpenAI para o Gemini só renderia 401 e abriria o circuit breaker.
+#
+# Modelos ficam vazios de propósito: o padrão do fornecedor escolhido vale
+# (gemini-3.5-flash-lite + gemini-embedding-001, ambos em 1536 dimensões,
+# que é o que a coluna vector(1536) de ai_documents espera).
+ai:
+  provider: ${AI_PROVIDER_DEV:gemini}
+  api-key: ${AI_API_KEY_DEV:}
+
 logging:
   level:
     com.rastroos: DEBUG

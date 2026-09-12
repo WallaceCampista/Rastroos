@@ -680,6 +680,33 @@ Content-Security-Policy: <conforme 5.5>
 - [x] **Testes**: 633 no total (24 novos) — 14 do calendário contra datas reais conferidas uma a uma (Páscoa de 4 anos, Carnaval, Corpus Christi, o 5º dia útil de setembro/2026 caindo no dia 8 por causa do feriado da Independência, mês curto caindo no último dia útil), materialização por dia útil, `update` que não reescreve recebimento já confirmado, o toggle, e `@DataJpaTest` provando que a soma do confirmado não cruza usuários. Gate de cobertura do domínio mantido
 
 
+### Etapa 23 — Gemini em DEV, OpenAI em produção (½ dia)
+
+**Diagnóstico do que existia.** A IA nunca chegou a rodar de verdade nesta máquina: subia sempre em modo demonstração. O runbook faz `set -a; . ./.env; set +a` antes de iniciar a app, e `.env` exportava `AI_API_KEY=` **vazio** — variável de ambiente vence qualquer YAML, então a chave do `.env.local` era ignorada em silêncio. Com a IA desligada, dois defeitos ficaram escondidos atrás dela.
+
+- [x] **Motor por ambiente**: `application-dev.yml` fixa `ai.provider=gemini` e lê a chave de `AI_API_KEY_DEV`; produção continua no OpenAI, pelo bloco `ai` do `application.yml` alimentado pelo orquestrador (e agora explícito no `docker-compose.prod.yml`). Variável **própria** para dev, sem cair para `AI_API_KEY`: mandar chave da OpenAI para o Gemini só renderia 401 e abriria o circuit breaker. Nenhuma chave entra em arquivo versionado — as duas vivem no `.env.local`
+- [x] **`AI_PROVIDER`/`AI_API_KEY` saíram do `.env`** (comentados, com o motivo escrito ali). Era isso que mantinha a IA desligada; agora `.env` não sabota mais o `.env.local`
+- [x] **Modelo padrão do Gemini corrigido**: `gemini-2.0-flash-lite` foi **retirado** do catálogo e passou a responder 404 — que o app tratava como indisponibilidade e mascarava no texto local, sem nunca dizer que o problema era o nome do modelo. Padrão agora é `gemini-3.5-flash-lite` (o embedding `gemini-embedding-001` segue válido, em 1536 dimensões)
+- [x] **Bug: o índice semântico nunca conseguiu gravar.** `VectorIndexService.reindex` era `@Transactional(readOnly = true)` e escrevia — todo INSERT morria com SQLSTATE 25006, engolido pelo `reindexQuietly`. A anotação saiu do serviço (entre ler e gravar há a chamada HTTP de embeddings, e §4.1 proíbe segurar conexão do pool nessa espera) e as escritas ganharam transação própria e curta no `VectorStoreRepository`. Mesmo problema em `purge`
+- [x] **Bug: trocar de fornecedor não reindexava.** A impressão digital do índice era só o hash do texto, então vetores da OpenAI continuariam no banco respondendo a buscas feitas com vetores do Gemini — mesma dimensão, espaços diferentes, nenhum erro e resultado ruim. A impressão passou a incluir o **modelo** (`fingerprintsByUser`), e a troca de motor reindexa sozinha
+- [x] **Verificado ao vivo contra a API real**: `INSIGHT` e `CHAT` em `gemini-3.5-flash-lite`, `EMBEDDING` em `gemini-embedding-001` com 80 documentos indexados; a resposta do chat ("maior gasto de agosto: Aluguel, R$ 2.200,00, moradia, pago, vence dia 5") confere com o banco. Livro-caixa `ai_usage` registrando as três funcionalidades
+- [x] **Testes**: 634 no total, gate de cobertura mantido; novo caso provando que trocar de fornecedor reindexa mesmo sem mudança de texto
+
+
+### Etapa 24 — Resposta do Alfredo formatada e em streaming (1 dia)
+
+**Diagnóstico do que existia.** O modelo sempre respondeu em Markdown, mas o balão renderizava com `th:text`: o usuário via `**não é recomendado**` com os asteriscos e uma lista numerada virava um parágrafo só. E o envio na tela do Alfredo era POST com recarga de página inteira — vários segundos de tela parada, sem nenhum sinal de vida, e a resposta aparecendo de uma vez.
+
+- [x] **Markdown seguro no cliente** (`markdown.js`): negrito, itálico, código, listas (com e sem número) e títulos. Monta DOM com `createElement`/`textContent`, **nunca `innerHTML`** — o texto vem de um modelo alimentado por dados do usuário, então é conteúdo não confiável (§3.2), e montando nó a nó não há como um atributo de evento virar elemento. A CSP estrita segue valendo sem exceção. O que não estiver no subconjunto aparece literal: nunca some conteúdo
+- [x] **Streaming real (SSE), não datilografia simulada.** `POST /api/v1/chats/{id}/messages/stream` devolve `text/event-stream`; o cliente lê com `fetch` + `ReadableStream` (`EventSource` só faz GET). Três eventos: `delta`, `done` (o texto completo, **autoritativo** — a tela re-renderiza com ele, então uma queda no meio nunca deixa resposta pela metade) e `error`. Medido: primeiro pedaço em ~1,2s contra ~1,5s da resposta inteira
+- [x] **A contabilidade de tokens sobreviveu ao streaming** (§4.1): o dialeto manda `stream_options.include_usage`, e o `usage` acumulado de cada chunk é registrado no `ai_usage` ao fim. Sem isso, "sempre contabilizar" deixaria de valer justamente na funcionalidade mais usada
+- [x] **Streaming não repete.** O `post()` comum tenta de novo em 429/5xx; o streamado não: repetir uma chamada que já escreveu meia resposta na tela duplicaria o texto para quem está lendo
+- [x] **Degrada em camadas**: sem JS, a tela do Alfredo continua no POST + redirect de sempre (o form ficou intacto); com JS mas sem streaming disponível, o widget usa o POST JSON; falha do provedor cai no texto de contingência, como antes
+- [x] **A primeira mensagem do widget continua sem streaming** — é ela que cria a conversa e define o título. As seguintes streamam
+- [x] **Bug pré-existente corrigido**: o atalho Enter-para-enviar da tela do Alfredo apontava para `.mgr-composer .mgr-input`, e esse ancestral não existe no template — o seletor nunca casou com nada e Enter só quebrava linha
+- [x] **Testes**: 638 no total (4 novos no cliente de IA: ordem dos pedaços, `usage` do último chunk, chunk malformado que não derruba o fluxo, e a ausência de retry). Verificado ao vivo contra o Gemini nas duas telas
+
+
 ---
 
 ## 7. Estrutura de pastas
@@ -1033,4 +1060,4 @@ open http://localhost:8080/swagger-ui.html
 
 ---
 
-**Fim do documento.** Todas as etapas do roadmap estão concluídas (0–22). Próximos passos sugeridos fora do roadmap inicial: validação visual/e2e da landing e dos fluxos de auth, rodar o OWASP Dependency Check contra o NVD (perfil `security` + chave), e um `EmailService` SMTP/SES real para prod.
+**Fim do documento.** Todas as etapas do roadmap estão concluídas (0–24). Próximos passos sugeridos fora do roadmap inicial: validação visual/e2e da landing e dos fluxos de auth, rodar o OWASP Dependency Check contra o NVD (perfil `security` + chave), e um `EmailService` SMTP/SES real para prod.

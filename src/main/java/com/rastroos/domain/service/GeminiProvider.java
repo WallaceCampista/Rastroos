@@ -18,9 +18,10 @@ package com.rastroos.domain.service;
  * {@code text-embedding-004}, de 768) exige um changeset alterando a coluna e
  * reindexar — a validação no boot avisa antes de gravar qualquer coisa errada.
  *
- * <p>Nomes de modelo mudam com frequência no catálogo do fornecedor; os padrões
- * abaixo são ponto de partida e podem ser sobrescritos por {@code AI_MODEL} e
- * {@code AI_EMBEDDING_MODEL}.
+ * <p>Nomes de modelo mudam com frequência no catálogo do fornecedor — e o
+ * Google <b>remove</b> os antigos, devolvendo 404. Os padrões abaixo são ponto
+ * de partida e podem ser sobrescritos por {@code AI_MODEL} e
+ * {@code AI_EMBEDDING_MODEL} sem tocar em código.
  */
 public class GeminiProvider extends OpenAiProvider {
 
@@ -34,9 +35,17 @@ public class GeminiProvider extends OpenAiProvider {
         return "https://generativelanguage.googleapis.com/v1beta/openai";
     }
 
+    /**
+     * Verificado contra o catálogo em 2026-09-12. O {@code gemini-2.0-flash-lite}
+     * que estava aqui foi retirado e passou a responder <b>404</b> — que o app
+     * tratava como indisponibilidade e mascarava no texto local, sem nunca
+     * dizer que o problema era o nome do modelo. Se voltar a dar 404, confira
+     * o catálogo ({@code GET /v1beta/openai/models}) e sobrescreva com
+     * {@code AI_MODEL} enquanto o padrão não é atualizado.
+     */
     @Override
     public String defaultChatModel() {
-        return "gemini-2.0-flash-lite";
+        return "gemini-3.5-flash-lite";
     }
 
     @Override

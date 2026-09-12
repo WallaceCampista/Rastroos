@@ -1,10 +1,16 @@
 package com.rastroos.domain.service;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Consumer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,6 +25,7 @@ import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rastroos.config.AiProperties;
 import com.rastroos.domain.entity.enums.AiFeature;
 
@@ -55,6 +62,8 @@ public class AiModelClient {
 
     /** Base do backoff exponencial entre tentativas. */
     private static final long BACKOFF_BASE_MS = 400;
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final AiProperties props;
     private final AiProvider provider;
@@ -158,6 +167,121 @@ public class AiModelClient {
             throw new AiUnavailableException("Resposta vazia do provedor de IA");
         }
         return new AiCompletion(content.trim(), tokens);
+    }
+
+    /**
+     * Chat em <strong>streaming</strong>: o texto chega em pedaços e cada um é
+     * entregue a {@code onDelta} assim que sai do fio. Devolve o texto inteiro
+     * e os tokens no fim, para o chamador persistir e contabilizar como em
+     * qualquer outra chamada.
+     *
+     * <p><strong>Sem retry, de propósito.</strong> Repetir uma chamada que já
+     * escreveu meia resposta na tela duplicaria o texto para o usuário. Falhou
+     * no meio, quem chama decide (e o evento final do SSE carrega o texto
+     * autoritativo, então a tela nunca fica com um pedaço órfão).
+     */
+    public AiCompletion chatStream(AiFeature feature, UUID userId,
+                                   List<Map<String, Object>> messages,
+                                   int maxTokens, double temperature,
+                                   Consumer<String> onDelta) {
+        requireEnabled();
+
+        Map<String, Object> body = new LinkedHashMap<>(
+                provider.chatBody(chatModel, messages, maxTokens, temperature, null));
+        body.putAll(provider.streamingOptions());
+
+        StringBuilder full = new StringBuilder();
+        AiTokenUsage[] tokens = { AiTokenUsage.ZERO };
+
+        try {
+            textClient.post()
+                    .uri(provider.chatUrl(baseUrl))
+                    .headers(h -> {
+                        h.setBearerAuth(props.getApiKey());
+                        h.setContentType(MediaType.APPLICATION_JSON);
+                        h.setAccept(List.of(MediaType.TEXT_EVENT_STREAM));
+                    })
+                    .body(body)
+                    .exchange((request, response) -> {
+                        HttpStatusCode status = response.getStatusCode();
+                        if (status.isError()) {
+                            throw streamFailure(feature, status, response);
+                        }
+                        readEventStream(response.getBody(), full, tokens, onDelta);
+                        return null;
+                    });
+        } catch (AiUnavailableException e) {
+            throw e;
+        } catch (ResourceAccessException e) {
+            log.warn("IA {}: falha de rede durante o streaming", feature);
+            throw new AiUnavailableException("Provedor de IA inacessível", e);
+        } catch (RuntimeException e) {
+            throw new AiUnavailableException("Falha lendo o streaming do provedor de IA", e);
+        }
+
+        usage.record(userId, feature, chatModel, tokens[0]);
+
+        String content = full.toString().trim();
+        if (content.isEmpty()) {
+            throw new AiUnavailableException("Resposta vazia do provedor de IA");
+        }
+        return new AiCompletion(content, tokens[0]);
+    }
+
+    /**
+     * Lê o corpo {@code text/event-stream} linha a linha. Só interessam as
+     * linhas {@code data:}; {@code [DONE]} encerra. O {@code usage} vem
+     * acumulado nos chunks — guardamos o último não-zero.
+     */
+    private void readEventStream(java.io.InputStream in, StringBuilder full,
+                                 AiTokenUsage[] tokens, Consumer<String> onDelta)
+            throws IOException {
+        try (BufferedReader reader =
+                     new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (!line.startsWith("data:")) {
+                    continue;
+                }
+                String payload = line.substring("data:".length()).trim();
+                if (payload.isEmpty() || "[DONE]".equals(payload)) {
+                    continue;
+                }
+                JsonNode chunk;
+                try {
+                    chunk = MAPPER.readTree(payload);
+                } catch (IOException malformed) {
+                    // Um chunk quebrado não pode derrubar a resposta inteira.
+                    continue;
+                }
+                String delta = provider.readStreamDelta(chunk);
+                if (delta != null && !delta.isEmpty()) {
+                    full.append(delta);
+                    onDelta.accept(delta);
+                }
+                AiTokenUsage chunkUsage = provider.readUsage(chunk);
+                if (chunkUsage != null && chunkUsage.totalTokens() > 0) {
+                    tokens[0] = chunkUsage;
+                }
+            }
+        }
+    }
+
+    /** Erro HTTP no início do streaming, com a mesma leitura de "sem crédito". */
+    private AiUnavailableException streamFailure(AiFeature feature, HttpStatusCode status,
+                                                 org.springframework.http.client.ClientHttpResponse response) {
+        String bodyText = "";
+        try {
+            bodyText = new String(response.getBody().readAllBytes(), StandardCharsets.UTF_8);
+        } catch (IOException ignored) {
+            // Sem corpo legível: o status já basta para a mensagem.
+        }
+        if (provider.isOutOfCredit(status.value(), bodyText)) {
+            log.error("IA {}: conta do provedor sem crédito", feature);
+            return new AiUnavailableException("Conta do provedor de IA sem crédito");
+        }
+        log.warn("IA {}: provedor respondeu {} ao abrir o streaming", feature, status.value());
+        return new AiUnavailableException("Provedor de IA respondeu " + status.value());
     }
 
     /** Vetoriza um lote de textos; a ordem da saída espelha a da entrada. */

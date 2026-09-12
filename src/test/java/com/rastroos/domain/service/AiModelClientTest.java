@@ -229,7 +229,7 @@ class AiModelClientTest {
         props.getEmbedding().setModel("");
         AiModelClient client = new AiModelClient(props, new GeminiProvider(), usage);
 
-        assertThat(client.chatModel()).isEqualTo("gemini-2.0-flash-lite");
+        assertThat(client.chatModel()).isEqualTo("gemini-3.5-flash-lite");
         assertThat(client.embeddingModel()).isEqualTo("gemini-embedding-001");
         assertThat(client.embeddingDimensions()).isEqualTo(1536);
     }
@@ -251,6 +251,85 @@ class AiModelClientTest {
     }
 
     // ── helpers ──────────────────────────────────────────────────────────
+
+    // ── Streaming ────────────────────────────────────────────
+
+    @Test
+    void streaming_entregaOsPedacosEmOrdemEDevolveOTextoInteiro() {
+        Harness h = harness();
+        h.server.expect(MockRestRequestMatchers.requestTo(
+                        "https://fornecedor.local/v1/chat/completions"))
+                .andExpect(MockRestRequestMatchers.jsonPath("$.stream").value(true))
+                .andExpect(MockRestRequestMatchers.jsonPath("$.stream_options.include_usage").value(true))
+                .andRespond(MockRestResponseCreators.withSuccess(SSE_OK, MediaType.TEXT_EVENT_STREAM));
+
+        List<String> deltas = new java.util.ArrayList<>();
+        AiCompletion completion = h.client.chatStream(AiFeature.CHAT, alice,
+                List.of(Map.of("role", "user", "content", "oi")), 50, 0.2, deltas::add);
+
+        assertThat(deltas).containsExactly("Olá", ", tudo bem?");
+        assertThat(completion.content()).isEqualTo("Olá, tudo bem?");
+        // O usage vem acumulado nos chunks: vale o último.
+        assertThat(completion.usage().totalTokens()).isEqualTo(42);
+        verify(usage).record(eq(alice), eq(AiFeature.CHAT), eq("gpt-4o-mini"),
+                eq(new AiTokenUsage(17, 25, 42)));
+    }
+
+    @Test
+    void streaming_chunkQuebradoNaoDerrubaOFluxo() {
+        Harness h = harness();
+        h.server.expect(MockRestRequestMatchers.anything())
+                .andRespond(MockRestResponseCreators.withSuccess(SSE_MALFORMADO,
+                        MediaType.TEXT_EVENT_STREAM));
+
+        AiCompletion completion = h.client.chatStream(AiFeature.CHAT, alice,
+                List.of(Map.of("role", "user", "content", "oi")), 50, 0.2, delta -> { });
+
+        assertThat(completion.content()).isEqualTo("vale isto");
+    }
+
+    /** Streaming não repete: meia resposta na tela + retry = texto duplicado. */
+    @Test
+    void streaming_erroDoProvedorNaoERepetido() {
+        Harness h = harness();
+        h.server.expect(ExpectedCount.once(), MockRestRequestMatchers.anything())
+                .andRespond(MockRestResponseCreators.withServerError());
+
+        assertThatThrownBy(() -> h.client.chatStream(AiFeature.CHAT, alice,
+                List.of(Map.of("role", "user", "content", "oi")), 50, 0.2, delta -> { }))
+                .isInstanceOf(AiUnavailableException.class);
+
+        h.server.verify();
+        verify(usage, never()).record(any(), any(), any(), any());
+    }
+
+    @Test
+    void streaming_semConteudoLancaIndisponivel() {
+        Harness h = harness();
+        h.server.expect(MockRestRequestMatchers.anything())
+                .andRespond(MockRestResponseCreators.withSuccess("data: [DONE]\n\n",
+                        MediaType.TEXT_EVENT_STREAM));
+
+        assertThatThrownBy(() -> h.client.chatStream(AiFeature.CHAT, alice,
+                List.of(Map.of("role", "user", "content", "oi")), 50, 0.2, delta -> { }))
+                .isInstanceOf(AiUnavailableException.class);
+    }
+
+    private static final String SSE_OK =
+            "data: {\"choices\":[{\"delta\":{\"role\":\"assistant\"}}]}\n\n"
+            + "data: {\"choices\":[{\"delta\":{\"content\":\"Olá\"}}],"
+            + "\"usage\":{\"prompt_tokens\":17,\"completion_tokens\":9,\"total_tokens\":26}}\n\n"
+            + "data: {\"choices\":[{\"delta\":{\"content\":\", tudo bem?\"}}],"
+            + "\"usage\":{\"prompt_tokens\":17,\"completion_tokens\":25,\"total_tokens\":42}}\n\n"
+            + "data: {\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\"}]}\n\n"
+            + "data: [DONE]\n\n";
+
+    private static final String SSE_MALFORMADO =
+            "data: {\"choices\":[{\"delta\":{\"content\":\"vale\"}}]}\n\n"
+            + "data: {isso nao e json}\n\n"
+            + "data: {\"choices\":[{\"delta\":{\"content\":\" isto\"}}],"
+            + "\"usage\":{\"prompt_tokens\":1,\"completion_tokens\":2,\"total_tokens\":3}}\n\n"
+            + "data: [DONE]\n\n";
 
     private record Harness(AiModelClient client, MockRestServiceServer server) { }
 

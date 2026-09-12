@@ -11,6 +11,7 @@ import java.util.UUID;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.rastroos.domain.service.VectorDocument;
 import com.rastroos.domain.service.VectorMatch;
@@ -27,6 +28,11 @@ import com.rastroos.domain.service.VectorMatch;
  * {@code CAST(? AS vector)}.
  *
  * <p>Toda consulta filtra por {@code user_id} (§2.2).
+ *
+ * <p><strong>As escritas carregam a própria transação</strong>, curta e só em
+ * volta do SQL. Quem chama monta o lote fora de transação nenhuma, porque no
+ * meio do caminho há uma chamada HTTP ao provedor de embeddings — segurar
+ * conexão do pool durante essa espera é justamente o que §4.1 proíbe.
  */
 @Repository
 public class VectorStoreRepository {
@@ -62,19 +68,33 @@ public class VectorStoreRepository {
         this.jdbc = jdbc;
     }
 
-    /** Impressões digitais já indexadas, por {@code kind|refId}. */
-    public Map<String, String> hashesByUser(UUID userId) {
+    /**
+     * Impressões digitais já indexadas, por {@code kind|refId}.
+     *
+     * <p>A impressão inclui o <b>modelo</b> que gerou o vetor, e não só o hash
+     * do texto: vetor de fornecedores diferentes vive em espaços diferentes,
+     * mesmo tendo a mesma dimensão. Sem o modelo na comparação, trocar de motor
+     * deixaria os vetores antigos no banco e a busca semântica passaria a
+     * comparar maçã com laranja — sem erro nenhum, só resultado ruim.
+     */
+    public Map<String, String> fingerprintsByUser(UUID userId) {
         Map<String, String> out = new HashMap<>();
-        jdbc.query("SELECT kind, ref_id, content_hash FROM ai_documents WHERE user_id = ?",
+        jdbc.query("SELECT kind, ref_id, content_hash, model FROM ai_documents WHERE user_id = ?",
                 rs -> {
                     out.put(rs.getString("kind") + '|' + rs.getString("ref_id"),
-                            rs.getString("content_hash"));
+                            fingerprint(rs.getString("content_hash"), rs.getString("model")));
                 },
                 userId);
         return out;
     }
 
+    /** Impressão digital de um documento indexado: texto + modelo do vetor. */
+    public static String fingerprint(String contentHash, String model) {
+        return contentHash + '@' + (model == null ? "" : model);
+    }
+
     /** Grava (ou atualiza) documentos já vetorizados. */
+    @Transactional
     public void upsertAll(UUID userId, List<VectorDocument> docs, List<float[]> embeddings, String model) {
         if (docs.isEmpty()) {
             return;
@@ -95,6 +115,7 @@ public class VectorStoreRepository {
     }
 
     /** Remove documentos cuja linha de origem sumiu (ou saiu da janela indexada). */
+    @Transactional
     public int deleteByKeys(UUID userId, Collection<String> kindAndRefIds) {
         int removed = 0;
         for (String key : kindAndRefIds) {
@@ -109,6 +130,7 @@ public class VectorStoreRepository {
         return removed;
     }
 
+    @Transactional
     public int deleteAllByUser(UUID userId) {
         return jdbc.update("DELETE FROM ai_documents WHERE user_id = ?", userId);
     }

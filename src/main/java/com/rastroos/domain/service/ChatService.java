@@ -2,6 +2,7 @@ package com.rastroos.domain.service;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 import org.springframework.stereotype.Service;
 
@@ -130,6 +131,27 @@ public class ChatService {
     public ChatDetailDto send(ChatScope scope, UUID chatId, String message) {
         Chat chat = store.require(scope.chatOwnerId(), chatId);
         exchange(scope, chat.getId(), message.strip());
+        return store.detail(chat);
+    }
+
+    /**
+     * Mesma coisa de {@link #send}, com a resposta chegando em pedaços.
+     * {@code onDelta} recebe cada trecho assim que o modelo o produz; o texto
+     * completo só é persistido no fim, então a conversa gravada nunca fica
+     * com meia resposta.
+     */
+    public ChatDetailDto sendStreaming(ChatScope scope, UUID chatId, String message,
+                                       Consumer<String> onDelta) {
+        Chat chat = store.require(scope.chatOwnerId(), chatId);
+        String userText = message.strip();
+
+        List<ChatMessage> prior = store.messagesOf(chat.getId());
+        store.append(chat.getId(), ChatMessageRole.USER, userText);
+
+        String context = buildContext(scope, userText);
+        String answer = ai.replyStreaming(scope.chatOwnerId(), userText, prior, context, onDelta);
+
+        store.append(chat.getId(), ChatMessageRole.ASSISTANT, answer);
         return store.detail(chat);
     }
 

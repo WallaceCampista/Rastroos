@@ -69,6 +69,33 @@ public interface AiProvider {
     /** Texto da resposta, ou {@code null} se não houver. */
     String readContent(JsonNode response);
 
+    /**
+     * O que somar ao corpo do chat para receber a resposta em pedaços (SSE).
+     * {@code include_usage} é o que mantém a contabilidade de tokens viva no
+     * caminho streamado — sem isso, §4.1 ("sempre contabilizar") deixaria de
+     * valer justamente na funcionalidade mais usada.
+     *
+     * <p>Padrão = dialeto OpenAI, que o Gemini também fala pela camada de
+     * compatibilidade. Um fornecedor com outro formato sobrescreve.
+     */
+    default Map<String, Object> streamingOptions() {
+        return Map.of("stream", true,
+                      "stream_options", Map.of("include_usage", true));
+    }
+
+    /**
+     * O pedaço de texto de um chunk SSE, ou {@code null} quando o chunk não
+     * traz conteúdo (só papéis, sinalizações ou o {@code usage} final).
+     */
+    default String readStreamDelta(JsonNode chunk) {
+        JsonNode choices = chunk.path("choices");
+        if (!choices.isArray() || choices.isEmpty()) {
+            return null;
+        }
+        JsonNode content = choices.get(0).path("delta").path("content");
+        return content.isTextual() ? content.asText() : null;
+    }
+
     AiTokenUsage readUsage(JsonNode response);
 
     /** Vetores na ordem das entradas. */

@@ -84,10 +84,11 @@ class VectorStoreRepositoryTest extends RepositoryTestBase {
                 List.of(doc("TRANSACTION", "1", "a"), doc("ACCOUNT", "9", "b")),
                 List.of(unit(0), unit(1)), "m");
 
-        Map<String, String> hashes = store.hashesByUser(alice);
+        Map<String, String> fingerprints = store.fingerprintsByUser(alice);
 
-        assertThat(hashes).containsOnlyKeys("TRANSACTION|1", "ACCOUNT|9");
-        assertThat(hashes.get("TRANSACTION|1")).isEqualTo("hash-TRANSACTION-1");
+        assertThat(fingerprints).containsOnlyKeys("TRANSACTION|1", "ACCOUNT|9");
+        // A impressão carrega o modelo junto do hash do texto.
+        assertThat(fingerprints.get("TRANSACTION|1")).isEqualTo("hash-TRANSACTION-1@m");
     }
 
     @Test
@@ -98,7 +99,7 @@ class VectorStoreRepositoryTest extends RepositoryTestBase {
 
         assertThat(store.deleteByKeys(alice, Set.of("TRANSACTION|2"))).isEqualTo(1);
 
-        assertThat(store.hashesByUser(alice)).containsOnlyKeys("TRANSACTION|1");
+        assertThat(store.fingerprintsByUser(alice)).containsOnlyKeys("TRANSACTION|1");
     }
 
     @Test
@@ -106,7 +107,7 @@ class VectorStoreRepositoryTest extends RepositoryTestBase {
         store.upsertAll(alice, List.of(doc("TRANSACTION", "1", "fica")), List.of(unit(0)), "m");
 
         assertThat(store.deleteByKeys(alice, Set.of("sem-separador"))).isZero();
-        assertThat(store.hashesByUser(alice)).hasSize(1);
+        assertThat(store.fingerprintsByUser(alice)).hasSize(1);
     }
 
     @Test
@@ -116,15 +117,15 @@ class VectorStoreRepositoryTest extends RepositoryTestBase {
 
         assertThat(store.deleteAllByUser(alice)).isEqualTo(1);
 
-        assertThat(store.hashesByUser(alice)).isEmpty();
-        assertThat(store.hashesByUser(bob)).hasSize(1);
+        assertThat(store.fingerprintsByUser(alice)).isEmpty();
+        assertThat(store.fingerprintsByUser(bob)).hasSize(1);
     }
 
     @Test
     void listaVaziaNaoFazNada() {
         store.upsertAll(alice, List.of(), List.of(), "m");
 
-        assertThat(store.hashesByUser(alice)).isEmpty();
+        assertThat(store.fingerprintsByUser(alice)).isEmpty();
     }
 
     // ── helpers ──────────────────────────────────────────────────────────

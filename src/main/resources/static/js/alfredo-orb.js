@@ -14,7 +14,9 @@
       ela aparece no histórico da tela /app/manager.
 
    Telas sem resumo (data-screen ausente) só ganham o atalho de chat.
-   Todo texto vindo do servidor entra por textContent (nunca innerHTML).
+   Todo texto vindo do servidor entra por textContent (nunca innerHTML);
+   a fala do Alfredo passa pelo markdown.js, que monta os nós um a um —
+   também sem innerHTML.
    ───────────────────────────────────────────────────────────── */
 (() => {
     'use strict';
@@ -214,7 +216,12 @@
 
         const body = document.createElement('div');
         body.className = 'alf-msg-bubble';
-        body.textContent = text;
+        // A fala do Alfredo vem em Markdown; a do usuário é texto puro.
+        if (role !== 'user' && window.RastroosMarkdown) {
+            window.RastroosMarkdown.render(body, text);
+        } else {
+            body.textContent = text;
+        }
 
         wrap.append(avatar, body);
         thread.appendChild(wrap);
@@ -375,19 +382,25 @@
         const typing = appendTyping();
 
         try {
-            const detail = state.chatId
-                ? await postJson(`${cfg.chatUrl}/${encodeURIComponent(state.chatId)}/messages`,
-                                 { message })
-                : await postJson(
-                    state.summary && cfg.screen
-                        ? withYm(`${cfg.insightUrl}/${encodeURIComponent(cfg.screen)}/chat`)
-                        : cfg.chatUrl,
-                    { message });
+            // Com conversa aberta a resposta vem em streaming (aparece
+            // conforme o modelo escreve). A PRIMEIRA mensagem ainda vai pelo
+            // POST comum porque é ela que cria a conversa e define o título.
+            if (state.chatId && window.RastroosStream) {
+                await streamInto(typing, state.chatId, message);
+                linkToManager();
+                return;
+            }
+
+            const detail = await postJson(
+                state.summary && cfg.screen
+                    ? withYm(`${cfg.insightUrl}/${encodeURIComponent(cfg.screen)}/chat`)
+                    : cfg.chatUrl,
+                { message });
 
             state.chatId = detail.id;
             // Troca o "digitando" pela resposta: mantém a thread local intacta
             // (a persistida é a mesma) e evita o pisca de um re-render inteiro.
-            typing.querySelector('.alf-msg-bubble').textContent = lastAnswer(detail);
+            renderAnswer(typing, lastAnswer(detail));
             thread.scrollTop = thread.scrollHeight;
             linkToManager();
         } catch (err) {
@@ -399,6 +412,62 @@
             setSending(false);
             chatInput.focus();
         }
+    };
+
+    /** Escreve a resposta no balão, em Markdown. */
+    const renderAnswer = (wrap, text) => {
+        const body = wrap.querySelector('.alf-msg-bubble');
+        if (window.RastroosMarkdown) {
+            window.RastroosMarkdown.render(body, text);
+        } else {
+            body.textContent = text;
+        }
+    };
+
+    /**
+     * Consome o streaming no balão que está com o "digitando". Repinta uma vez
+     * por frame: o modelo manda dezenas de pedaços por segundo e re-renderizar
+     * markdown em cada um engasga a animação.
+     */
+    const streamInto = (wrap, chatId, message) => {
+        const body = wrap.querySelector('.alf-msg-bubble');
+        let buffer = '';
+        let painting = false;
+
+        const paint = () => {
+            painting = false;
+            renderAnswer(wrap, buffer);
+            thread.scrollTop = thread.scrollHeight;
+        };
+
+        return window.RastroosStream.post(
+            `${cfg.chatUrl}/${encodeURIComponent(chatId)}/messages/stream`,
+            { message },
+            {
+                // O widget não tem form na página: o token vem da config do
+                // fragmento, igual às outras chamadas do orbe.
+                csrf: cfg.csrf,
+                onDelta: (chunk) => {
+                    buffer += chunk;
+                    if (!painting) {
+                        painting = true;
+                        window.requestAnimationFrame(paint);
+                    }
+                },
+                onDone: (full) => {
+                    buffer = full || buffer;
+                    paint();
+                },
+                onError: () => {
+                    if (buffer) {
+                        paint();
+                        return;
+                    }
+                    body.textContent = '';
+                    showError('Não consegui falar com o Alfredo agora. '
+                        + 'Tente novamente em instantes.');
+                },
+            });
     };
 
     chatForm.addEventListener('submit', (e) => {

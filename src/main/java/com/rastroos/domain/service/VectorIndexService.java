@@ -17,7 +17,6 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import com.rastroos.config.AiProperties;
 import com.rastroos.domain.entity.Account;
@@ -94,20 +93,30 @@ public class VectorIndexService {
      * @return quantos documentos foram (re)vetorizados; {@code 0} quando nada
      *         mudou — o caso comum, e o que mantém o custo perto de zero
      */
-    @Transactional(readOnly = true)
+    // Sem @Transactional de propósito: entre a leitura e a gravação há a
+    // chamada HTTP de embeddings, e §4.1 proíbe segurar conexão do pool nessa
+    // espera. As leituras vêm dos repositórios (cada uma na sua transação) e
+    // as escritas têm transação própria e curta no VectorStoreRepository.
+    // (Antes isto era @Transactional(readOnly = true) e o INSERT morria com
+    // SQLSTATE 25006 — invisível, porque a reindexação engole exceção.)
     public int reindex(UUID userId) {
         if (!embeddings.isEnabled()) {
             return 0;
         }
 
         List<VectorDocument> desired = collect(userId);
-        Map<String, String> indexed = store.hashesByUser(userId);
+        Map<String, String> indexed = store.fingerprintsByUser(userId);
+        String model = embeddings.modelName();
 
         List<VectorDocument> changed = new ArrayList<>();
         Set<String> stillWanted = new HashSet<>(desired.size());
         for (VectorDocument doc : desired) {
             stillWanted.add(doc.key());
-            if (!doc.contentHash().equals(indexed.get(doc.key()))) {
+            // Muda o texto OU muda o modelo → vetoriza de novo. Trocar de
+            // fornecedor reindexa sozinho, em vez de deixar vetor órfão de
+            // outro espaço vetorial respondendo às buscas.
+            String wanted = VectorStoreRepository.fingerprint(doc.contentHash(), model);
+            if (!wanted.equals(indexed.get(doc.key()))) {
                 changed.add(doc);
             }
         }
@@ -127,14 +136,13 @@ public class VectorIndexService {
 
         List<String> texts = changed.stream().map(VectorDocument::content).toList();
         List<float[]> vectors = embeddings.embedAll(userId, texts);
-        store.upsertAll(userId, changed, vectors, embeddings.modelName());
+        store.upsertAll(userId, changed, vectors, model);
         log.debug("Índice semântico atualizado: {} documento(s) vetorizados, {} removido(s)",
                 changed.size(), orphans.size());
         return changed.size();
     }
 
     /** Apaga tudo o que foi indexado para o usuário (exclusão de conta/LGPD). */
-    @Transactional(readOnly = true)
     public int purge(UUID userId) {
         return store.deleteAllByUser(userId);
     }
