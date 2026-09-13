@@ -119,6 +119,18 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
     long countByUserIdAndAccountIdAndDueDateGreaterThanEqual(UUID userId, UUID accountId,
                                                              LocalDate from);
 
+    List<Transaction> findAllByUserIdAndAccountIdAndDueDateGreaterThanEqual(UUID userId,
+                                                                           UUID accountId,
+                                                                           LocalDate from);
+
+    long countByUserIdAndSeriesId(UUID userId, UUID seriesId);
+
+    long countByUserIdAndSeriesIdAndDueDateGreaterThanEqual(UUID userId, UUID seriesId, LocalDate from);
+
+    void deleteByUserIdAndSeriesId(UUID userId, UUID seriesId);
+
+    void deleteByUserIdAndSeriesIdAndDueDateGreaterThanEqual(UUID userId, UUID seriesId, LocalDate from);
+
     void deleteByUserIdAndAccountId(UUID userId, UUID accountId);
 
     void deleteByUserIdAndAccountIdAndDueDateGreaterThanEqual(UUID userId, UUID accountId,

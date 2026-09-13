@@ -1,0 +1,200 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Conferir fatura · Rastroo$</title>
+    <link rel="stylesheet" th:href="@{/css/tokens.css}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/components.css}">
+    <link rel="stylesheet" th:href="@{/css/screens/cards.css}">
+</head>
+<body>
+<!-- Corpo do modal: cards-detail.js troca o detalhe da conta por este conteúdo. -->
+<div class="app-content">
+<div class="acct-detail inv-review" data-modal-content th:with="rv=${review}">
+
+    <div class="acct-detail-top">
+        <header class="acct-detail-head" th:attr="data-detail-tint=${rv.accountColorHex()}">
+            <span class="acc-chip acct-detail-chip" th:attr="data-fill=${rv.accountColorHex()}"
+                  th:text="${rv.accountIconText() != null and !rv.accountIconText().isBlank() ? rv.accountIconText() : #strings.substring(rv.accountName(),0,1)}">·</span>
+            <div class="acct-detail-meta">
+                <div class="acct-detail-name">Conferir fatura</div>
+                <div class="acct-detail-sub muted">
+                    <span th:text="${rv.accountName()}">Cartão</span>
+                    <span th:if="${rv.accountLast4() != null}">· •••• <span th:text="${rv.accountLast4()}">1234</span></span>
+                </div>
+            </div>
+            <button type="button" class="icon-btn acct-detail-close" data-modal-close aria-label="Fechar">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M6 18L18 6"/></svg>
+            </button>
+        </header>
+    </div>
+
+    <!-- Leitura falhou: só o aviso e o caminho de volta. -->
+    <th:block th:if="${rv.hasError()}">
+        <div class="acct-note is-error" th:text="#{${rv.error()}}">Não consegui ler a fatura.</div>
+        <div class="inv-foot">
+            <a class="btn btn-ghost" data-modal-url
+               th:href="@{/app/cards/{id}/detail(id=${rv.accountId()})}">Voltar ao cartão</a>
+        </div>
+    </th:block>
+
+    <form th:unless="${rv.hasError()}" class="inv-form" method="post"
+          th:action="@{/app/cards/{id}/invoice/import(id=${rv.accountId()})}"
+          th:attr="data-review-url=@{/app/cards/{id}/invoice/review(id=${rv.accountId()})}"
+          data-invoice-review>
+        <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+        <input type="hidden" name="dueDateRead" th:value="${rv.dueDateRead()}">
+        <input type="hidden" name="totalRead" th:if="${rv.totalRead() != null}" th:value="${rv.totalRead()}">
+        <input type="hidden" name="last4Read" th:if="${rv.last4Read() != null}" th:value="${rv.last4Read()}">
+
+        <div class="acct-note is-warn" th:if="${rv.last4Mismatch()}">
+            Esta fatura é do cartão final <strong th:text="${rv.last4Read()}">5678</strong>, e este cartão
+            é final <strong th:text="${rv.accountLast4()}">1234</strong>. Confira se anexou no cartão certo.
+        </div>
+        <div class="acct-note is-warn" th:unless="${rv.dueDateRead()}">
+            Não consegui ler o vencimento na fatura. Confira a data abaixo: é ela que define o mês dos lançamentos.
+        </div>
+        <div class="acct-note" th:if="${recalculated}">
+            Conferência refeita para o novo vencimento. Confira as marcações.
+        </div>
+
+        <div class="inv-head-fields">
+            <label class="inv-field">
+                <span>Vencimento da fatura</span>
+                <input class="input" type="date" name="dueDate" required
+                       th:value="${rv.dueDate()}" data-invoice-due
+                       th:attr="data-month=${#temporals.format(rv.dueDate(), 'yyyy-MM')}">
+            </label>
+            <div class="inv-field inv-total" th:if="${rv.totalRead() != null}">
+                <span>Total da fatura</span>
+                <strong class="money" th:text="${'R$ ' + #numbers.formatDecimal(rv.totalRead(), 1, 'POINT', 2, 'COMMA')}">R$ 0,00</strong>
+            </div>
+        </div>
+
+        <p class="inv-summary">
+            <span th:text="${rv.items().size()}">0</span> lançamento(s) lido(s):
+            <span class="inv-count is-new"><span th:text="${rv.count('new')}">0</span> novo(s)</span>
+            <span class="inv-count" th:if="${rv.count('existing') > 0}"><span th:text="${rv.count('existing')}">0</span> já lançado(s)</span>
+            <span class="inv-count is-warn" th:if="${rv.count('adjust') > 0}"><span th:text="${rv.count('adjust')}">0</span> com valor a ajustar</span>
+            <span class="inv-count is-warn" th:if="${rv.count('duplicate') > 0}"><span th:text="${rv.count('duplicate')}">0</span> possível(is) duplicado(s)</span>
+        </p>
+
+        <label class="inv-toggle-all" th:if="${rv.items().size() > 1}">
+            <input type="checkbox" data-invoice-toggle-all>
+            <span>Marcar todos</span>
+        </label>
+
+        <ul class="inv-items">
+            <li class="inv-item" th:each="it : ${rv.items()}"
+                th:classappend="'is-' + ${it.status()}">
+                <input type="hidden" th:name="|items[${it.index()}].dateLabel|" th:value="${it.dateLabel()}" th:if="${it.dateLabel() != null}">
+                <input type="hidden" th:name="|items[${it.index()}].description|" th:value="${it.description()}">
+                <input type="hidden" th:name="|items[${it.index()}].amount|" th:value="${it.amount()}">
+                <input type="hidden" th:name="|items[${it.index()}].type|" th:value="${it.type()}">
+                <th:block th:if="${it.isInstallment()}">
+                    <input type="hidden" th:name="|items[${it.index()}].installment|" th:value="${it.installment()}">
+                    <input type="hidden" th:name="|items[${it.index()}].installments|" th:value="${it.installments()}">
+                </th:block>
+
+                <input th:if="${it.selectable()}" type="checkbox" class="inv-check" value="true"
+                       th:id="|inv-sel-${it.index()}|" th:name="|items[${it.index()}].selected|"
+                       th:checked="${it.selected()}" data-invoice-select
+                       th:attr="data-cents=${it.amount().movePointRight(2).longValue()}">
+                <span th:unless="${it.selectable()}" class="inv-check-done" aria-hidden="true">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>
+                </span>
+
+                <label class="inv-item-main" th:for="${it.selectable()} ? |inv-sel-${it.index()}| : null">
+                    <span class="inv-item-top">
+                        <span class="inv-item-desc" th:text="${it.description()}">Loja</span>
+                        <span class="money money-sm" th:text="${'R$ ' + #numbers.formatDecimal(it.amount(), 1, 'POINT', 2, 'COMMA')}">R$ 0,00</span>
+                    </span>
+                    <span class="inv-item-meta">
+                        <span th:if="${it.dateLabel() != null}" th:text="${it.dateLabel()}">12/09</span>
+                        <span th:if="${it.isInstallment()}" class="pill pill-xs" th:text="${it.installmentLabel()}">3/10</span>
+                        <span th:if="${it.type().name() == 'FEE'}" class="pill pill-xs">Encargo</span>
+                        <span class="pill pill-xs" th:switch="${it.status()}"
+                              th:classappend="${it.status() == 'new'} ? 'pill-success' : (${it.status() == 'existing'} ? '' : 'pill-warn')">
+                            <th:block th:case="'new'">Novo</th:block>
+                            <th:block th:case="'existing'">Já lançado</th:block>
+                            <th:block th:case="'adjust'">Ajustar valor</th:block>
+                            <th:block th:case="'duplicate'">Possível duplicado</th:block>
+                        </span>
+                    </span>
+                    <span class="inv-item-hint" th:switch="${it.status()}"
+                          th:if="${it.status() != 'new' or (it.isInstallment() and (it.futureToCreate() > 0 or it.futureExisting() > 0))}">
+                        <th:block th:case="'new'">
+                            <th:block th:if="${it.isInstallment() and it.futureToCreate() > 0}">
+                                Lança também <span th:text="${it.futureToCreate()}">0</span> parcela(s) nas próximas faturas<th:block
+                                    th:if="${it.futureExisting() > 0}"> (<span th:text="${it.futureExisting()}">0</span> já estavam lançadas)</th:block>.
+                            </th:block>
+                            <th:block th:if="${it.isInstallment() and it.futureToCreate() == 0 and it.futureExisting() > 0}">
+                                As próximas parcelas já estão lançadas.
+                            </th:block>
+                        </th:block>
+                        <th:block th:case="'existing'">Já está no sistema: não será lançado de novo.</th:block>
+                        <th:block th:case="'adjust'">
+                            Lançado com <span th:text="${'R$ ' + #numbers.formatDecimal(it.matchAmount(), 1, 'POINT', 2, 'COMMA')}">R$ 0,00</span>.
+                            Marcado, passa para o valor da fatura.
+                        </th:block>
+                        <th:block th:case="'duplicate'">
+                            Parece com “<span th:text="${it.matchDescription()}">Lançamento</span>”
+                            (<span th:text="${'R$ ' + #numbers.formatDecimal(it.matchAmount(), 1, 'POINT', 2, 'COMMA')}">R$ 0,00</span>),
+                            já lançado. Marque só se for outro gasto.
+                        </th:block>
+                    </span>
+                </label>
+
+                <select th:if="${it.selectable() and it.status() != 'adjust'}" class="input inv-cat"
+                        th:name="|items[${it.index()}].categoryId|" aria-label="Categoria">
+                    <option th:each="c : ${rv.categories()}" th:value="${c.id()}" th:text="${c.name()}"
+                            th:selected="${c.id() == it.categoryId()}">Categoria</option>
+                </select>
+                <input th:unless="${it.selectable() and it.status() != 'adjust'}" type="hidden"
+                       th:name="|items[${it.index()}].categoryId|" th:value="${it.categoryId()}">
+            </li>
+        </ul>
+
+        <details class="inv-ignored" th:unless="${rv.ignored().isEmpty()}">
+            <summary>
+                <span th:text="${rv.ignored().size()}">0</span> crédito(s) e pagamento(s) não importados
+                (<span th:text="${'R$ ' + #numbers.formatDecimal(rv.ignoredSum(), 1, 'POINT', 2, 'COMMA')}">R$ 0,00</span>)
+            </summary>
+            <p class="inv-ignored-note">
+                Estorno e pagamento entram com sinal contrário e não viram gasto. Se um estorno anula uma compra
+                desta fatura, desmarque a compra.
+            </p>
+            <ul class="inv-ignored-list">
+                <li th:each="it : ${rv.ignored()}">
+                    <input type="hidden" th:name="|items[${it.index()}].dateLabel|" th:value="${it.dateLabel()}" th:if="${it.dateLabel() != null}">
+                    <input type="hidden" th:name="|items[${it.index()}].description|" th:value="${it.description()}">
+                    <input type="hidden" th:name="|items[${it.index()}].amount|" th:value="${it.amount()}">
+                    <input type="hidden" th:name="|items[${it.index()}].type|" th:value="${it.type()}">
+                    <input type="hidden" th:name="|items[${it.index()}].categoryId|" th:value="${it.categoryId()}">
+                    <span class="inv-item-desc" th:text="${it.description()}">Estorno</span>
+                    <span class="pill pill-xs" th:text="${it.type().name() == 'PAYMENT' ? 'Pagamento' : 'Crédito'}">Crédito</span>
+                    <span class="money money-sm" th:text="${'R$ ' + #numbers.formatDecimal(it.amount(), 1, 'POINT', 2, 'COMMA')}">R$ 0,00</span>
+                </li>
+            </ul>
+        </details>
+
+        <div class="inv-foot">
+            <div class="inv-foot-sum">
+                <span class="muted">Marcados</span>
+                <strong class="money" data-invoice-selected-sum
+                        th:text="${'R$ ' + #numbers.formatDecimal(rv.selectedSum(), 1, 'POINT', 2, 'COMMA')}">R$ 0,00</strong>
+            </div>
+            <a class="btn btn-ghost" data-modal-url
+               th:href="@{/app/cards/{id}/detail(id=${rv.accountId()}, ym=${#temporals.format(rv.dueDate(), 'yyyy-MM')})}">Voltar</a>
+            <button type="submit" class="btn btn-primary" data-invoice-submit
+                    th:disabled="${rv.selectedCount() == 0}">
+                Lançar <span data-invoice-selected-count th:text="${rv.selectedCount()}">0</span>
+            </button>
+        </div>
+    </form>
+</div>
+</div>
+</body>
+</html>

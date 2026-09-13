@@ -31,6 +31,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.Import;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.security.web.access.expression.DefaultWebSecurityExpressionHandler;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -47,8 +49,11 @@ import com.rastroos.security.LockoutPreAuthFilter;
 import com.rastroos.security.LoginFailureHandler;
 import com.rastroos.security.LoginSuccessHandler;
 import com.rastroos.web.interceptor.TopbarChipsInterceptor;
+import com.rastroos.web.dto.AccountDetailView;
 import com.rastroos.web.dto.AccountSummaryDto;
+import com.rastroos.web.dto.TransactionDto;
 import com.rastroos.web.dto.AccountsView;
+import com.rastroos.web.dto.InvoiceImportResult;
 import com.rastroos.web.form.AccountForm;
 import com.rastroos.web.support.PeriodResolver;
 
@@ -86,6 +91,12 @@ class AccountControllerTest {
         @Bean
         Clock testClock() {
             return Clock.fixed(Instant.parse("2026-05-15T12:00:00Z"), ZoneId.of("UTC"));
+        }
+
+        /** O detalhe usa {@code sec:authorize}; o slice sem Spring Security não traz o avaliador. */
+        @Bean
+        DefaultWebSecurityExpressionHandler webSecurityExpressionHandler() {
+            return new DefaultWebSecurityExpressionHandler();
         }
     }
 
@@ -153,6 +164,98 @@ class AccountControllerTest {
 
         mvc.perform(get("/app/cards/{id}/edit", id))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser
+    void detailAbreComoModalComAcoesNoTopoEExclusaoPorLancamento() throws Exception {
+        UUID id = UUID.randomUUID();
+        UUID txId = UUID.randomUUID();
+        when(currentUser.hasAiAccess()).thenReturn(true);
+        when(accountService.accountDetail(userId, id, YearMonth.of(2026, 5)))
+                .thenReturn(detail(id, AccountKind.CARD, txId));
+
+        String html = mvc.perform(get("/app/cards/{id}/detail", id).param("ym", "2026-05"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("app/account-detail"))
+                .andReturn().getResponse().getContentAsString();
+
+        org.assertj.core.api.Assertions.assertThat(html)
+                .contains("data-modal-content")
+                .contains("acct-actions")
+                .contains("data-invoice-attach")
+                .contains("/app/cards/" + id + "/invoice/extract")
+                .contains("/app/expenses/" + txId + "/delete?from=cards");
+    }
+
+    @Test
+    @WithMockUser
+    void detailSemAlfredoLiberadoNaoOfereceAnexarFatura() throws Exception {
+        UUID id = UUID.randomUUID();
+        when(currentUser.hasAiAccess()).thenReturn(false);
+        when(accountService.accountDetail(userId, id, YearMonth.of(2026, 5)))
+                .thenReturn(detail(id, AccountKind.CARD, UUID.randomUUID()));
+
+        String html = mvc.perform(get("/app/cards/{id}/detail", id).param("ym", "2026-05"))
+                .andReturn().getResponse().getContentAsString();
+
+        org.assertj.core.api.Assertions.assertThat(html)
+                .contains("acct-actions")
+                .doesNotContain("data-invoice-attach")
+                .doesNotContain("/invoice/extract");
+    }
+
+    @Test
+    @WithMockUser
+    void detailDeContaQueNaoECartaoDeCreditoNaoOfereceAnexarFatura() throws Exception {
+        UUID id = UUID.randomUUID();
+        when(currentUser.hasAiAccess()).thenReturn(true);
+        when(accountService.accountDetail(userId, id, YearMonth.of(2026, 5)))
+                .thenReturn(detail(id, AccountKind.DEBIT, UUID.randomUUID()));
+
+        String html = mvc.perform(get("/app/cards/{id}/detail", id).param("ym", "2026-05"))
+                .andReturn().getResponse().getContentAsString();
+
+        org.assertj.core.api.Assertions.assertThat(html).doesNotContain("data-invoice-attach");
+    }
+
+    @Test
+    void listMostraOResultadoDaImportacaoDaFatura() throws Exception {
+        AccountsView empty = new AccountsView(List.of(), List.of(), List.of(),
+                BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, 0);
+        when(accountService.listForMonth(eq(userId), eq(YearMonth.of(2026, 10)))).thenReturn(empty);
+
+        String semAjuste = mvc.perform(get("/app/cards").param("ym", "2026-10")
+                        .flashAttr("importResult", new InvoiceImportResult(8, 9, 0, YearMonth.of(2026, 10))))
+                .andReturn().getResponse().getContentAsString();
+        String nadaNovo = mvc.perform(get("/app/cards").param("ym", "2026-10")
+                        .flashAttr("importResult", new InvoiceImportResult(0, 0, 0, YearMonth.of(2026, 10))))
+                .andReturn().getResponse().getContentAsString();
+
+        org.assertj.core.api.Assertions.assertThat(semAjuste)
+                .contains("Fatura importada: 8 lançamento(s) nesta fatura e 9 parcela(s) nas próximas.")
+                .doesNotContain("ajustado");
+        org.assertj.core.api.Assertions.assertThat(nadaNovo).contains("Nada novo para lançar");
+    }
+
+    @Test
+    void pagarFaturaVoltaComODetalheAberto() throws Exception {
+        UUID id = UUID.randomUUID();
+
+        mvc.perform(post("/app/cards/{id}/pay", id).param("ym", "2026-05"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/app/cards?ym=2026-05&open=" + id))
+                .andExpect(flash().attribute("ok", "account.invoicePaid"));
+    }
+
+    private static AccountDetailView detail(UUID id, AccountKind kind, UUID txId) {
+        AccountSummaryDto account = new AccountSummaryDto(id, "Nubank", kind, "#8a05be", null, "1234",
+                (short) 3, (short) 10, new BigDecimal("100.00"), BigDecimal.ZERO, new BigDecimal("100.00"),
+                0, 1, "open");
+        TransactionDto tx = new TransactionDto(txId, "LOJA X", id, "Nubank", "#8a05be", "outros", "Outros",
+                "#94a3b8", new BigDecimal("100.00"), java.time.LocalDate.of(2026, 5, 10), false, false, null,
+                (short) 3, (short) 10);
+        return new AccountDetailView(account, 2026, List.of(tx), List.of());
     }
 
     @Test

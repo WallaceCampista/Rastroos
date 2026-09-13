@@ -405,6 +405,105 @@ class TransactionServiceTest {
     }
 
     @Test
+    void createParceladoLigaTodasAsParcelasNaMesmaSerie() {
+        TransactionForm form = makeForm("Geladeira", new BigDecimal("450.00"), LocalDate.of(2026, 5, 10), 3);
+        when(accountsRepo.findByIdAndUserId(accountId, alice)).thenReturn(Optional.of(accountOf(alice)));
+        when(categoriesRepo.existsById("outros")).thenReturn(true);
+        when(txRepo.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+        List<Transaction> created = service.create(alice, form);
+
+        assertThat(created).extracting(Transaction::getSeriesId).doesNotContainNull();
+        assertThat(created).extracting(Transaction::getSeriesId).containsOnly(created.get(0).getSeriesId());
+    }
+
+    @Test
+    void createAVistaNaoTemSerie() {
+        TransactionForm form = makeForm("Mercado", new BigDecimal("80.00"), LocalDate.of(2026, 5, 10), 1);
+        when(accountsRepo.findByIdAndUserId(accountId, alice)).thenReturn(Optional.of(accountOf(alice)));
+        when(categoriesRepo.existsById("outros")).thenReturn(true);
+        when(txRepo.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+        assertThat(service.create(alice, form)).extracting(Transaction::getSeriesId).containsOnlyNulls();
+    }
+
+    @Test
+    void deleteSoEsteNaSerieApagaSoOLancamento() {
+        Transaction t = seriesTx(UUID.randomUUID());
+        when(txRepo.findByIdAndUserId(t.getId(), alice)).thenReturn(Optional.of(t));
+
+        service.delete(alice, t.getId(), TransactionService.DeleteScope.ONE);
+
+        verify(txRepo).delete(t);
+        verify(txRepo, never()).deleteByUserIdAndSeriesId(any(), any());
+    }
+
+    @Test
+    void deleteDestaEmDianteApagaAPartirDoVencimentoDentroDaSerie() {
+        UUID series = UUID.randomUUID();
+        Transaction t = seriesTx(series);
+        when(txRepo.findByIdAndUserId(t.getId(), alice)).thenReturn(Optional.of(t));
+
+        service.delete(alice, t.getId(), TransactionService.DeleteScope.FROM_HERE);
+
+        verify(txRepo).deleteByUserIdAndSeriesIdAndDueDateGreaterThanEqual(alice, series, t.getDueDate());
+        verify(txRepo, never()).delete(any(Transaction.class));
+    }
+
+    @Test
+    void deleteTodasApagaASerieDoUsuario() {
+        UUID series = UUID.randomUUID();
+        Transaction t = seriesTx(series);
+        when(txRepo.findByIdAndUserId(t.getId(), alice)).thenReturn(Optional.of(t));
+
+        service.delete(alice, t.getId(), TransactionService.DeleteScope.ALL);
+
+        verify(txRepo).deleteByUserIdAndSeriesId(alice, series);
+    }
+
+    @Test
+    void deleteTodasSemSerieApagaSoOLancamento() {
+        Transaction t = seriesTx(null);
+        when(txRepo.findByIdAndUserId(t.getId(), alice)).thenReturn(Optional.of(t));
+
+        service.delete(alice, t.getId(), TransactionService.DeleteScope.ALL);
+
+        verify(txRepo).delete(t);
+        verify(txRepo, never()).deleteByUserIdAndSeriesId(any(), any());
+    }
+
+    @Test
+    void deleteViewContaASerieEOQueVemDepois() {
+        UUID series = UUID.randomUUID();
+        Transaction t = seriesTx(series);
+        t.setInstallmentCurrent((short) 3);
+        t.setInstallmentTotal((short) 10);
+        when(txRepo.findByIdAndUserId(t.getId(), alice)).thenReturn(Optional.of(t));
+        when(txRepo.countByUserIdAndSeriesId(alice, series)).thenReturn(8L);
+        when(txRepo.countByUserIdAndSeriesIdAndDueDateGreaterThanEqual(alice, series, t.getDueDate()))
+                .thenReturn(8L);
+
+        var view = service.deleteView(alice, t.getId());
+
+        assertThat(view.hasSeries()).isTrue();
+        assertThat(view.installmentLabel()).isEqualTo("3/10");
+        // É a primeira parcela lançada: "desta em diante" seria igual a "todas".
+        assertThat(view.offersFromHere()).isFalse();
+    }
+
+    @Test
+    void deleteViewSemSerieNaoOfereceEscopo() {
+        Transaction t = seriesTx(null);
+        when(txRepo.findByIdAndUserId(t.getId(), alice)).thenReturn(Optional.of(t));
+
+        var view = service.deleteView(alice, t.getId());
+
+        assertThat(view.hasSeries()).isFalse();
+        assertThat(view.offersFromHere()).isFalse();
+        verify(txRepo, never()).countByUserIdAndSeriesId(any(), any());
+    }
+
+    @Test
     void deleteDeOutroUsuarioLancaNotFoundENaoChamaDelete() {
         UUID id = UUID.randomUUID();
         when(txRepo.findByIdAndUserId(id, bob)).thenReturn(Optional.empty());
@@ -450,6 +549,16 @@ class TransactionServiceTest {
         f.setFixed(false);
         f.setPaid(false);
         return f;
+    }
+
+    private Transaction seriesTx(UUID seriesId) {
+        Transaction t = new Transaction();
+        t.setId(UUID.randomUUID());
+        t.setUserId(alice);
+        t.setAccountId(accountId);
+        t.setDueDate(LocalDate.of(2026, 10, 10));
+        t.setSeriesId(seriesId);
+        return t;
     }
 
     private Account accountOf(UUID userId) {

@@ -65,6 +65,7 @@ public class AiProperties {
     private final Insight insight = new Insight();
     private final Embedding embedding = new Embedding();
     private final Vision vision = new Vision();
+    private final Invoice invoice = new Invoice();
     private final Budget budget = new Budget();
     private final Warmup warmup = new Warmup();
 
@@ -135,6 +136,7 @@ public class AiProperties {
     public Insight getInsight() { return insight; }
     public Embedding getEmbedding() { return embedding; }
     public Vision getVision() { return vision; }
+    public Invoice getInvoice() { return invoice; }
     public Budget getBudget() { return budget; }
     public Warmup getWarmup() { return warmup; }
 
@@ -298,6 +300,38 @@ public class AiProperties {
 
         public int getReadTimeoutMs() { return readTimeoutMs; }
         public void setReadTimeoutMs(int readTimeoutMs) { this.readTimeoutMs = readTimeoutMs; }
+    }
+
+    // ── Fatura ───────────────────────────────────────────────────────────
+
+    /**
+     * Leitura de todos os lançamentos de uma fatura de cartão. Uma fatura tem
+     * dezenas de linhas: a resposta é bem maior que a de uma notinha, então
+     * tokens e tempo de espera têm teto próprio.
+     */
+    public static class Invoice {
+
+        private boolean enabled = true;
+
+        /** Cabe ~250 lançamentos; 16k é o máximo de saída do gpt-4o-mini. */
+        private int maxTokens = 16000;
+
+        private int readTimeoutMs = 120000;
+
+        /** Linhas além disso são descartadas na leitura (defesa contra resposta degenerada). */
+        private int maxItems = 300;
+
+        public boolean isEnabled() { return enabled; }
+        public void setEnabled(boolean enabled) { this.enabled = enabled; }
+
+        public int getMaxTokens() { return maxTokens; }
+        public void setMaxTokens(int maxTokens) { this.maxTokens = maxTokens; }
+
+        public int getReadTimeoutMs() { return readTimeoutMs; }
+        public void setReadTimeoutMs(int readTimeoutMs) { this.readTimeoutMs = readTimeoutMs; }
+
+        public int getMaxItems() { return maxItems; }
+        public void setMaxItems(int maxItems) { this.maxItems = maxItems; }
     }
 
     // ── Teto de consumo ──────────────────────────────────────────────────

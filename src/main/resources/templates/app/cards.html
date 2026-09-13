@@ -13,6 +13,14 @@
 <section class="app-content screen screen-cards" th:data-period="${period}">
 
     <div th:if="${ok}" class="flash flash-ok" th:data-flash-key="${ok}" th:text="#{${ok}}">Operação concluída</div>
+    <th:block th:if="${importResult != null}" th:with="r=${importResult}">
+        <div th:if="${r.nothingChanged()}" class="flash flash-ok" data-flash-key="account.invoice.nothingNew"
+             th:text="#{account.invoice.nothingNew}">Nada novo</div>
+        <div th:if="${!r.nothingChanged() and r.adjusted() == 0}" class="flash flash-ok" data-flash-key="account.invoice.imported"
+             th:text="#{account.invoice.imported(${r.created()}, ${r.futureCreated()})}">Fatura importada</div>
+        <div th:if="${r.adjusted() > 0}" class="flash flash-ok" data-flash-key="account.invoice.imported"
+             th:text="#{account.invoice.importedAdjusted(${r.created()}, ${r.futureCreated()}, ${r.adjusted()})}">Fatura importada</div>
+    </th:block>
     <div th:if="${error}" class="flash flash-error" th:data-flash-key="${error}" th:text="#{${error}}">Erro</div>
 
     <section class="dash-kpis" aria-label="Totais">
@@ -66,9 +74,6 @@
             <th:block th:replace="~{fragments/card-tile :: tile(${a}, ${maskValues})}"></th:block>
         </th:block>
     </div>
-
-    <!-- Detalhe da conta (carregado ao clicar num card, abre abaixo) -->
-    <div class="account-detail-panel" data-account-detail hidden></div>
 
     <div class="empty-sm muted"
          th:if="${view.cards().isEmpty() and view.bills().isEmpty() and view.recurrent().isEmpty()}">

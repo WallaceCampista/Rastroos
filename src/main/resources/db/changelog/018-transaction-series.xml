@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ─────────────────────────────────────────────────────────────
+  018 — Série de lançamentos (parcelas e gasto fixo)
+  ─────────────────────────────────────────────────────────────
+  Uma compra em 10x vira 10 linhas em `transactions`, e um gasto
+  fixo permanente vira 120. Até aqui nada ligava essas linhas entre
+  si: não havia como apagar "só esta parcela", "desta em diante" ou
+  "todas". `series_id` é essa ligação.
+
+  Linhas novas já nascem com a série (TransactionService e a
+  importação de fatura). As antigas são agrupadas abaixo por uma
+  regra conservadora: um grupo só vira série quando não há duas
+  linhas ocupando a mesma posição (a mesma parcela, ou o mesmo mês
+  do gasto fixo). Grupo ambíguo fica sem série, e a exclusão dele
+  oferece só "apagar este lançamento" — nunca apaga a mais.
+-->
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.27.xsd">
+
+    <changeSet id="018-01-transactions-add-series" author="rastroos">
+        <addColumn tableName="transactions">
+            <column name="series_id" type="UUID"/>
+        </addColumn>
+        <createIndex tableName="transactions" indexName="ix_tx_user_series">
+            <column name="user_id"/>
+            <column name="series_id"/>
+        </createIndex>
+        <rollback>
+            <dropIndex tableName="transactions" indexName="ix_tx_user_series"/>
+            <dropColumn tableName="transactions" columnName="series_id"/>
+        </rollback>
+    </changeSet>
+
+    <!-- Parcelas: mesma conta, descrição e total de parcelas, e o mesmo mês
+         da 1ª parcela (vencimento recuado pelo número da parcela). -->
+    <changeSet id="018-02-transactions-backfill-installment-series" author="rastroos">
+        <sql><![CDATA[
+            WITH grupos AS MATERIALIZED (
+                SELECT user_id, account_id, description, installment_total,
+                       (date_trunc('month', due_date)
+                            - make_interval(months => installment_current - 1))::date AS first_month,
+                       gen_random_uuid() AS sid
+                  FROM transactions
+                 WHERE installment_total > 1
+                   AND installment_current IS NOT NULL
+                   AND series_id IS NULL
+                 GROUP BY user_id, account_id, description, installment_total,
+                          (date_trunc('month', due_date)
+                               - make_interval(months => installment_current - 1))::date
+                HAVING COUNT(*) > 1
+                   AND COUNT(*) = COUNT(DISTINCT installment_current)
+            )
+            UPDATE transactions t
+               SET series_id = g.sid
+              FROM grupos g
+             WHERE t.series_id IS NULL
+               AND t.installment_total > 1
+               AND t.installment_current IS NOT NULL
+               AND t.user_id = g.user_id
+               AND t.account_id = g.account_id
+               AND t.description = g.description
+               AND t.installment_total = g.installment_total
+               AND (date_trunc('month', t.due_date)
+                        - make_interval(months => t.installment_current - 1))::date = g.first_month;
+        ]]></sql>
+        <!-- Só dados: a coluna inteira sai no rollback do 018-01. Zerar aqui
+             apagaria também as séries criadas depois da migração. -->
+        <rollback/>
+    </changeSet>
+
+    <!-- Gasto fixo: mesma conta e mesma descrição, no máximo um por mês. -->
+    <changeSet id="018-03-transactions-backfill-fixed-series" author="rastroos">
+        <sql><![CDATA[
+            WITH grupos AS MATERIALIZED (
+                SELECT user_id, account_id, lower(description) AS descricao,
+                       gen_random_uuid() AS sid
+                  FROM transactions
+                 WHERE is_fixed
+                   AND installment_total IS NULL
+                   AND series_id IS NULL
+                 GROUP BY user_id, account_id, lower(description)
+                HAVING COUNT(*) > 1
+                   AND COUNT(*) = COUNT(DISTINCT date_trunc('month', due_date))
+            )
+            UPDATE transactions t
+               SET series_id = g.sid
+              FROM grupos g
+             WHERE t.series_id IS NULL
+               AND t.is_fixed
+               AND t.installment_total IS NULL
+               AND t.user_id = g.user_id
+               AND t.account_id = g.account_id
+               AND lower(t.description) = g.descricao;
+        ]]></sql>
+        <rollback/>
+    </changeSet>
+
+</databaseChangeLog>

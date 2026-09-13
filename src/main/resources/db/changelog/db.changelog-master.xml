@@ -26,5 +26,6 @@
     <include file="db/changelog/015-income-business-day-and-received.xml"/>
     <include file="db/changelog/016-app-settings.xml"/>
     <include file="db/changelog/017-user-ai-access.xml"/>
+    <include file="db/changelog/018-transaction-series.xml"/>
 
 </databaseChangeLog>

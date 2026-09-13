@@ -1,48 +1,77 @@
 <!doctype html>
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security" lang="pt-BR">
-<head><title>Detalhe da conta · Rastroo$</title></head>
+<head>
+    <meta charset="UTF-8">
+    <title>Detalhe da conta · Rastroo$</title>
+    <link rel="stylesheet" th:href="@{/css/screens/cards.css}">
+</head>
 <body>
-<!-- O cards-detail.js extrai .acct-detail e injeta abaixo do card clicado. -->
-<div class="acct-detail" th:with="a=${detail.account()}">
+<!-- modals.js abre [data-modal-content] no modal central, por cima dos cards. -->
+<div class="acct-detail" data-modal-content th:with="a=${detail.account()}">
 
-    <div class="acct-detail-head" th:attr="data-detail-tint=${a.colorHex()}">
-        <span class="acc-chip acct-detail-chip" th:attr="data-fill=${a.colorHex()}"
-              th:text="${a.iconText() != null and !a.iconText().isBlank() ? a.iconText() : #strings.substring(a.name(),0,1)}">·</span>
-        <div class="acct-detail-meta">
-            <div class="acct-detail-name" th:text="${a.name()}">Conta</div>
-            <div class="acct-detail-sub muted">
-                <span th:switch="${a.kind().name()}">
-                    <th:block th:case="'CARD'">Fatura</th:block>
-                    <th:block th:case="'BILL'">Fixo</th:block>
-                    <th:block th:case="*">mensal</th:block>
-                </span>
-                <span th:text="${detail.year()}">2026</span> · Vence dia
-                <span th:text="${a.dueDay() != null ? a.dueDay() : '—'}">15</span>
+    <!-- Topo fixo: identificação da conta e as ações. A lista rola por baixo. -->
+    <div class="acct-detail-top">
+        <header class="acct-detail-head" th:attr="data-detail-tint=${a.colorHex()}">
+            <span class="acc-chip acct-detail-chip" th:attr="data-fill=${a.colorHex()}"
+                  th:text="${a.iconText() != null and !a.iconText().isBlank() ? a.iconText() : #strings.substring(a.name(),0,1)}">·</span>
+            <div class="acct-detail-meta">
+                <div class="acct-detail-name" th:text="${a.name()}">Conta</div>
+                <div class="acct-detail-sub muted">
+                    <span th:switch="${a.kind().name()}">
+                        <th:block th:case="'CARD'">Fatura</th:block>
+                        <th:block th:case="'DEBIT'">Débito</th:block>
+                        <th:block th:case="'BILL'">Fixo</th:block>
+                        <th:block th:case="*">mensal</th:block>
+                    </span>
+                    <span th:text="${detail.year()}">2026</span> · Vence dia
+                    <span th:text="${a.dueDay() != null ? a.dueDay() : '—'}">15</span>
+                </div>
             </div>
-        </div>
-        <div class="acct-detail-actions" sec:authorize="!hasRole('ACESSOR')">
-            <a class="icon-btn" data-modal-url th:href="@{/app/cards/{id}/edit(id=${a.id()})}" title="Editar" aria-label="Editar">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l11-11-4-4L4 16v4z"/></svg>
+            <button type="button" class="icon-btn acct-detail-close" data-account-detail-close aria-label="Fechar">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M6 18L18 6"/></svg>
+            </button>
+        </header>
+
+        <div class="acct-actions" sec:authorize="!hasRole('ACESSOR')">
+            <a class="acct-action" data-modal-url th:href="@{/app/cards/{id}/edit(id=${a.id()})}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4l11-11-4-4L4 16v4z"/></svg>
+                Editar
             </a>
-            <!-- Abre o modal de escopo (apagar tudo × deste mês em diante) em vez
-                 de um confirm() cru: um gasto fixo permanente tem 10 anos de
-                 lançamentos, e apagar tudo raramente é o que se quer. -->
-            <a class="icon-btn danger" data-modal-url
-               th:href="@{/app/cards/{id}/delete(id=${a.id()}, ym=${period})}"
-               title="Remover" aria-label="Remover">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14M9 7V4h6v3m-7 0v13h8V7"/></svg>
+            <!-- Fatura só existe em cartão de crédito, e a leitura usa o Alfredo. -->
+            <button type="button" class="acct-action" data-invoice-attach
+                    th:if="${a.kind().name() == 'CARD' and aiAllowed == true}"
+                    title="Anexar a fatura para lançar os gastos" aria-label="Anexar fatura">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                Anexar fatura
+            </button>
+            <!-- Abre o modal de escopo (apagar tudo × deste mês em diante). -->
+            <a class="acct-action is-danger" data-modal-url
+               th:href="@{/app/cards/{id}/delete(id=${a.id()}, ym=${period})}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 7h14M9 7V4h6v3m-7 0v13h8V7"/></svg>
+                Excluir
             </a>
         </div>
-        <button type="button" class="icon-btn acct-detail-close" data-account-detail-close aria-label="Fechar">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M6 18L18 6"/></svg>
-        </button>
     </div>
+
+    <form class="acct-invoice-upload" th:if="${a.kind().name() == 'CARD' and aiAllowed == true}"
+          sec:authorize="!hasRole('ACESSOR')" data-invoice-upload
+          th:action="@{/app/cards/{id}/invoice/extract(id=${a.id()})}" method="post" enctype="multipart/form-data">
+        <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+        <input type="hidden" name="ym" th:value="${period}">
+        <input type="file" name="file" data-invoice-file hidden
+               accept=".pdf,application/pdf,image/png,image/jpeg,image/webp">
+        <div class="acct-note is-loading" data-invoice-loading hidden>
+            <span class="acct-spinner" aria-hidden="true"></span>
+            <span>Lendo a fatura… pode levar até um minuto.</span>
+        </div>
+        <div class="acct-note is-error" data-invoice-error hidden></div>
+    </form>
 
     <div class="detail-summary">
         <div>
             <span class="muted">Total gasto</span>
-            <span class="money money-lg" th:text="${(maskValues ? '••••' : 'R$ ' + #numbers.formatDecimal(a.total(), 1, 'POINT', 2, 'COMMA'))}">R$ 0,00</span>
+            <span class="money money-md" th:text="${(maskValues ? '••••' : 'R$ ' + #numbers.formatDecimal(a.total(), 1, 'POINT', 2, 'COMMA'))}">R$ 0,00</span>
         </div>
         <div>
             <span class="muted">Pago</span>
@@ -53,16 +82,17 @@
             <span class="money money-md" th:classappend="${a.remaining().signum() > 0 ? 'detail-remaining' : 'muted'}"
                   th:text="${(maskValues ? '••••' : 'R$ ' + #numbers.formatDecimal(a.remaining(), 1, 'POINT', 2, 'COMMA'))}">R$ 0,00</span>
         </div>
-        <form th:if="${a.kind().name() == 'CARD' and a.total().signum() > 0}" sec:authorize="!hasRole('ACESSOR')"
-              class="pay-invoice-form" method="post" th:action="@{/app/cards/{id}/pay(id=${a.id()})}">
-            <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-            <input type="hidden" name="ym" th:value="${period}">
-            <button type="submit" class="pay-invoice" th:classappend="${a.isFullyPaid()} ? 'is-paid' : ''">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>
-                <span th:text="${a.isFullyPaid() ? 'Reabrir' : 'Pagar fatura'}">Pagar fatura</span>
-            </button>
-        </form>
     </div>
+
+    <form th:if="${a.kind().name() == 'CARD' and a.total().signum() > 0}" sec:authorize="!hasRole('ACESSOR')"
+          class="pay-invoice-form" method="post" th:action="@{/app/cards/{id}/pay(id=${a.id()})}">
+        <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+        <input type="hidden" name="ym" th:value="${period}">
+        <button type="submit" class="pay-invoice" th:classappend="${a.isFullyPaid()} ? 'is-paid' : ''">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>
+            <span th:text="${a.isFullyPaid() ? 'Reabrir' : 'Pagar fatura'}">Pagar fatura</span>
+        </button>
+    </form>
 
     <div class="detail-cats" th:if="${detail.categories().size() > 1}">
         <h4>Gastos por categoria</h4>
@@ -102,16 +132,23 @@
                         <span th:unless="${t.paid()}" class="pill pill-warn pill-xs">Em aberto</span>
                     </div>
                 </div>
-                <div class="tx-actions" sec:authorize="!hasRole('ACESSOR')" th:unless="${a.kind().name() == 'CARD'}">
-                    <form th:action="@{/app/expenses/{id}/toggle-paid(id=${t.id()})}" method="post">
+                <div class="tx-actions" sec:authorize="!hasRole('ACESSOR')">
+                    <form th:unless="${a.kind().name() == 'CARD'}"
+                          th:action="@{/app/expenses/{id}/toggle-paid(id=${t.id()})}" method="post">
                         <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                        <input type="hidden" name="redirect" th:value="@{/app/cards(ym=${period})}">
+                        <input type="hidden" name="redirect" th:value="@{/app/cards(ym=${period},open=${a.id()})}">
                         <button type="submit" class="paid-toggle" th:classappend="${t.paid()} ? 'is-paid' : ''"
                                 th:title="${t.paid()} ? 'Reabrir' : 'Marcar como pago'">
                             <svg th:if="${t.paid()}" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>
                             <svg th:unless="${t.paid()}" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M16.5 7.5c0-1.93-1.79-3.5-4-3.5h-1c-2.21 0-4 1.57-4 3.5S9.29 11 11.5 11h1c2.21 0 4 1.57 4 3.5S14.71 18 12.5 18h-1c-2.21 0-4-1.57-4-3.5"/></svg>
                         </button>
                     </form>
+                    <!-- Modal de escopo: só este, deste em diante ou a série inteira. -->
+                    <a class="row-action danger" data-modal-url
+                       th:href="@{/app/expenses/{id}/delete(id=${t.id()}, from='cards')}"
+                       title="Excluir lançamento" aria-label="Excluir lançamento">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14M9 7V4h6v3m-7 0v13h8V7"/></svg>
+                    </a>
                 </div>
             </li>
         </ul>

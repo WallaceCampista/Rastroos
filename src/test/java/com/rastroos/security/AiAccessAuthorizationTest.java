@@ -6,6 +6,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -17,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -71,6 +73,23 @@ class AiAccessAuthorizationTest {
     @Test
     void contaSemIaRecebe403NosResumos() throws Exception {
         mvc.perform(get("/api/v1/insights/dashboard").with(user(principal(false))))
+                .andExpect(status().isForbidden());
+    }
+
+    /** A leitura de fatura gasta tokens: sem Alfredo liberado, nem a leitura nem o lançamento passam. */
+    @Test
+    void contaSemIaRecebe403AoAnexarFatura() throws Exception {
+        mvc.perform(multipart("/app/cards/{id}/invoice/extract", UUID.randomUUID())
+                        .file(new MockMultipartFile("file", "fatura.pdf", "application/pdf", new byte[] {0x25, 0x50}))
+                        .with(user(principal(false))).with(csrf()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void contaSemIaRecebe403AoLancarFatura() throws Exception {
+        mvc.perform(post("/app/cards/{id}/invoice/import", UUID.randomUUID())
+                        .param("dueDate", "2026-10-10")
+                        .with(user(principal(false))).with(csrf()))
                 .andExpect(status().isForbidden());
     }
 

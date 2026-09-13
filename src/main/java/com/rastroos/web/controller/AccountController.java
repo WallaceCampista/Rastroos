@@ -61,7 +61,7 @@ public class AccountController {
         return "app/cards";
     }
 
-    /** Fragmento com os lançamentos da conta no mês — abre abaixo do card (fetch). */
+    /** Corpo do modal com o detalhe da conta no mês (aberto ao clicar no card). */
     @GetMapping("/{id}/detail")
     public String detail(@PathVariable UUID id,
                          @RequestParam(value = "ym", required = false) String ym,
@@ -82,7 +82,8 @@ public class AccountController {
         YearMonth period = parseOrCurrent(ym);
         accounts.payInvoice(currentUser.requireEffectiveId(), id, period);
         flash.addFlashAttribute("ok", "account.invoicePaid");
-        return "redirect:/app/cards?ym=" + period;
+        // Volta com o detalhe aberto: a pessoa pagou de dentro dele.
+        return "redirect:/app/cards?ym=" + period + "&open=" + id;
     }
 
     @GetMapping("/new")

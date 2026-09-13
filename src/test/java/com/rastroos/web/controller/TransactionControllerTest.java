@@ -55,6 +55,7 @@ import com.rastroos.security.LoginFailureHandler;
 import com.rastroos.security.LoginSuccessHandler;
 import com.rastroos.web.interceptor.TopbarChipsInterceptor;
 import com.rastroos.web.dto.ExtractedExpense;
+import com.rastroos.web.dto.TransactionDeleteView;
 import com.rastroos.web.dto.TransactionsPageView;
 import com.rastroos.web.form.TransactionForm;
 import com.rastroos.web.support.PeriodResolver;
@@ -259,12 +260,113 @@ class TransactionControllerTest {
     @Test
     void deleteRedirecionaComFlash() throws Exception {
         UUID id = UUID.randomUUID();
+        when(service.require(userId, id)).thenReturn(tx(id, UUID.randomUUID(), null));
 
         mvc.perform(post("/app/expenses/{id}/delete", id))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/app/expenses"))
                 .andExpect(flash().attribute("ok", "transaction.deleted"));
 
-        verify(service).delete(userId, id);
+        verify(service).delete(userId, id, TransactionService.DeleteScope.ONE);
+    }
+
+    @Test
+    void deleteDeParcelaDestaEmDianteVoltaParaODetalheDaConta() throws Exception {
+        UUID id = UUID.randomUUID();
+        UUID accountId = UUID.randomUUID();
+        when(service.require(userId, id)).thenReturn(tx(id, accountId, UUID.randomUUID()));
+
+        mvc.perform(post("/app/expenses/{id}/delete", id)
+                        .param("scope", "FROM_HERE")
+                        .param("from", "cards"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/app/cards?ym=2026-10&open=" + accountId))
+                .andExpect(flash().attribute("ok", "transaction.deletedFromHere"));
+
+        verify(service).delete(userId, id, TransactionService.DeleteScope.FROM_HERE);
+    }
+
+    @Test
+    void deleteTodasAsParcelas() throws Exception {
+        UUID id = UUID.randomUUID();
+        when(service.require(userId, id)).thenReturn(tx(id, UUID.randomUUID(), UUID.randomUUID()));
+
+        mvc.perform(post("/app/expenses/{id}/delete", id).param("scope", "ALL"))
+                .andExpect(redirectedUrl("/app/expenses"))
+                .andExpect(flash().attribute("ok", "transaction.deletedSeries"));
+
+        verify(service).delete(userId, id, TransactionService.DeleteScope.ALL);
+    }
+
+    /** Sem série, um "apagar tudo" forjado vira "só este" — nunca apaga a mais. */
+    @Test
+    void deleteComEscopoForjadoEmLancamentoAvulsoApagaSoEle() throws Exception {
+        UUID id = UUID.randomUUID();
+        when(service.require(userId, id)).thenReturn(tx(id, UUID.randomUUID(), null));
+
+        mvc.perform(post("/app/expenses/{id}/delete", id).param("scope", "ALL"))
+                .andExpect(flash().attribute("ok", "transaction.deleted"));
+
+        verify(service).delete(userId, id, TransactionService.DeleteScope.ONE);
+    }
+
+    /** O destino de volta é uma lista fechada: qualquer outro valor cai na tela de gastos. */
+    @Test
+    void deleteComDestinoDesconhecidoNaoRedirecionaParaFora() throws Exception {
+        UUID id = UUID.randomUUID();
+        when(service.require(userId, id)).thenReturn(tx(id, UUID.randomUUID(), null));
+
+        mvc.perform(post("/app/expenses/{id}/delete", id).param("from", "https://evil.example"))
+                .andExpect(redirectedUrl("/app/expenses"));
+    }
+
+    @Test
+    void deleteConfirmDeParcelaOfereceOsTresEscopos() throws Exception {
+        UUID id = UUID.randomUUID();
+        UUID accountId = UUID.randomUUID();
+        when(service.deleteView(userId, id)).thenReturn(new TransactionDeleteView(
+                id, "Geladeira", accountId, LocalDate.of(2026, 10, 10), false,
+                (short) 3, (short) 10, 8, 7));
+
+        String html = mvc.perform(get("/app/expenses/{id}/delete", id).param("from", "cards"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("app/transaction-delete-confirm"))
+                .andReturn().getResponse().getContentAsString();
+
+        org.assertj.core.api.Assertions.assertThat(html)
+                .contains("data-modal-content")
+                .contains("Só esta parcela")
+                .contains("Desta parcela em diante")
+                .contains("Todas as parcelas")
+                .contains("value=\"FROM_HERE\"")
+                .contains("name=\"from\" value=\"cards\"")
+                .contains("/app/cards/" + accountId + "/detail");
+    }
+
+    @Test
+    void deleteConfirmDeLancamentoAvulsoSoOfereceApagar() throws Exception {
+        UUID id = UUID.randomUUID();
+        when(service.deleteView(userId, id)).thenReturn(new TransactionDeleteView(
+                id, "Mercado", UUID.randomUUID(), LocalDate.of(2026, 10, 10), false,
+                null, null, 1, 1));
+
+        String html = mvc.perform(get("/app/expenses/{id}/delete", id))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        org.assertj.core.api.Assertions.assertThat(html)
+                .contains("value=\"ONE\"")
+                .doesNotContain("value=\"FROM_HERE\"")
+                .doesNotContain("value=\"ALL\"");
+    }
+
+    private Transaction tx(UUID id, UUID accountId, UUID seriesId) {
+        Transaction t = new Transaction();
+        t.setId(id);
+        t.setUserId(userId);
+        t.setAccountId(accountId);
+        t.setDueDate(LocalDate.of(2026, 10, 10));
+        t.setSeriesId(seriesId);
+        return t;
     }
 }

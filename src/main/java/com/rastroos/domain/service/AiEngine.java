@@ -20,7 +20,8 @@ public record AiEngine(
         String embeddingModel,
         int embeddingDimensions,
         RestClient textClient,
-        RestClient visionClient
+        RestClient visionClient,
+        RestClient invoiceClient
 ) {
     public String id() {
         return provider.id();

@@ -1,7 +1,5 @@
 package com.rastroos.domain.service;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
@@ -16,7 +14,6 @@ import org.springframework.web.multipart.MultipartFile;
 import com.rastroos.config.ExtractionProperties;
 import com.rastroos.domain.entity.Account;
 import com.rastroos.domain.entity.enums.AccountKind;
-import com.rastroos.domain.exception.InvalidUploadException;
 import com.rastroos.domain.repository.AccountRepository;
 import com.rastroos.web.dto.ExtractedExpense;
 
@@ -46,10 +43,6 @@ public class ExpenseExtractionService {
 
     private static final int MAX_DESCRIPTION = 200;
 
-    private static final Set<String> DOCUMENT_TYPES =
-            Set.of("application/pdf", "image/png", "image/jpeg", "image/webp");
-    private static final Set<String> DOCUMENT_EXTENSIONS =
-            Set.of("pdf", "png", "jpg", "jpeg", "webp");
     private static final Set<String> RECEIPT_TYPES =
             Set.of("image/png", "image/jpeg", "image/webp", "image/heic", "image/heif");
     private static final Set<String> RECEIPT_EXTENSIONS =
@@ -69,7 +62,8 @@ public class ExpenseExtractionService {
     }
 
     /**
-     * Extrai (ou sugere) os campos do gasto. Lança {@link InvalidUploadException}
+     * Extrai (ou sugere) os campos do gasto. Lança
+     * {@link com.rastroos.domain.exception.InvalidUploadException}
      * quando o arquivo é inválido — a camada Web mostra a mensagem no formulário.
      */
     public ExtractedExpense extract(UUID userId, MultipartFile file, ExpenseExtractionSource source) {
@@ -141,86 +135,14 @@ public class ExpenseExtractionService {
     }
 
     private void validate(MultipartFile file, ExpenseExtractionSource source) {
-        if (file == null || file.isEmpty()) {
-            throw new InvalidUploadException("transaction.extract.empty");
-        }
-        if (file.getSize() > props.getMaxFileSizeBytes()) {
-            throw new InvalidUploadException("transaction.extract.tooLarge");
-        }
-
-        Set<String> allowedTypes = source == ExpenseExtractionSource.RECEIPT ? RECEIPT_TYPES : DOCUMENT_TYPES;
-        Set<String> allowedExts = source == ExpenseExtractionSource.RECEIPT ? RECEIPT_EXTENSIONS : DOCUMENT_EXTENSIONS;
-
-        String contentType = normalizeContentType(file.getContentType());
-        if (contentType == null || !allowedTypes.contains(contentType)) {
-            throw new InvalidUploadException("transaction.extract.badType");
-        }
-        String ext = extensionOf(file.getOriginalFilename());
-        if (ext == null || !allowedExts.contains(ext)) {
-            throw new InvalidUploadException("transaction.extract.badType");
-        }
-
-        // Defesa em profundidade: assinatura do arquivo não pode contradizer o
-        // tipo declarado (ex.: PDF disfarçado de imagem). Formatos que não
-        // sabemos "farejar" (heic/heif) passam pelo tipo+extensão.
-        String sniffed = sniff(file);
-        if (sniffed != null && !allowedTypes.contains(sniffed)) {
-            throw new InvalidUploadException("transaction.extract.badType");
-        }
-    }
-
-    private static String normalizeContentType(String contentType) {
-        if (contentType == null) {
-            return null;
-        }
-        int semi = contentType.indexOf(';');
-        String base = (semi >= 0 ? contentType.substring(0, semi) : contentType).trim().toLowerCase();
-        return base.isEmpty() ? null : base;
-    }
-
-    private static String extensionOf(String filename) {
-        if (filename == null) {
-            return null;
-        }
-        String name = filename.replace('\\', '/');
-        int slash = name.lastIndexOf('/');
-        if (slash >= 0) {
-            name = name.substring(slash + 1);
-        }
-        int dot = name.lastIndexOf('.');
-        if (dot < 0 || dot == name.length() - 1) {
-            return null;
-        }
-        return name.substring(dot + 1).toLowerCase();
-    }
-
-    /** Detecta o tipo pelos primeiros bytes; {@code null} se não reconhecer. */
-    private static String sniff(MultipartFile file) {
-        byte[] head = new byte[12];
-        int read;
-        try (InputStream in = file.getInputStream()) {
-            read = in.readNBytes(head, 0, head.length);
-        } catch (IOException e) {
-            throw new InvalidUploadException("transaction.extract.badType");
-        }
-        if (read >= 4 && head[0] == 0x25 && head[1] == 0x50 && head[2] == 0x44 && head[3] == 0x46) {
-            return "application/pdf"; // %PDF
-        }
-        if (read >= 4 && (head[0] & 0xFF) == 0x89 && head[1] == 0x50 && head[2] == 0x4E && head[3] == 0x47) {
-            return "image/png";
-        }
-        if (read >= 3 && (head[0] & 0xFF) == 0xFF && (head[1] & 0xFF) == 0xD8 && (head[2] & 0xFF) == 0xFF) {
-            return "image/jpeg";
-        }
-        if (read >= 12 && head[0] == 'R' && head[1] == 'I' && head[2] == 'F' && head[3] == 'F'
-                && head[8] == 'W' && head[9] == 'E' && head[10] == 'B' && head[11] == 'P') {
-            return "image/webp";
-        }
-        return null;
+        boolean receipt = source == ExpenseExtractionSource.RECEIPT;
+        UploadGuard.validate(file, props.getMaxFileSizeBytes(),
+                receipt ? RECEIPT_TYPES : UploadGuard.DOCUMENT_TYPES,
+                receipt ? RECEIPT_EXTENSIONS : UploadGuard.DOCUMENT_EXTENSIONS);
     }
 
     private static String descriptionFromFilename(String filename) {
-        String ext = extensionOf(filename);
+        String ext = UploadGuard.extensionOf(filename);
         String name = filename == null ? "" : filename.replace('\\', '/');
         int slash = name.lastIndexOf('/');
         if (slash >= 0) {

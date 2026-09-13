@@ -49,6 +49,9 @@ import jakarta.validation.Valid;
 @PreAuthorize("isAuthenticated()")
 public class TransactionController {
 
+    /** Único destino de volta aceito além da própria tela de gastos. */
+    private static final String FROM_CARDS = "cards";
+
     private final CurrentUser currentUser;
     private final TransactionService service;
     private final ExpenseExtractionService extraction;
@@ -220,15 +223,56 @@ public class TransactionController {
         return "redirect:" + (redirect == null || redirect.isBlank() ? "/app/expenses" : redirect);
     }
 
+    /**
+     * Corpo do modal de exclusão: parcela ou mês de gasto fixo oferece apagar
+     * só este, deste em diante ou a série inteira. {@code from=cards} quando o
+     * modal foi aberto do detalhe da conta, para voltar para lá.
+     */
+    @GetMapping("/{id}/delete")
+    @PreAuthorize("isAuthenticated() and !hasRole('ACESSOR')")
+    public String deleteConfirm(@PathVariable UUID id,
+                                @RequestParam(value = "from", required = false) String from,
+                                Model model) {
+        model.addAttribute("del", service.deleteView(currentUser.requireEffectiveId(), id));
+        model.addAttribute("fromCards", FROM_CARDS.equals(from));
+        return "app/transaction-delete-confirm";
+    }
+
     @PostMapping("/{id}/delete")
     @PreAuthorize("isAuthenticated() and !hasRole('ACESSOR')")
-    public String delete(@PathVariable UUID id, RedirectAttributes flash) {
-        service.delete(currentUser.requireEffectiveId(), id);
-        flash.addFlashAttribute("ok", "transaction.deleted");
+    public String delete(@PathVariable UUID id,
+                         @RequestParam(value = "scope", required = false) String scope,
+                         @RequestParam(value = "from", required = false) String from,
+                         RedirectAttributes flash) {
+        UUID userId = currentUser.requireEffectiveId();
+        Transaction t = service.require(userId, id);
+        UUID accountId = t.getAccountId();
+        YearMonth month = YearMonth.from(t.getDueDate());
+        TransactionService.DeleteScope chosen = t.getSeriesId() == null
+                ? TransactionService.DeleteScope.ONE
+                : parseScope(scope);
+
+        service.delete(userId, id, chosen);
+        flash.addFlashAttribute("ok", switch (chosen) {
+            case ONE -> "transaction.deleted";
+            case FROM_HERE -> "transaction.deletedFromHere";
+            case ALL -> "transaction.deletedSeries";
+        });
+        // Destino montado só com dados do servidor (id da conta e mês): nada do
+        // request vira URL, então não há redirecionamento aberto.
+        if (FROM_CARDS.equals(from)) {
+            return "redirect:/app/cards?ym=" + month + "&open=" + accountId;
+        }
         return "redirect:/app/expenses";
     }
 
     // ── helpers ──────────────────────────────────────────────────────────
+
+    private static TransactionService.DeleteScope parseScope(String scope) {
+        if ("FROM_HERE".equalsIgnoreCase(scope)) return TransactionService.DeleteScope.FROM_HERE;
+        if ("ALL".equalsIgnoreCase(scope)) return TransactionService.DeleteScope.ALL;
+        return TransactionService.DeleteScope.ONE;
+    }
 
     private void prepareFormModel(Model model, UUID userId, TransactionForm form,
                                   boolean editing, UUID id) {

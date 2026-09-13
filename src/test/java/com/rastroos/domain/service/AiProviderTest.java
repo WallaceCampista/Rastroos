@@ -111,6 +111,21 @@ class AiProviderTest {
         assertThat(vectors.get(1)[1]).isEqualTo(0.4f);
     }
 
+    /** Cada dialeto recebe o PDF do jeito que aceita: a OpenAI como arquivo, o Gemini como URL de dados. */
+    @SuppressWarnings("unchecked")
+    @Test
+    void pdfViajaNoFormatoQueCadaFornecedorAceita() {
+        String dataUrl = "data:application/pdf;base64,JVBERg==";
+
+        Map<String, Object> openaiPart = openai.filePart("fatura.pdf", dataUrl);
+        assertThat(openaiPart).containsEntry("type", "file");
+        assertThat((Map<String, Object>) openaiPart.get("file")).containsEntry("file_data", dataUrl);
+
+        Map<String, Object> geminiPart = gemini.filePart("fatura.pdf", dataUrl);
+        assertThat(geminiPart).containsEntry("type", "image_url");
+        assertThat((Map<String, Object>) geminiPart.get("image_url")).containsEntry("url", dataUrl);
+    }
+
     @Test
     void semSaldoEhDistinguidoDeExcessoDeRequisicoes() {
         assertThat(openai.isOutOfCredit(429, "{\"error\":{\"type\":\"insufficient_quota\"}}")).isTrue();

@@ -744,6 +744,22 @@ Content-Security-Policy: <conforme 5.5>
 - [x] **Testes**: 686 no total — o resolvedor (chave por status e rota, modelo sem `message`/`trace`/`exception`, ações por família de erro) e renderização real da página via `/error` no `@SpringBootTest` (texto do Alfredo, logo, e uma exceção com texto sensível que **não** aparece no HTML)
 
 
+
+### Etapa 28 — Cartões & Contas em modal + anexar fatura do cartão (2 dias)
+
+**Diagnóstico do que existia.** Clicar num card abria o detalhe *abaixo* de todos os cards, longe do clique. Não havia como importar uma fatura: cada gasto do cartão era digitado à mão, e a compra parcelada virava N linhas sem nada que as ligasse — apagar "só esta parcela", "desta em diante" ou "todas" era impossível.
+
+- [x] **Detalhe da conta em modal estreito** por cima dos cards (mesmo mecanismo `[data-modal-content]` dos outros modais). Topo fixo com a conta e as ações — **Editar · Anexar fatura · Excluir** — enquanto a lista rola por baixo. Pagar fatura, marcar pago e excluir lançamento voltam com o detalhe aberto (`?open=<conta>`, só abre card que está na tela) e a mensagem do servidor aparece dentro do modal
+- [x] **Série de lançamentos** (changelog `018`, `transactions.series_id`): parcelas de uma compra e meses de um gasto fixo passam a ser ligados. Linhas novas já nascem com série; as antigas foram agrupadas por uma regra conservadora — grupo com duas linhas na mesma posição (mesma parcela ou mesmo mês) fica **sem** série e só oferece "apagar este"
+- [x] **Excluir lançamento com escopo** (lixeira em cada linha do detalhe): só esta · desta em diante · todas. Sem série, um escopo forjado vira "só este"; o destino de volta é lista fechada (sem redirecionamento aberto)
+- [x] **Anexar fatura** (só cartão de crédito, só quem tem o Alfredo liberado, nunca acessor): `InvoiceVisionReader` lê vencimento, total, final do cartão e cada linha com parcela, em saída estruturada estrita. Estorno e pagamento aparecem, mas não viram gasto (valor sempre positivo no banco). PDF com senha recebe mensagem própria
+- [x] **Conferência antes de lançar** (decisão do usuário): novo marcado; **já lançado** sem caixa, não duplica; **possível duplicado** (mesmo mês, parcela e valor com outro nome — o lançado à mão) desmarcado; **ajustar valor** para centavos de arredondamento de parcela ainda em aberto. Aviso quando a fatura é de outro final de cartão. Trocar o mês do vencimento refaz o cruzamento no servidor
+- [x] **Não duplicar** (`InvoiceReconciler`): cada lançamento existente casa com no máximo uma linha, em passadas do par exato ao aproximado; descrição comparada normalizada (acento, pontuação, truncamento do banco, uma letra trocada). Parcela nova projeta as seguintes nas próximas faturas e reaproveita as que já existem — importar a mesma fatura de novo, a do mês seguinte ou uma anterior depois de uma posterior não cria nada em dobro. Na gravação o cruzamento é **refeito com a conta travada** (`SELECT … FOR UPDATE`): duplo clique, duas abas ou formulário adulterado não duplicam
+- [x] **Infra de IA**: funcionalidade `INVOICE` no livro-caixa e circuit breaker próprio, `ai.invoice` (16k tokens, 120s, 300 linhas), sem repetir em timeout, rota no rate limit de IA
+- [x] **Bug encontrado na verificação ao vivo**: a camada de compatibilidade do Gemini recusa a parte `file` com PDF ("Invalid content part type: file", 400) — em dev, todo PDF (inclusive o boleto do "Lançar gasto") caía no modo demonstração. `GeminiProvider.filePart` agora manda o PDF como `image_url`; a OpenAI segue com `file`
+- [x] **Verificado ao vivo contra o Gemini** com faturas fictícias: outubro lido completo (parcelas 3/10 e 4/6, pagamento e estorno separados, duas corridas iguais mantidas) → 8 lançamentos + 9 parcelas; a mesma fatura de novo → nada; novembro → as parcelas 4/10 e 5/6 reconhecidas como já lançadas, só as 2 compras novas entram
+- [x] **Testes**: 770+ no total — cruzamento (17 cenários), leitor, serviço, controllers, `UploadGuard`, 403 sem IA e fluxo completo contra o Postgres (reimportação, mês seguinte, escopos de exclusão e isolamento por usuário). Gate de cobertura do domínio mantido
+
 ---
 
 ## 7. Estrutura de pastas

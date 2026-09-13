@@ -56,6 +56,14 @@ public class Transaction {
     @Column(name = "ends_at")
     private LocalDate endsAt;
 
+    /**
+     * Liga as linhas de uma mesma compra parcelada ou de um mesmo gasto fixo,
+     * para a exclusão oferecer "só esta", "desta em diante" e "todas".
+     * {@code null} em lançamento avulso.
+     */
+    @Column(name = "series_id")
+    private UUID seriesId;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -106,6 +114,9 @@ public class Transaction {
 
     public LocalDate getEndsAt() { return endsAt; }
     public void setEndsAt(LocalDate endsAt) { this.endsAt = endsAt; }
+
+    public UUID getSeriesId() { return seriesId; }
+    public void setSeriesId(UUID seriesId) { this.seriesId = seriesId; }
 
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }

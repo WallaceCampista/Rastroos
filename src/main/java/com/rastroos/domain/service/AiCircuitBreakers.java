@@ -25,6 +25,7 @@ public class AiCircuitBreakers {
     public static final String INSIGHT = "ai-insight";
     public static final String EMBEDDING = "ai-embedding";
     public static final String VISION = "ai-vision";
+    public static final String INVOICE = "ai-invoice";
 
     private final CircuitBreakerRegistry registry;
 

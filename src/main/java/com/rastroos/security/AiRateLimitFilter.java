@@ -68,7 +68,8 @@ public class AiRateLimitFilter extends OncePerRequestFilter {
               || (uri.startsWith("/api/v1/insights") && uri.endsWith("/chat"))
               || uri.startsWith("/app/manager/new")
               || uri.endsWith("/messages")
-              || uri.startsWith("/app/expenses/extract"));
+              || uri.startsWith("/app/expenses/extract")
+              || (uri.startsWith("/app/cards/") && uri.endsWith("/invoice/extract")));
     }
 
     @Override

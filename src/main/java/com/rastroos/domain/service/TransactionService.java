@@ -29,6 +29,7 @@ import com.rastroos.domain.repository.AccountRepository;
 import com.rastroos.domain.repository.CategoryRepository;
 import com.rastroos.domain.repository.TransactionRepository;
 import com.rastroos.web.dto.MoneyDto;
+import com.rastroos.web.dto.TransactionDeleteView;
 import com.rastroos.web.dto.TransactionDto;
 import com.rastroos.web.dto.TransactionFilter;
 import com.rastroos.web.dto.TransactionFilterCounts;
@@ -213,6 +214,7 @@ public class TransactionService {
                 ? form.getDueDate().plusMonths(1)
                 : form.getDueDate();
 
+        UUID seriesId = n > 1 ? UUID.randomUUID() : null;
         List<Transaction> created = new ArrayList<>(n);
         for (int i = 0; i < n; i++) {
             Transaction t = new Transaction();
@@ -230,6 +232,7 @@ public class TransactionService {
                 t.setInstallmentCurrent((short) (i + 1));
                 t.setInstallmentTotal((short) n);
             }
+            t.setSeriesId(seriesId);
             created.add(t);
         }
         List<Transaction> saved = transactions.saveAll(created);
@@ -330,11 +333,58 @@ public class TransactionService {
         return saved;
     }
 
+    /** Até onde vai a exclusão de um lançamento que faz parte de uma série. */
+    public enum DeleteScope {
+        /** Só o lançamento clicado. */
+        ONE,
+        /** O lançamento clicado e os seguintes da mesma série. */
+        FROM_HERE,
+        /** A série inteira (todas as parcelas, ou todos os meses do gasto fixo). */
+        ALL
+    }
+
     @Transactional
     public void delete(UUID userId, UUID id) {
+        delete(userId, id, DeleteScope.ONE);
+    }
+
+    /**
+     * Remove um lançamento, ou parte da série dele. Sem série, o único escopo
+     * possível é o próprio lançamento: um "apagar tudo" vindo de um request
+     * forjado não pode virar outra coisa. 404 se de outro usuário.
+     */
+    @Transactional
+    public void delete(UUID userId, UUID id, DeleteScope scope) {
         Transaction t = require(userId, id);
-        transactions.delete(t);
+        UUID seriesId = t.getSeriesId();
+        if (seriesId == null || scope == null || scope == DeleteScope.ONE) {
+            transactions.delete(t);
+        } else if (scope == DeleteScope.FROM_HERE) {
+            transactions.deleteByUserIdAndSeriesIdAndDueDateGreaterThanEqual(userId, seriesId, t.getDueDate());
+        } else {
+            transactions.deleteByUserIdAndSeriesId(userId, seriesId);
+        }
         dataChanged(userId);
+    }
+
+    /** O que o modal de exclusão precisa saber para oferecer os escopos. */
+    @Transactional(readOnly = true)
+    public TransactionDeleteView deleteView(UUID userId, UUID id) {
+        Transaction t = require(userId, id);
+        UUID seriesId = t.getSeriesId();
+        long total = seriesId == null ? 1L : transactions.countByUserIdAndSeriesId(userId, seriesId);
+        long fromHere = seriesId == null ? 1L
+                : transactions.countByUserIdAndSeriesIdAndDueDateGreaterThanEqual(userId, seriesId, t.getDueDate());
+        return new TransactionDeleteView(
+                t.getId(),
+                t.getDescription(),
+                t.getAccountId(),
+                t.getDueDate(),
+                t.isFixed(),
+                t.getInstallmentCurrent(),
+                t.getInstallmentTotal(),
+                total,
+                fromHere);
     }
 
     @Transactional(readOnly = true)

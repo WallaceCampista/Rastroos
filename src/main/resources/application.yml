@@ -177,6 +177,13 @@ ai:
     max-file-size-bytes: 8388608
     read-timeout-ms: 45000
 
+  # Fatura de cartão inteira (todas as linhas). Resposta grande: teto próprio.
+  invoice:
+    enabled: true
+    max-tokens: 16000
+    read-timeout-ms: 120000
+    max-items: 300
+
   # Teto diário por usuário — defesa contra consumo acidental e abuso.
   budget:
     enabled: true
@@ -235,6 +242,8 @@ resilience4j:
       ai-embedding:
         base-config: ai-default
       ai-vision:
+        base-config: ai-default
+      ai-invoice:
         base-config: ai-default
 
 # ── OpenAPI / Swagger ──────────────────────────────────────

@@ -119,7 +119,7 @@ public class AiModelClient {
         if (textClient != null || visionClient != null) {
             engine = new AiEngine(provider, engine.apiKey(), engine.baseUrl(),
                     engine.chatModel(), engine.embeddingModel(), engine.embeddingDimensions(),
-                    textClient, visionClient);
+                    textClient, visionClient, visionClient);
         }
         this.fixed = engine;
         this.engines = Map.of(provider.id(), engine);
@@ -144,7 +144,8 @@ public class AiModelClient {
                 embeddingModel,
                 dimensions,
                 hasKey ? build(props, props.getReadTimeoutMs()) : null,
-                hasKey ? build(props, props.getVision().getReadTimeoutMs()) : null);
+                hasKey ? build(props, props.getVision().getReadTimeoutMs()) : null,
+                hasKey ? build(props, props.getInvoice().getReadTimeoutMs()) : null);
     }
 
     /**
@@ -210,7 +211,11 @@ public class AiModelClient {
         Map<String, Object> body = provider.chatBody(
                 engine.chatModel(), messages, maxTokens, temperature, responseFormat);
 
-        RestClient client = feature == AiFeature.VISION ? engine.visionClient() : engine.textClient();
+        RestClient client = switch (feature) {
+            case VISION -> engine.visionClient();
+            case INVOICE -> engine.invoiceClient();
+            default -> engine.textClient();
+        };
         JsonNode response = post(engine, client, provider.chatUrl(engine.baseUrl()), body, feature);
 
         AiTokenUsage tokens = provider.readUsage(response);
@@ -419,7 +424,9 @@ public class AiModelClient {
                 last = e;
                 sleep(retryDelay(e, attempt));
             } catch (ResourceAccessException e) {
-                if (attempt == attempts) {
+                // Fatura estourando o tempo é fatura longa, não rede instável:
+                // repetir só faria a pessoa esperar o dobro para o mesmo erro.
+                if (attempt == attempts || feature == AiFeature.INVOICE) {
                     log.warn("IA {}: falha de rede/timeout (tentativa {}/{})", feature, attempt, attempts);
                     throw new AiUnavailableException("Provedor de IA inacessível", e);
                 }

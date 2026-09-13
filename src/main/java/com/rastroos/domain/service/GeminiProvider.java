@@ -1,5 +1,8 @@
 package com.rastroos.domain.service;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 /**
  * Google Gemini pela <strong>camada de compatibilidade OpenAI</strong>
  * ({@code /v1beta/openai}): o corpo e a resposta são os mesmos do
@@ -56,6 +59,24 @@ public class GeminiProvider extends OpenAiProvider {
     @Override
     public int defaultEmbeddingDimensions() {
         return 1536;
+    }
+
+    /**
+     * PDF entra como {@code image_url}. A camada de compatibilidade recusa a
+     * parte {@code file} da OpenAI ("Invalid content part type: file", 400) e
+     * aceita o documento pela URL {@code data:application/pdf} — o contrário da
+     * OpenAI, que recusa PDF em {@code image_url}. Verificado contra a API em
+     * 2026-09-13.
+     */
+    @Override
+    public Map<String, Object> filePart(String filename, String dataUrl) {
+        Map<String, Object> image = new LinkedHashMap<>();
+        image.put("url", dataUrl);
+
+        Map<String, Object> part = new LinkedHashMap<>();
+        part.put("type", "image_url");
+        part.put("image_url", image);
+        return part;
     }
 
     /** O Google sinaliza cota esgotada com {@code RESOURCE_EXHAUSTED}. */

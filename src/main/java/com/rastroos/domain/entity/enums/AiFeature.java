@@ -16,5 +16,8 @@ public enum AiFeature {
     EMBEDDING,
 
     /** Leitura de boleto/fatura/notinha por visão. */
-    VISION
+    VISION,
+
+    /** Leitura de todos os lançamentos de uma fatura de cartão. */
+    INVOICE
 }
