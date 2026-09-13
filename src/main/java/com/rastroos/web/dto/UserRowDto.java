@@ -22,6 +22,7 @@ public record UserRowDto(
         UserStatus status,
         Instant createdAt,
         Instant lastLoginAt,
-        long activeSessions
+        long activeSessions,
+        boolean aiEnabled
 ) {
 }

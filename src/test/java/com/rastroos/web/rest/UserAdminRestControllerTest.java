@@ -88,7 +88,7 @@ class UserAdminRestControllerTest {
         UserRowDto row = new UserRowDto(
                 targetId, "Maria", "maria@example.com", true,
                 UserRole.USER, UserStatus.ACTIVE,
-                Instant.parse("2026-05-01T10:00:00Z"), null, 0L);
+                Instant.parse("2026-05-01T10:00:00Z"), null, 0L, true);
         when(service.list(any(), any(), eq(0), eq(20)))
                 .thenReturn(new UserAdminListView(List.of(row), 0, 20, 1, 1, 5, 3, 1, 1, 1));
 

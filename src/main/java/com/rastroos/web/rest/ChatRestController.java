@@ -44,7 +44,12 @@ import jakarta.validation.Valid;
  */
 @RestController
 @RequestMapping("/api/v1/chats")
-@PreAuthorize("isAuthenticated()")
+/*
+ * Acesso ao Alfredo é liberado conta a conta por um administrador
+ * (users.ai_enabled). Sem ele, a rota responde 403 — esconder o orbe e o item
+ * de menu é conforto, não segurança: quem digitasse a URL entraria.
+ */
+@PreAuthorize("isAuthenticated() and @currentUser.hasAiAccess()")
 @Tag(name = "Chats", description = "Conversas com o Alfredo")
 public class ChatRestController {
 

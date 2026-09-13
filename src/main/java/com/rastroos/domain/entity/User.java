@@ -73,6 +73,17 @@ public class User {
     @Column(name = "values_hidden", nullable = false)
     private boolean valuesHidden;
 
+    /**
+     * Se esta conta tem acesso ao Alfredo (chat flutuante, sugestões e a tela
+     * dele).
+     *
+     * <p>Nasce <b>desligado</b> — em cadastro comum e em acessor. Liberar é
+     * sempre ato de um administrador; as contas que já existiam quando a
+     * coluna foi criada mantiveram o acesso (changelog 017).
+     */
+    @Column(name = "ai_enabled", nullable = false)
+    private boolean aiEnabled = false;
+
     /** Em contas ACESSOR: se true, o titular ocultou os valores — o acessor vê apenas '*'. */
     @Column(name = "values_masked", nullable = false)
     private boolean valuesMasked;
@@ -153,6 +164,9 @@ public class User {
 
     public boolean isValuesHidden() { return valuesHidden; }
     public void setValuesHidden(boolean valuesHidden) { this.valuesHidden = valuesHidden; }
+
+    public boolean isAiEnabled() { return aiEnabled; }
+    public void setAiEnabled(boolean aiEnabled) { this.aiEnabled = aiEnabled; }
 
     public boolean isValuesMasked() { return valuesMasked; }
     public void setValuesMasked(boolean valuesMasked) { this.valuesMasked = valuesMasked; }

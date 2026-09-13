@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ─────────────────────────────────────────────────────────────
+  017 — Acesso à IA por usuário
+  ─────────────────────────────────────────────────────────────
+  Nem todo mundo tem o Alfredo: um administrador libera conta a
+  conta. Desligado, o usuário não vê o chat flutuante, nem as
+  sugestões, nem a tela do Alfredo.
+
+  Duas verdades diferentes, de propósito:
+    • quem JÁ EXISTE fica com acesso (DEFAULT true no ADD COLUMN
+      preenche as linhas atuais). A coluna passa a controlar o que
+      é *permitido*; tirar acesso de alguém é decisão explícita do
+      administrador, não efeito de migração;
+    • quem for criado DEPOIS nasce sem acesso — por isso o
+      SET DEFAULT false logo em seguida. Vale para cadastro comum
+      e para acessor; liberar é sempre ato do administrador.
+-->
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.27.xsd">
+
+    <changeSet id="017-01-users-add-ai-enabled" author="rastroos">
+        <!-- DEFAULT true aqui só para preencher as linhas que já existem. -->
+        <addColumn tableName="users">
+            <column name="ai_enabled" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+
+        <!-- Daqui para frente, conta nova nasce sem Alfredo. O default do banco
+             acompanha o da entidade (User.aiEnabled = false) para que um INSERT
+             fora do JPA não abra acesso por descuido. -->
+        <sql>
+            ALTER TABLE users ALTER COLUMN ai_enabled SET DEFAULT false;
+        </sql>
+
+        <rollback>
+            <dropColumn tableName="users" columnName="ai_enabled"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

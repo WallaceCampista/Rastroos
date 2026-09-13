@@ -99,7 +99,8 @@ public class UserAdminService {
                 .map(u -> new UserRowDto(
                         u.getId(), u.getName(), u.getEmail(), u.isEmailVerified(),
                         u.getRole(), u.getStatus(), u.getCreatedAt(), u.getLastLoginAt(),
-                        sessions.findByUserIdAndRevokedAtIsNullOrderByLastSeenAtDesc(u.getId()).size()))
+                        sessions.findByUserIdAndRevokedAtIsNullOrderByLastSeenAtDesc(u.getId()).size(),
+                        u.isAiEnabled()))
                 .toList();
 
         return new UserAdminListView(
@@ -159,6 +160,8 @@ public class UserAdminService {
         u.setAccessesUserId(resolveAccessorTarget(form.getRole(), form.getAccessesUserId(), null));
         u.setEmailVerified(true);          // conta criada pelo admin já é confiável
         u.setPasswordMustChange(true);     // obriga troca no primeiro login
+        // Sem marcar a caixa, a conta nasce sem Alfredo — o padrão da entidade.
+        u.setAiEnabled(form.isAiEnabled());
         return new CreateResult(users.save(u), List.of());
     }
 
@@ -188,6 +191,21 @@ public class UserAdminService {
         u.setRole(form.getRole());
         u.setStatus(form.getStatus());
         u.setAccessesUserId(resolveAccessorTarget(form.getRole(), form.getAccessesUserId(), id));
+        return users.save(u);
+    }
+
+    /**
+     * Libera ou retira o acesso ao Alfredo desta conta. Só o que é permitido
+     * muda: nada do que o usuário já conversou é apagado, e devolver o acesso
+     * traz o histórico de volta.
+     *
+     * <p>A restrição a administrador está na camada Web (rota {@code /app/users/**}
+     * + {@code @PreAuthorize}); aqui vale a regra de negócio.
+     */
+    @Transactional
+    public User changeAiAccess(UUID id, boolean enabled) {
+        User u = require(id);
+        u.setAiEnabled(enabled);
         return users.save(u);
     }
 

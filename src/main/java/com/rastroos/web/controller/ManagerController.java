@@ -32,7 +32,13 @@ import jakarta.validation.Valid;
  */
 @Controller
 @RequestMapping("/app/manager")
-@PreAuthorize("isAuthenticated()")
+/*
+ * Acesso ao Alfredo é liberado conta a conta por um administrador
+ * (users.ai_enabled). Sem ele, 403 — e a página de erro explica o motivo
+ * (RastroosErrorViewResolver reconhece as rotas do Alfredo). Esconder o orbe e
+ * o item de menu é conforto, não segurança: quem digitasse a URL entraria.
+ */
+@PreAuthorize("isAuthenticated() and @currentUser.hasAiAccess()")
 public class ManagerController {
 
     private final CurrentUser currentUser;

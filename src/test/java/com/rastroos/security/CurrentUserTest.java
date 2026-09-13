@@ -6,10 +6,12 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import com.rastroos.domain.entity.User;
+import com.rastroos.domain.repository.UserRepository;
 import com.rastroos.domain.entity.enums.UserRole;
 import com.rastroos.domain.entity.enums.UserStatus;
 
@@ -20,11 +22,42 @@ import com.rastroos.domain.entity.enums.UserStatus;
  */
 class CurrentUserTest {
 
-    private final CurrentUser currentUser = new CurrentUser();
+    /** Sem repositório: o acesso à IA cai no que o principal traz. */
+    private final CurrentUser currentUser =
+            new CurrentUser(new ObjectProvider<UserRepository>() {
+                @Override
+                public UserRepository getIfAvailable() {
+                    return null;
+                }
+            });
 
     @AfterEach
     void clear() {
         SecurityContextHolder.clearContext();
+    }
+
+    /**
+     * Sem contexto de requisição e sem repositório, o acesso à IA vem do
+     * principal — é o caminho de fallback do {@code hasAiAccess()}.
+     */
+    @Test
+    void acessoAIaSegueOPrincipalQuandoNaoHaRepositorio() {
+        User comIa = user(UserRole.USER, null, false);
+        comIa.setAiEnabled(true);
+        authenticate(comIa);
+        assertThat(currentUser.hasAiAccess()).isTrue();
+
+        SecurityContextHolder.clearContext();
+
+        User semIa = user(UserRole.USER, null, false);
+        semIa.setAiEnabled(false);
+        authenticate(semIa);
+        assertThat(currentUser.hasAiAccess()).isFalse();
+    }
+
+    @Test
+    void semAutenticacao_naoTemAcessoAIa() {
+        assertThat(currentUser.hasAiAccess()).isFalse();
     }
 
     @Test

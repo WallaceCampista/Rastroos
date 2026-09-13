@@ -47,6 +47,14 @@ public class UserCreateForm {
             + "(obrigatório e válido apenas quando role = ACESSOR)")
     private UUID accessesUserId;
 
+    /**
+     * Acesso ao Alfredo. Falso por padrão — conta nova nasce sem IA, inclusive
+     * acessor; o administrador marca aqui, ou libera depois pelo toggle da
+     * listagem.
+     */
+    @Schema(description = "Liberar o Alfredo para esta conta", example = "false")
+    private boolean aiEnabled;
+
     public UserCreateForm() {
     }
 
@@ -67,4 +75,7 @@ public class UserCreateForm {
 
     public UserStatus getStatus() { return status; }
     public void setStatus(UserStatus status) { this.status = status; }
+
+    public boolean isAiEnabled() { return aiEnabled; }
+    public void setAiEnabled(boolean aiEnabled) { this.aiEnabled = aiEnabled; }
 }

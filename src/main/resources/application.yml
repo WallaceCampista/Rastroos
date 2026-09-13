@@ -119,8 +119,19 @@ management:
 # vLLM, Azure OpenAI) funcionam com provider=openai + AI_PROVIDER_BASE_URL.
 # base-url vazio = raiz padrão do fornecedor; model vazio = modelo padrão dele.
 ai:
+  # Motor PADRÃO da instalação. Um administrador pode alternar em tempo de
+  # execução pelo menu do usuário (a escolha fica em app_settings); este valor
+  # vale enquanto ninguém tiver escolhido, e sempre que provider-locked=true.
   provider: ${AI_PROVIDER:openai}
+  # true = o ambiente fixa o motor e o administrador não troca (o caso de dev).
+  provider-locked: ${AI_PROVIDER_LOCKED:false}
   base-url: ${AI_PROVIDER_BASE_URL:}
+  # Uma chave por fornecedor: é o que permite alternar sem reconfigurar nada,
+  # e impede mandar a credencial de um para a API do outro. `api-key` continua
+  # valendo como fallback para quem só usa um motor.
+  keys:
+    openai: ${AI_OPENAI_API_KEY:}
+    gemini: ${AI_GEMINI_API_KEY:}
   api-key: ${AI_API_KEY:}
   model: ${AI_MODEL:}
   connect-timeout-ms: 3000

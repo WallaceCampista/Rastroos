@@ -33,6 +33,7 @@ public class CustomUserDetails implements UserDetails {
     private final short paletteIndex;
     private final UserDensity density;
     private final boolean onboardingPending;
+    private final boolean aiEnabled;
     private final List<GrantedAuthority> authorities;
 
     public CustomUserDetails(User user) {
@@ -53,6 +54,7 @@ public class CustomUserDetails implements UserDetails {
         this.paletteIndex = user.getPaletteIndex();
         this.density = user.getDensity();
         this.onboardingPending = user.getOnboardingCompletedAt() == null;
+        this.aiEnabled = user.isAiEnabled();
         this.authorities = List.of(
                 new SimpleGrantedAuthority("ROLE_" + user.getRole().name())
         );
@@ -80,6 +82,9 @@ public class CustomUserDetails implements UserDetails {
 
     /** {@code true} enquanto o usuário não concluiu nem dispensou o wizard de boas-vindas. */
     public boolean isOnboardingPending() { return onboardingPending; }
+
+    /** {@code true} se esta conta tem acesso ao Alfredo. */
+    public boolean isAiEnabled() { return aiEnabled; }
 
     public boolean isAccessor() {
         return authorities.stream().anyMatch(a -> "ROLE_ACESSOR".equals(a.getAuthority()));

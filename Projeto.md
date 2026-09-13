@@ -707,6 +707,43 @@ Content-Security-Policy: <conforme 5.5>
 - [x] **Testes**: 638 no total (4 novos no cliente de IA: ordem dos pedaços, `usage` do último chunk, chunk malformado que não derruba o fluxo, e a ausência de retry). Verificado ao vivo contra o Gemini nas duas telas
 
 
+### Etapa 25 — Motor de IA escolhido pelo administrador (1 dia)
+
+**Diagnóstico do que existia.** O fornecedor era decidido no boot: `AiModelClient` recebia um único `AiProvider` e congelava URL, modelos e cliente HTTP em campos `final`. Trocar de motor exigia mudar variável de ambiente e reiniciar — e a chave era uma só, então não dava para ter os dois configurados ao mesmo tempo.
+
+- [x] **Um motor por fornecedor, montado no boot** (`AiEngine`): provider, credencial, URL, modelos e clientes HTTP. O `AiModelClient` deixou de ter campos fixos e resolve o motor ativo a cada chamada — a troca não reconstrói nada em tempo de requisição
+- [x] **Uma chave por fornecedor** (`ai.keys.openai`, `ai.keys.gemini`). É o que permite alternar sem reconfigurar, e impede mandar a credencial de um para a API do outro (só renderia 401). A `ai.api-key` continua valendo como fallback de quem usa um motor só. **Nenhum segredo vai para o banco**: o que se grava é qual fornecedor está ativo
+- [x] **A escolha persiste** em `app_settings` (changelog `016`), chave/valor de escopo global — sobrevive a restart. `AiProviderSetting` lê com cache e recusa trocar para fornecedor desconhecido ou **sem chave** (isso desligaria a IA inteira em silêncio)
+- [x] **Exclusivo de administrador**: `POST /api/admin/ai/provider` — o caminho já exige `ROLE_ADMIN` no `SecurityConfig` e o `@PreAuthorize` repete a exigência na classe, para a regra não depender de uma linha de configuração distante (§3.1). O valor passa por lista fechada de caracteres (§3.3) e a troca entra no **audit log**
+- [x] **Interruptor de dois rótulos** no menu do usuário, logo abaixo de "Modo claro/escuro": OpenAI de um lado, Gemini do outro, com o polegar deslizando. Posição **100% em CSS** (grid de colunas iguais + `translateX(100%)`): medir `offsetWidth` em JS dava zero enquanto o menu estava escondido e o polegar nascia no canto errado
+- [x] **DEV continua só no Gemini**: `application-dev.yml` fixa `provider=gemini` com `provider-locked=true`, e o seletor aparece desabilitado com o motivo no `title` — some seria pior, o administrador não saberia que a opção existe. `AI_PROVIDER_LOCKED=false` destrava para exercitar a troca localmente. Em produção a escolha é do administrador
+- [x] **Consequência declarada na própria UI**: trocar de motor troca o espaço vetorial e o modelo dos resumos, então o índice semântico é reindexado e os resumos regerados. O toast diz isso ao confirmar
+- [x] **Testes**: 656 no total (18 novos) — `AiProviderSetting` (fallback do ambiente, escolha gravada, fornecedor extinto, sem chave, ambiente travado) e o endpoint admin (troca + audit, 400 com código de erro, valor fora da lista barrado na validação). Verificado ao vivo: alternar pela UI gravou em `app_settings`, entrou no audit, e a chamada seguinte foi de fato para o outro fornecedor
+
+
+### Etapa 26 — Acesso à IA liberado usuário a usuário (1 dia)
+
+**Diagnóstico do que existia.** Toda conta autenticada via o Alfredo inteiro — chat flutuante, balão de sugestões, tela do Alfredo e as rotas de chat e resumo. Não havia como restringir a IA a quem deveria tê-la, e cada conta consome tokens.
+
+- [x] **`users.ai_enabled`** (changelog `017`). Contas que já existiam **mantiveram o acesso** (o `DEFAULT true` do `ADD COLUMN` preenche as linhas atuais — tirar acesso é decisão do administrador, não efeito de migração); logo em seguida o default vira `false`: **conta nova nasce sem IA**, inclusive acessor. A entidade repete o mesmo padrão, para que um INSERT fora do JPA não abra acesso por descuido
+- [x] **Coluna "IA" na tela de usuários**, com um toggle por linha, e **caixa "Liberar o Alfredo" no cadastro** de usuário (desmarcada por padrão). Só administrador: a rota `/app/users/**` já exige `ROLE_ADMIN` e a troca entra no audit log (`USER_AI_ACCESS_CHANGE`)
+- [x] **Barrado no servidor, não só escondido.** `@PreAuthorize("isAuthenticated() and @currentUser.hasAiAccess()")` na tela do Alfredo e nas rotas de chat e resumo; sem acesso, 403. O interceptor do widget deixa de renderizar o orbe (e, sem orbe, não há balão de sugestão) e o item "Alfredo" some do menu — mas isso é conforto: quem digitasse a URL continuaria barrado
+- [x] **Retirar o acesso vale na hora.** `CurrentUser.hasAiAccess()` lê a flag do **banco**, não do principal em sessão — senão quem perdeu a IA a manteria até o próximo login. Um cache por requisição mantém isso em uma consulta por página, mesmo com interceptor e `@PreAuthorize` perguntando juntos. Vale a flag de quem está logado: acessor sem IA segue sem IA mesmo operando a conta de alguém que tem
+- [x] **Testes**: serviço (conta nova e acessor nascem sem IA, caixa marcada libera, toggle), controller admin (troca + audit), interceptor (sem IA não publica orbe nem resumo) e um `@SpringBootTest` com Spring Security de verdade: 403 na tela e nas rotas de IA, 200 com acesso, e a retirada valendo na mesma sessão
+
+### Etapa 27 — Página de erro própria (½ dia)
+
+**Diagnóstico do que existia.** A pasta `templates/error/` estava vazia: qualquer 403, 404 ou 500 caía na "Whitelabel Error Page" do Spring, sem marca, sem explicação e sem caminho de volta.
+
+- [x] **`error/page.html`** com o logo completo com slogan (sem fundo) centralizado, uma trilha tracejada que termina num ponto dourado (o "rastro" que parou ali) e, abaixo, a mensagem explícita: título, explicação, **código e endereço** ("Código 404 em /app/…") e o botão de volta. Erro 5xx oferece também abrir um chamado no Suporte; 401 leva ao login
+- [x] **Sempre clara, mesmo com o app no tema escuro**: o "RASTR" do logo é azul-marinho e o PNG não tem fundo — sobre o fundo escuro do app ele some. A paleta sai do próprio logo. Página **autocontida** (não carrega o shell do app nem `tokens.css`/`base.css`): o erro não pode depender do que talvez tenha falhado
+- [x] **`RastroosErrorViewResolver`**: só é consultado para respostas **HTML**, então o JSON de erro de `/api/**` não mudou. **Monta o modelo do zero** — o mapa de entrada traz `message`, `trace` e `exception` quando o perfil dev libera, e um template que recebe isso um dia acaba mostrando; aqui a página só conhece status, endereço e chaves de texto, então não há como vazar detalhe interno (§3.2). Reconhece as rotas do Alfredo: um 403 nelas diz "O Alfredo não está liberado para a sua conta" e orienta a pedir ao administrador. Textos em `messages*.properties` (§8); o 404 não sugere que o registro existe em outra conta (§2.2)
+- [x] **A tela do Alfredo voltou ao 403.** Na etapa anterior ela redirecionava ao dashboard só porque não havia página de erro; com uma página que explica o bloqueio, o gate voltou a ser um único `@PreAuthorize` na classe, igual às rotas REST
+- [x] **Asset otimizado**: o PNG original (2181px, 730 KB) virou 1200px, servido como WebP de 69 KB via `<picture>` com o PNG de fallback
+- [ ] **Anônimo continua indo para o login em qualquer erro**: `/error` exige autenticação no `SecurityConfig`. Mostrar a página para quem não está logado exige liberar `/error` — é relaxar uma regra de segurança, então fica para decisão explícita (§11.3)
+- [x] **Testes**: 686 no total — o resolvedor (chave por status e rota, modelo sem `message`/`trace`/`exception`, ações por família de erro) e renderização real da página via `/error` no `@SpringBootTest` (texto do Alfredo, logo, e uma exceção com texto sensível que **não** aparece no HTML)
+
+
 ---
 
 ## 7. Estrutura de pastas
@@ -1060,4 +1097,4 @@ open http://localhost:8080/swagger-ui.html
 
 ---
 
-**Fim do documento.** Todas as etapas do roadmap estão concluídas (0–24). Próximos passos sugeridos fora do roadmap inicial: validação visual/e2e da landing e dos fluxos de auth, rodar o OWASP Dependency Check contra o NVD (perfil `security` + chave), e um `EmailService` SMTP/SES real para prod.
+**Fim do documento.** Todas as etapas do roadmap estão concluídas (0–27), com uma pendência declarada na 27. Próximos passos sugeridos fora do roadmap inicial: validação visual/e2e da landing e dos fluxos de auth, rodar o OWASP Dependency Check contra o NVD (perfil `security` + chave), e um `EmailService` SMTP/SES real para prod.

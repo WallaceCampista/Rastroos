@@ -240,6 +240,31 @@ class UserAdminControllerTest {
     }
 
     @Test
+    void changeAiAccessLiberaERedireciona() throws Exception {
+        when(service.changeAiAccess(targetId, true)).thenReturn(new User());
+
+        mvc.perform(post("/app/users/{id}/ai", targetId).param("enabled", "true"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/app/users"))
+                .andExpect(flash().attribute("ok", "users.aiEnabled"));
+
+        verify(service).changeAiAccess(targetId, true);
+        verify(audit).record(eq(adminId), eq("USER_AI_ACCESS_CHANGE"), eq("user"),
+                eq(targetId.toString()), any(), any());
+    }
+
+    @Test
+    void changeAiAccessRetiraERedireciona() throws Exception {
+        when(service.changeAiAccess(targetId, false)).thenReturn(new User());
+
+        mvc.perform(post("/app/users/{id}/ai", targetId).param("enabled", "false"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(flash().attribute("ok", "users.aiDisabled"));
+
+        verify(service).changeAiAccess(targetId, false);
+    }
+
+    @Test
     void resetPasswordDefineNovaSenhaERedirecionaParaLista() throws Exception {
         when(service.setPassword(eq(targetId), eq("NovaSenha1!"))).thenReturn(List.of());
 
@@ -281,7 +306,7 @@ class UserAdminControllerTest {
                 targetId, "Maria", "maria@example.com", true,
                 UserRole.USER, UserStatus.ACTIVE,
                 Instant.parse("2026-05-01T10:00:00Z"),
-                Instant.parse("2026-05-02T10:00:00Z"), 1L);
+                Instant.parse("2026-05-02T10:00:00Z"), 1L, true);
         return new UserAdminListView(List.of(row), 0, 20, 1, 1, 5, 3, 1, 1, 1);
     }
 

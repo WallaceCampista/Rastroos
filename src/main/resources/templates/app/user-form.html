@@ -65,6 +65,17 @@
                 <p class="field-error" th:if="${#fields.hasErrors('status')}" th:errors="*{status}">erro</p>
             </div>
 
+            <!-- Só na criação: no modo edição o acesso à IA se troca pelo
+                 toggle da coluna IA na listagem. -->
+            <div class="field field-wide" th:unless="${edit}">
+                <label class="field-check" for="aiEnabled">
+                    <input type="checkbox" id="aiEnabled" th:field="*{aiEnabled}">
+                    <span>Liberar o Alfredo (IA) para esta conta</span>
+                </label>
+                <p class="field-hint">Desmarcado, o usuário não vê o chat flutuante, as sugestões
+                    nem a tela do Alfredo. Dá para liberar depois pela coluna IA da listagem.</p>
+            </div>
+
             <div class="field field-wide" data-accessor-target-field
                  th:hidden="${userForm.role == null or userForm.role.name() != 'ACESSOR'}">
                 <label for="accessesUserId">Usuário-alvo do acessor</label>

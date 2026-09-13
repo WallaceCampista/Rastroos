@@ -1,15 +1,26 @@
 package com.rastroos.web.interceptor;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.web.servlet.ModelAndView;
 
+import com.rastroos.security.CurrentUser;
+
 class AlfredoWidgetInterceptorTest {
 
-    private final AlfredoWidgetInterceptor interceptor = new AlfredoWidgetInterceptor();
+    private final CurrentUser currentUser = mock(CurrentUser.class);
+    private final AlfredoWidgetInterceptor interceptor = new AlfredoWidgetInterceptor(currentUser);
+
+    @BeforeEach
+    void comAcessoAIa() {
+        when(currentUser.hasAiAccess()).thenReturn(true);
+    }
 
     private ModelAndView run(String viewName, String activeNav) {
         ModelAndView mav = new ModelAndView(viewName);
@@ -59,6 +70,25 @@ class AlfredoWidgetInterceptorTest {
         ModelAndView mav = run("redirect:/app/dashboard", "dashboard");
 
         assertThat(mav.getModel()).doesNotContainKey("alfredoWidget");
+    }
+
+    /** Sem acesso à IA não há orbe — e, sem orbe, não há balão de sugestão. */
+    @Test
+    void semAcessoAIa_naoRenderizaOrbeNemResumo() {
+        when(currentUser.hasAiAccess()).thenReturn(false);
+
+        ModelAndView mav = run("app/dashboard", "dashboard");
+
+        assertThat(mav.getModel().get("alfredoWidget")).isEqualTo(false);
+        assertThat(mav.getModel().get("aiAllowed")).isEqualTo(false);
+        assertThat(mav.getModel()).doesNotContainKey("alfredoScreen");
+    }
+
+    @Test
+    void comAcessoAIa_publicaOSinalParaOMenu() {
+        ModelAndView mav = run("app/dashboard", "dashboard");
+
+        assertThat(mav.getModel().get("aiAllowed")).isEqualTo(true);
     }
 
     @Test

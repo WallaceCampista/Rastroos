@@ -4,12 +4,15 @@ import java.time.YearMonth;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
+import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import com.rastroos.domain.repository.UserRepository;
 import com.rastroos.domain.service.ChatScope;
 
 import jakarta.servlet.http.HttpSession;
@@ -21,6 +24,19 @@ import jakarta.servlet.http.HttpSession;
  */
 @Component
 public class CurrentUser {
+
+    /** Chave do cache por requisição do acesso à IA. */
+    private static final String AI_ACCESS_ATTR = "rastroos.aiAccess";
+
+    /**
+     * ObjectProvider: em fatias {@code @WebMvcTest} o repositório não existe, e
+     * o {@code CurrentUser} ainda precisa ser construtível.
+     */
+    private final ObjectProvider<UserRepository> users;
+
+    public CurrentUser(ObjectProvider<UserRepository> users) {
+        this.users = users;
+    }
 
     public Optional<CustomUserDetails> get() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -92,6 +108,47 @@ public class CurrentUser {
     public UUID requireEffectiveId() {
         return effectiveUserId().orElseThrow(() ->
                 new IllegalStateException("No effective data owner in SecurityContext"));
+    }
+
+    /**
+     * {@code true} se a conta autenticada pode usar o Alfredo.
+     *
+     * <p>Vale a flag de <em>quem está logado</em>, não a do dono dos dados: um
+     * acessor sem IA continua sem IA mesmo operando a conta de alguém que tem.
+     *
+     * <p>É o gate único da funcionalidade — usado tanto nos
+     * {@code @PreAuthorize} das rotas de IA quanto para esconder o orbe e o
+     * item de menu. Esconder sem barrar no servidor deixaria as rotas abertas
+     * a quem digitasse a URL.
+     */
+    public boolean hasAiAccess() {
+        Optional<CustomUserDetails> principal = get();
+        if (principal.isEmpty()) {
+            return false;
+        }
+        var attrs = RequestContextHolder.getRequestAttributes();
+        if (attrs != null) {
+            Object cached = attrs.getAttribute(AI_ACCESS_ATTR, RequestAttributes.SCOPE_REQUEST);
+            if (cached instanceof Boolean b) {
+                return b;
+            }
+        }
+
+        // Lê do banco, e não do principal: retirar o acesso precisa valer na
+        // hora, não só no próximo login de quem perdeu. O cache por requisição
+        // mantém isso em uma consulta por página, mesmo com o interceptor e o
+        // @PreAuthorize perguntando na mesma requisição.
+        UserRepository repository = users.getIfAvailable();
+        boolean allowed = repository == null
+                ? principal.get().isAiEnabled()
+                : repository.findById(principal.get().getId())
+                        .map(com.rastroos.domain.entity.User::isAiEnabled)
+                        .orElse(false);
+
+        if (attrs != null) {
+            attrs.setAttribute(AI_ACCESS_ATTR, allowed, RequestAttributes.SCOPE_REQUEST);
+        }
+        return allowed;
     }
 
     /** Contas ACESSOR não podem excluir nada. */

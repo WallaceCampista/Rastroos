@@ -24,5 +24,7 @@
     <include file="db/changelog/013-ai-insight-cache.xml"/>
     <include file="db/changelog/014-onboarding-income-sources.xml"/>
     <include file="db/changelog/015-income-business-day-and-received.xml"/>
+    <include file="db/changelog/016-app-settings.xml"/>
+    <include file="db/changelog/017-user-ai-access.xml"/>
 
 </databaseChangeLog>

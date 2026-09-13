@@ -57,6 +57,36 @@
             </button>
         </div>
 
+        <!-- ── Motor de IA (só administrador) ────────────────────────
+             Alterna qual LLM o backend usa. A chave de cada fornecedor
+             mora no ambiente; aqui só se escolhe qual entra em uso.
+             Em dev o motor é travado (ai.provider-locked), então o
+             seletor aparece desabilitado, com o motivo no title. -->
+        <div class="um-row um-row-ai" sec:authorize="hasRole('ADMIN')" th:if="${aiProvider != null}">
+            <div class="um-row-left">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M12 3l2.4 5.6 6 .5-4.6 3.9 1.4 5.9L12 16.9 6.8 18.9l1.4-5.9L3.6 9.1l6-.5z"/>
+                </svg>
+                <span>Motor de IA</span>
+            </div>
+            <div class="um-llm" data-ai-provider
+                 th:attr="data-current=${aiProvider},data-locked=${aiProviderLocked}"
+                 th:title="${aiProviderLocked}
+                    ? 'Ambiente com o motor fixo — a troca só vale em produção'
+                    : 'Escolha qual LLM o backend usa'">
+                <button type="button" class="um-llm-opt" data-ai-option="openai"
+                        th:classappend="${aiProvider == 'openai'} ? 'on' : ''"
+                        th:disabled="${aiProviderLocked or !#lists.contains(aiProviderConfigured, 'openai')}"
+                        th:attr="aria-pressed=${aiProvider == 'openai'}">OpenAI</button>
+                <button type="button" class="um-llm-opt" data-ai-option="gemini"
+                        th:classappend="${aiProvider == 'gemini'} ? 'on' : ''"
+                        th:disabled="${aiProviderLocked or !#lists.contains(aiProviderConfigured, 'gemini')}"
+                        th:attr="aria-pressed=${aiProvider == 'gemini'}">Gemini</button>
+                <span class="um-llm-thumb" aria-hidden="true"></span>
+            </div>
+        </div>
+
         <div class="um-divider"></div>
 
         <button type="button" class="um-action" data-theme-expand aria-expanded="false">

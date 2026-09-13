@@ -80,7 +80,8 @@
             </svg>
             <span>Comparativo</span>
         </a>
-        <a class="nav-item" th:href="@{/app/manager}"
+        <!-- Alfredo só para quem tem acesso à IA (aiAllowed vem do interceptor). -->
+        <a class="nav-item" th:if="${aiAllowed}" th:href="@{/app/manager}"
            th:classappend="${active == 'manager'} ? 'active' : ''">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                  stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">

@@ -645,3 +645,22 @@
     border-radius: 5px;
     background: color-mix(in oklch, var(--text) 10%, transparent);
 }
+
+/* ── Caixa de marcação dentro de .field ──────────────────────
+   `.field input` vale para os campos de texto (largura total e
+   padding grande); sem estas regras a caixinha viraria um bloco.
+   O seletor repete `.field >` para vencer `.field > label`, que
+   deixa o rótulo em caixa alta. */
+.field > label.field-check {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 14px; font-weight: 500;
+    color: var(--text);
+    text-transform: none; letter-spacing: normal;
+    cursor: pointer;
+}
+.field > label.field-check input[type="checkbox"] {
+    width: 17px; height: 17px;
+    padding: 0; flex-shrink: 0;
+    accent-color: var(--primary);
+    cursor: pointer;
+}

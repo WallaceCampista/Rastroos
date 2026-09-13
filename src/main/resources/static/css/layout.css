@@ -620,6 +620,54 @@
 }
 .um-switch.on .um-switch-thumb { transform: translateX(16px); }
 
+/* ── Motor de IA: um interruptor de dois rótulos ─────────────
+   Não é liga/desliga, é OpenAI↔Gemini — então cada lado é um
+   botão com nome, e o polegar desliza para o lado ativo. */
+.um-llm {
+    position: relative;
+    /* Grid de colunas iguais: com as duas do mesmo tamanho, o polegar é
+       posicionado só por porcentagem — nada de medir offsetWidth em JS, que
+       dá zero enquanto o menu está escondido. */
+    display: grid; grid-template-columns: 1fr 1fr; align-items: center;
+    padding: 2px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.12);
+    flex-shrink: 0;
+}
+[data-theme="dark"] .um-llm { background: rgba(255, 255, 255, 0.10); }
+.um-llm-opt {
+    position: relative; z-index: 1;
+    border: 0; background: transparent;
+    padding: 4px 10px;
+    text-align: center;
+    border-radius: 999px;
+    font-family: inherit;
+    font-size: 10.5px; font-weight: 700;
+    letter-spacing: 0.02em;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: color .18s ease;
+    white-space: nowrap;
+}
+.um-llm-opt.on { color: #fff; }
+.um-llm-opt:disabled { cursor: not-allowed; }
+/* Travado (dev) ou sem chave: o seletor fica visível mas apagado —
+   esconder deixaria o administrador sem saber que a opção existe. */
+.um-llm:has(.um-llm-opt:disabled) { opacity: .55; }
+.um-llm-thumb {
+    position: absolute; top: 2px; left: 2px;
+    width: calc(50% - 2px); height: calc(100% - 4px);
+    border-radius: 999px;
+    background: var(--primary);
+    transition: transform .2s ease;
+    pointer-events: none;
+}
+/* Segunda opção ativa: o polegar anda a própria largura. */
+.um-llm.is-second .um-llm-thumb { transform: translateX(100%); }
+.um-llm.is-busy { opacity: .6; pointer-events: none; }
+
+.um-row-ai .um-row-left { min-width: 0; }
+
 .um-action {
     display: flex; align-items: center; gap: 10px;
     width: 100%;

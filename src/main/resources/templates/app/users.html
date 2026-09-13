@@ -92,6 +92,7 @@
                     <th>Usuário</th>
                     <th>Perfil</th>
                     <th>Status</th>
+                    <th class="ai-col">IA</th>
                     <th class="num">Sessões</th>
                     <th>Criado</th>
                     <th>Último login</th>
@@ -132,6 +133,27 @@
                             <th:block th:case="'PENDING_APPROVAL'">Pendente</th:block>
                             <th:block th:case="'DISABLED'">Desativado</th:block>
                         </span>
+                    </td>
+                    <!-- Acesso ao Alfredo. Só administrador chega nesta tela,
+                         e a rota /app/users/** já exige ROLE_ADMIN. -->
+                    <td class="ai-col">
+                        <form method="post" class="row-action-form"
+                              th:action="@{/app/users/{id}/ai(id=${u.id()})}">
+                            <input type="hidden" th:if="${_csrf != null}"
+                                   th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                            <input type="hidden" name="enabled" th:value="${!u.aiEnabled()}">
+                            <button type="submit" class="ai-switch"
+                                    th:classappend="${u.aiEnabled()} ? 'on' : ''"
+                                    role="switch" th:attr="aria-checked=${u.aiEnabled()}"
+                                    th:title="${u.aiEnabled()}
+                                        ? 'Alfredo liberado — clique para retirar'
+                                        : 'Sem Alfredo — clique para liberar'"
+                                    th:aria-label="${u.aiEnabled()}
+                                        ? 'Retirar acesso à IA de ' + ${u.name()}
+                                        : 'Liberar acesso à IA para ' + ${u.name()}">
+                                <span class="ai-switch-thumb"></span>
+                            </button>
+                        </form>
                     </td>
                     <td class="num" th:text="${u.activeSessions()}">0</td>
                     <td class="user-when"

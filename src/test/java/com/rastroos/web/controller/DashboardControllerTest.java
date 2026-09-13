@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -92,6 +93,8 @@ class DashboardControllerTest {
     void setUp() {
         when(currentUser.requireEffectiveId()).thenReturn(userId);
         when(currentUser.get()).thenReturn(Optional.of(principal));
+        // O orbe do Alfredo agora depende do acesso à IA da conta.
+        lenient().when(currentUser.hasAiAccess()).thenReturn(true);
         when(principal.getEmail()).thenReturn("alice@example.com");
         when(principal.getAuthorities()).thenReturn(List.of());
     }

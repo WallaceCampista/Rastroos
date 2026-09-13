@@ -121,6 +121,95 @@
         });
     }
 
+    // ── Motor de IA (admin): OpenAI ↔ Gemini ──────────────────
+    // Interruptor de dois lados. A escolha vale para a instalação
+    // inteira (é o backend que muda de fornecedor), então vai ao
+    // servidor na hora — nada de estado só no navegador.
+    const llm = document.querySelector('[data-ai-provider]');
+    if (llm) {
+        const options = Array.prototype.slice.call(llm.querySelectorAll('[data-ai-option]'));
+        const locked = llm.getAttribute('data-locked') === 'true';
+
+        // Só classes: a posição do polegar é 100% CSS, então funciona mesmo
+        // com o menu ainda escondido (onde toda medida daria zero).
+        const paint = (providerId) => {
+            let index = 0;
+            options.forEach((btn, i) => {
+                const on = btn.getAttribute('data-ai-option') === providerId;
+                btn.classList.toggle('on', on);
+                btn.setAttribute('aria-pressed', String(on));
+                if (on) index = i;
+            });
+            llm.classList.toggle('is-second', index === 1);
+        };
+
+        paint(llm.getAttribute('data-current'));
+
+        const csrfInput = document.querySelector('input[name="_csrf"]');
+
+        options.forEach((btn) => {
+            btn.addEventListener('click', async () => {
+                const wanted = btn.getAttribute('data-ai-option');
+                if (locked || btn.disabled || wanted === llm.getAttribute('data-current')) return;
+
+                const previous = llm.getAttribute('data-current');
+                llm.classList.add('is-busy');
+                // Pinta antes da resposta: o clique responde na hora e volta
+                // atrás se o servidor recusar.
+                paint(wanted);
+                try {
+                    const resp = await fetch('/api/admin/ai/provider', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Requested-With': 'fetch',
+                            'X-CSRF-TOKEN': csrfInput ? csrfInput.value : '',
+                        },
+                        body: JSON.stringify({ provider: wanted }),
+                    });
+                    const data = await resp.json().catch(() => ({}));
+                    if (!resp.ok) {
+                        paint(previous);
+                        if (window.RastroosToast) {
+                            window.RastroosToast.show(messageFor(data.error), 'error');
+                        }
+                        return;
+                    }
+                    llm.setAttribute('data-current', data.current || wanted);
+                    paint(llm.getAttribute('data-current'));
+                    if (window.RastroosToast) {
+                        window.RastroosToast.show(
+                            'Motor de IA agora é ' + labelOf(llm.getAttribute('data-current'))
+                            + '. Os resumos e o índice de busca são refeitos com o novo modelo.',
+                            'ok');
+                    }
+                } catch (err) {
+                    paint(previous);
+                    if (window.RastroosToast) {
+                        window.RastroosToast.show('Não consegui trocar o motor de IA agora.', 'error');
+                    }
+                } finally {
+                    llm.classList.remove('is-busy');
+                }
+            });
+        });
+
+        function labelOf(id) {
+            const btn = llm.querySelector('[data-ai-option="' + id + '"]');
+            return btn ? btn.textContent.trim() : id;
+        }
+
+        function messageFor(code) {
+            if (code === 'ai.providerNotConfigured') {
+                return 'Esse fornecedor não tem chave configurada neste ambiente.';
+            }
+            if (code === 'ai.providerLocked') {
+                return 'Este ambiente tem o motor de IA fixo.';
+            }
+            return 'Não consegui trocar o motor de IA agora.';
+        }
+    }
+
     // ── Ocultar valores global ────────────────────────────────
     const hideToggle = document.querySelector('[data-toggle-hide-values]');
     if (hideToggle) {

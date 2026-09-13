@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,69 +67,121 @@ public class AiModelClient {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final AiProperties props;
-    private final AiProvider provider;
     private final AiUsageRecorder usage;
-    private final RestClient textClient;
-    private final RestClient visionClient;
 
-    /** Valores efetivos (configuração, ou o padrão do fornecedor). */
-    private final String baseUrl;
-    private final String chatModel;
-    private final String embeddingModel;
-    private final int embeddingDimensions;
+    /** Um motor por fornecedor com credencial, montado no boot. */
+    private final Map<String, AiEngine> engines;
+
+    /** Qual deles está ativo. {@code null} nos testes, que fixam um motor só. */
+    private final AiProviderSetting setting;
+    private final AiEngine fixed;
 
     @Autowired
-    public AiModelClient(AiProperties props, AiProvider provider, AiUsageRecorder usage) {
+    public AiModelClient(AiProperties props, List<AiProvider> providers,
+                         AiUsageRecorder usage, AiProviderSetting setting) {
+        this.props = props;
+        this.usage = usage;
+        this.setting = setting;
+        this.fixed = null;
+
+        Map<String, AiEngine> built = new LinkedHashMap<>();
+        for (AiProvider provider : providers) {
+            built.put(provider.id(), engineFor(props, provider));
+        }
+        this.engines = Map.copyOf(built);
+
+        String enabled = built.values().stream()
+                .filter(AiEngine::enabled)
+                .map(AiEngine::id)
+                .collect(Collectors.joining(", "));
+        if (enabled.isEmpty()) {
+            log.info("IA em modo demonstração (nenhum fornecedor com chave configurada)");
+        } else {
+            log.info("IA habilitada. Fornecedores com credencial: {}", enabled);
+        }
+    }
+
+    /** Um fornecedor só, montado a partir da configuração — para os testes. */
+    AiModelClient(AiProperties props, AiProvider provider, AiUsageRecorder usage) {
         this(props, provider, usage, null, null);
     }
 
     /**
      * Construtor com os clientes HTTP já prontos — usado pelos testes, que
-     * apontam para um servidor simulado. Nulos fazem cair no comportamento
-     * normal: construir a partir das propriedades, e só quando há credencial.
+     * apontam para um servidor simulado e fixam um único fornecedor.
      */
     AiModelClient(AiProperties props, AiProvider provider, AiUsageRecorder usage,
                   RestClient textClient, RestClient visionClient) {
         this.props = props;
-        this.provider = provider;
         this.usage = usage;
-        this.baseUrl = props.resolvedBaseUrl(provider.defaultBaseUrl());
-        this.chatModel = props.resolvedModel(provider.defaultChatModel());
-        this.embeddingModel = props.getEmbedding().getModel() == null
+        this.setting = null;
+        AiEngine engine = engineFor(props, provider);
+        if (textClient != null || visionClient != null) {
+            engine = new AiEngine(provider, engine.apiKey(), engine.baseUrl(),
+                    engine.chatModel(), engine.embeddingModel(), engine.embeddingDimensions(),
+                    textClient, visionClient);
+        }
+        this.fixed = engine;
+        this.engines = Map.of(provider.id(), engine);
+    }
+
+    /** Resolve URL, modelos e clientes daquele fornecedor a partir da config. */
+    private static AiEngine engineFor(AiProperties props, AiProvider provider) {
+        String apiKey = props.apiKeyFor(provider.id());
+        boolean hasKey = apiKey != null && !apiKey.isBlank();
+        String embeddingModel = props.getEmbedding().getModel() == null
                 || props.getEmbedding().getModel().isBlank()
                 ? provider.defaultEmbeddingModel()
                 : props.getEmbedding().getModel().trim();
-        this.embeddingDimensions = props.getEmbedding().getDimensions() > 0
+        int dimensions = props.getEmbedding().getDimensions() > 0
                 ? props.getEmbedding().getDimensions()
                 : provider.defaultEmbeddingDimensions();
-        this.textClient = textClient != null ? textClient
-                : props.isEnabled() ? build(props, props.getReadTimeoutMs()) : null;
-        this.visionClient = visionClient != null ? visionClient
-                : props.isEnabled() ? build(props, props.getVision().getReadTimeoutMs()) : null;
-        if (props.isEnabled()) {
-            log.info("IA habilitada: fornecedor={} modelo={} embeddings={} ({} dimensões)",
-                    provider.id(), chatModel, embeddingModel, embeddingDimensions);
-        } else {
-            log.info("IA em modo demonstração (ai.api-key ausente)");
+        return new AiEngine(
+                provider,
+                hasKey ? apiKey : "",
+                props.resolvedBaseUrl(provider.defaultBaseUrl()),
+                props.resolvedModel(provider.defaultChatModel()),
+                embeddingModel,
+                dimensions,
+                hasKey ? build(props, props.getReadTimeoutMs()) : null,
+                hasKey ? build(props, props.getVision().getReadTimeoutMs()) : null);
+    }
+
+    /**
+     * O motor ativo. A escolha do administrador vale enquanto o fornecedor
+     * escolhido tiver credencial; sem ela, cai em qualquer um que tenha — é
+     * melhor responder pelo outro motor do que desligar a IA por engano.
+     */
+    private AiEngine active() {
+        if (fixed != null) {
+            return fixed;
         }
+        AiEngine chosen = engines.get(setting.current());
+        if (chosen != null && chosen.enabled()) {
+            return chosen;
+        }
+        return engines.values().stream()
+                .filter(AiEngine::enabled)
+                .findFirst()
+                .orElse(chosen != null ? chosen : engines.values().iterator().next());
     }
 
     /** Modelo de texto em uso — rótulo do livro-caixa e da chave do cache. */
     public String chatModel() {
-        return chatModel;
+        return active().chatModel();
     }
 
     public String embeddingModel() {
-        return embeddingModel;
+        return active().embeddingModel();
     }
 
     public int embeddingDimensions() {
-        return embeddingDimensions;
+        return active().embeddingDimensions();
     }
 
     /** Fornecedor ativo, para quem precisa montar partes de mensagem. */
     public AiProvider provider() {
-        return provider;
+        return active().provider();
     }
 
     private static RestClient build(AiProperties p, int readTimeoutMs) {
@@ -141,7 +194,7 @@ public class AiModelClient {
     }
 
     public boolean isEnabled() {
-        return textClient != null;
+        return active().enabled();
     }
 
     /**
@@ -151,16 +204,17 @@ public class AiModelClient {
      */
     public AiCompletion chat(AiFeature feature, UUID userId, List<Map<String, Object>> messages,
                              int maxTokens, double temperature, Map<String, Object> responseFormat) {
-        requireEnabled();
+        AiEngine engine = requireEnabled();
+        AiProvider provider = engine.provider();
 
         Map<String, Object> body = provider.chatBody(
-                chatModel, messages, maxTokens, temperature, responseFormat);
+                engine.chatModel(), messages, maxTokens, temperature, responseFormat);
 
-        RestClient client = feature == AiFeature.VISION ? visionClient : textClient;
-        JsonNode response = post(client, provider.chatUrl(baseUrl), body, feature);
+        RestClient client = feature == AiFeature.VISION ? engine.visionClient() : engine.textClient();
+        JsonNode response = post(engine, client, provider.chatUrl(engine.baseUrl()), body, feature);
 
         AiTokenUsage tokens = provider.readUsage(response);
-        usage.record(userId, feature, chatModel, tokens);
+        usage.record(userId, feature, engine.chatModel(), tokens);
 
         String content = provider.readContent(response);
         if (content == null || content.isBlank()) {
@@ -184,20 +238,21 @@ public class AiModelClient {
                                    List<Map<String, Object>> messages,
                                    int maxTokens, double temperature,
                                    Consumer<String> onDelta) {
-        requireEnabled();
+        AiEngine engine = requireEnabled();
+        AiProvider provider = engine.provider();
 
         Map<String, Object> body = new LinkedHashMap<>(
-                provider.chatBody(chatModel, messages, maxTokens, temperature, null));
+                provider.chatBody(engine.chatModel(), messages, maxTokens, temperature, null));
         body.putAll(provider.streamingOptions());
 
         StringBuilder full = new StringBuilder();
         AiTokenUsage[] tokens = { AiTokenUsage.ZERO };
 
         try {
-            textClient.post()
-                    .uri(provider.chatUrl(baseUrl))
+            engine.textClient().post()
+                    .uri(provider.chatUrl(engine.baseUrl()))
                     .headers(h -> {
-                        h.setBearerAuth(props.getApiKey());
+                        h.setBearerAuth(engine.apiKey());
                         h.setContentType(MediaType.APPLICATION_JSON);
                         h.setAccept(List.of(MediaType.TEXT_EVENT_STREAM));
                     })
@@ -205,9 +260,9 @@ public class AiModelClient {
                     .exchange((request, response) -> {
                         HttpStatusCode status = response.getStatusCode();
                         if (status.isError()) {
-                            throw streamFailure(feature, status, response);
+                            throw streamFailure(engine, feature, status, response);
                         }
-                        readEventStream(response.getBody(), full, tokens, onDelta);
+                        readEventStream(engine, response.getBody(), full, tokens, onDelta);
                         return null;
                     });
         } catch (AiUnavailableException e) {
@@ -219,7 +274,7 @@ public class AiModelClient {
             throw new AiUnavailableException("Falha lendo o streaming do provedor de IA", e);
         }
 
-        usage.record(userId, feature, chatModel, tokens[0]);
+        usage.record(userId, feature, engine.chatModel(), tokens[0]);
 
         String content = full.toString().trim();
         if (content.isEmpty()) {
@@ -233,7 +288,7 @@ public class AiModelClient {
      * linhas {@code data:}; {@code [DONE]} encerra. O {@code usage} vem
      * acumulado nos chunks — guardamos o último não-zero.
      */
-    private void readEventStream(java.io.InputStream in, StringBuilder full,
+    private void readEventStream(AiEngine engine, java.io.InputStream in, StringBuilder full,
                                  AiTokenUsage[] tokens, Consumer<String> onDelta)
             throws IOException {
         try (BufferedReader reader =
@@ -254,12 +309,12 @@ public class AiModelClient {
                     // Um chunk quebrado não pode derrubar a resposta inteira.
                     continue;
                 }
-                String delta = provider.readStreamDelta(chunk);
+                String delta = engine.provider().readStreamDelta(chunk);
                 if (delta != null && !delta.isEmpty()) {
                     full.append(delta);
                     onDelta.accept(delta);
                 }
-                AiTokenUsage chunkUsage = provider.readUsage(chunk);
+                AiTokenUsage chunkUsage = engine.provider().readUsage(chunk);
                 if (chunkUsage != null && chunkUsage.totalTokens() > 0) {
                     tokens[0] = chunkUsage;
                 }
@@ -268,7 +323,8 @@ public class AiModelClient {
     }
 
     /** Erro HTTP no início do streaming, com a mesma leitura de "sem crédito". */
-    private AiUnavailableException streamFailure(AiFeature feature, HttpStatusCode status,
+    private AiUnavailableException streamFailure(AiEngine engine, AiFeature feature,
+                                                 HttpStatusCode status,
                                                  org.springframework.http.client.ClientHttpResponse response) {
         String bodyText = "";
         try {
@@ -276,8 +332,8 @@ public class AiModelClient {
         } catch (IOException ignored) {
             // Sem corpo legível: o status já basta para a mensagem.
         }
-        if (provider.isOutOfCredit(status.value(), bodyText)) {
-            log.error("IA {}: conta do provedor sem crédito", feature);
+        if (engine.provider().isOutOfCredit(status.value(), bodyText)) {
+            log.error("IA {}: conta do provedor {} sem crédito", feature, engine.id());
             return new AiUnavailableException("Conta do provedor de IA sem crédito");
         }
         log.warn("IA {}: provedor respondeu {} ao abrir o streaming", feature, status.value());
@@ -286,19 +342,21 @@ public class AiModelClient {
 
     /** Vetoriza um lote de textos; a ordem da saída espelha a da entrada. */
     public AiEmbeddings embed(UUID userId, List<String> inputs) {
-        requireEnabled();
+        AiEngine engine = requireEnabled();
         if (inputs.isEmpty()) {
             return new AiEmbeddings(List.of(), AiTokenUsage.ZERO);
         }
+        AiProvider provider = engine.provider();
+        int dimensions = engine.embeddingDimensions();
 
         Map<String, Object> body =
-                provider.embeddingBody(embeddingModel, inputs, embeddingDimensions);
+                provider.embeddingBody(engine.embeddingModel(), inputs, dimensions);
 
-        JsonNode response = post(textClient, provider.embeddingsUrl(baseUrl), body,
-                AiFeature.EMBEDDING);
+        JsonNode response = post(engine, engine.textClient(),
+                provider.embeddingsUrl(engine.baseUrl()), body, AiFeature.EMBEDDING);
 
         AiTokenUsage tokens = provider.readUsage(response);
-        usage.record(userId, AiFeature.EMBEDDING, embeddingModel, tokens);
+        usage.record(userId, AiFeature.EMBEDDING, engine.embeddingModel(), tokens);
 
         List<float[]> vectors = provider.readEmbeddings(response);
         if (vectors.size() != inputs.size()) {
@@ -307,9 +365,9 @@ public class AiModelClient {
         }
         // Vetor de dimensão errada corromperia o índice: melhor falhar agora.
         for (float[] vector : vectors) {
-            if (vector.length != embeddingDimensions) {
+            if (vector.length != dimensions) {
                 throw new AiUnavailableException("Vetor com " + vector.length
-                        + " dimensões, esperado " + embeddingDimensions);
+                        + " dimensões, esperado " + dimensions);
             }
         }
         return new AiEmbeddings(vectors, tokens);
@@ -322,7 +380,8 @@ public class AiModelClient {
      * inválida, payload recusado) falha de imediato: repetir só queimaria
      * tempo e abriria o circuit breaker mais devagar.
      */
-    private JsonNode post(RestClient client, String url, Map<String, Object> body, AiFeature feature) {
+    private JsonNode post(AiEngine engine, RestClient client, String url,
+                          Map<String, Object> body, AiFeature feature) {
         int attempts = Math.max(0, props.getMaxRetries()) + 1;
         RuntimeException last = null;
 
@@ -331,7 +390,7 @@ public class AiModelClient {
                 JsonNode response = client.post()
                         .uri(url)
                         .headers(h -> {
-                            h.setBearerAuth(props.getApiKey());
+                            h.setBearerAuth(engine.apiKey());
                             h.setContentType(MediaType.APPLICATION_JSON);
                             h.setAccept(List.of(MediaType.APPLICATION_JSON));
                         })
@@ -344,7 +403,7 @@ public class AiModelClient {
                 return response;
             } catch (HttpStatusCodeException e) {
                 HttpStatusCode status = e.getStatusCode();
-                if (provider.isOutOfCredit(status.value(), e.getResponseBodyAsString())) {
+                if (engine.provider().isOutOfCredit(status.value(), e.getResponseBodyAsString())) {
                     // 429 por saldo zerado não é excesso de tráfego: repetir só
                     // gasta tempo e mantém o circuito fechado por mais tempo do
                     // que deveria. Falha na hora, com uma mensagem acionável.
@@ -402,9 +461,12 @@ public class AiModelClient {
         }
     }
 
-    private void requireEnabled() {
-        if (!isEnabled()) {
+    /** O motor ativo, ou falha se nenhum tiver credencial. */
+    private AiEngine requireEnabled() {
+        AiEngine engine = active();
+        if (!engine.enabled()) {
             throw new AiUnavailableException("IA não configurada");
         }
+        return engine;
     }
 }

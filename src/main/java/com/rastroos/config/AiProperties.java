@@ -31,8 +31,25 @@ public class AiProperties {
     /** Raiz da API. Vazio = usa o padrão do fornecedor escolhido. */
     private String baseUrl = "";
 
-    /** Chave de API enviada como Bearer (nunca logar). Vazia = modo stub. */
+    /**
+     * Chave de API enviada como Bearer (nunca logar). Vazia = modo stub.
+     *
+     * <p>É o <em>fallback</em>: valendo para o fornecedor que estiver ativo.
+     * Com os dois motores configurados (o administrador alterna pelo menu),
+     * cada um tem a sua em {@link Keys} — misturar chave de um com endpoint do
+     * outro só renderia 401.
+     */
     private String apiKey = "";
+
+    /** Chaves por fornecedor: {@code ai.keys.openai}, {@code ai.keys.gemini}. */
+    private final Keys keys = new Keys();
+
+    /**
+     * Trava o motor no valor de {@code ai.provider}: o administrador não
+     * consegue alternar. É assim em dev, onde o fornecedor é fixo e a chave
+     * é a de desenvolvimento.
+     */
+    private boolean providerLocked = false;
 
     /** Modelo de texto/visão. Vazio = usa o padrão do fornecedor. */
     private String model = "";
@@ -91,6 +108,17 @@ public class AiProperties {
     public String getApiKey() { return apiKey; }
     public void setApiKey(String apiKey) { this.apiKey = apiKey; }
 
+    public Keys getKeys() { return keys; }
+
+    public boolean isProviderLocked() { return providerLocked; }
+    public void setProviderLocked(boolean providerLocked) { this.providerLocked = providerLocked; }
+
+    /** A chave daquele fornecedor, caindo na chave geral quando não houver. */
+    public String apiKeyFor(String providerId) {
+        String specific = keys.of(providerId);
+        return (specific == null || specific.isBlank()) ? apiKey : specific.trim();
+    }
+
     public String getModel() { return model; }
     public void setModel(String model) { this.model = model; }
 
@@ -109,6 +137,34 @@ public class AiProperties {
     public Vision getVision() { return vision; }
     public Budget getBudget() { return budget; }
     public Warmup getWarmup() { return warmup; }
+
+    // ── Chaves por fornecedor ────────────────────────────────────────────
+
+    /**
+     * Uma chave por motor, para que alternar entre eles seja só trocar de
+     * fornecedor — sem reconfigurar credencial e sem chance de mandar a chave
+     * da OpenAI para o Gemini.
+     */
+    public static class Keys {
+
+        private String openai = "";
+        private String gemini = "";
+
+        public String of(String providerId) {
+            if (providerId == null) return null;
+            return switch (providerId.trim().toLowerCase()) {
+                case "openai" -> openai;
+                case "gemini" -> gemini;
+                default -> null;
+            };
+        }
+
+        public String getOpenai() { return openai; }
+        public void setOpenai(String openai) { this.openai = openai; }
+
+        public String getGemini() { return gemini; }
+        public void setGemini(String gemini) { this.gemini = gemini; }
+    }
 
     // ── Chat ─────────────────────────────────────────────────────────────
 

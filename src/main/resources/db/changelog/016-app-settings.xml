@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ─────────────────────────────────────────────────────────────
+  016 — Configurações globais da aplicação
+  ─────────────────────────────────────────────────────────────
+  Chave/valor de escopo GLOBAL (não por usuário): coisas que o
+  administrador decide para a instalação inteira e que precisam
+  sobreviver a um restart. Hoje só o motor de IA ativo
+  (`ai.provider`), mas o formato evita criar uma tabela por flag.
+
+  Não guarda segredo: chave de API continua vindo do ambiente.
+  Aqui mora só QUAL fornecedor está ativo.
+-->
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.27.xsd">
+
+    <changeSet id="016-01-create-app-settings" author="rastroos">
+        <createTable tableName="app_settings">
+            <column name="setting_key" type="VARCHAR(60)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="setting_value" type="VARCHAR(200)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMPTZ" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+            <!-- Quem mexeu. Sem FK para users: a linha sobrevive à exclusão da
+                 conta, e o audit_log já guarda o rastro completo. -->
+            <column name="updated_by" type="UUID"/>
+        </createTable>
+        <rollback>
+            <dropTable tableName="app_settings"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

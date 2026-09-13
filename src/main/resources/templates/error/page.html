@@ -1,0 +1,48 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:lang="${#locale.language == 'en'} ? 'en' : 'pt-BR'">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex">
+    <title th:text="#{${titleKey}} + ' · Rastroo$'">Erro · Rastroo$</title>
+
+    <link rel="icon" type="image/png" sizes="32x32" th:href="@{/images/favicon-32.png}">
+    <link rel="apple-touch-icon" th:href="@{/images/favicon-180.png}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&amp;display=swap">
+    <!-- Página independente do shell do app: um erro não pode depender da
+         sidebar, da topbar nem dos atributos que os controllers publicam. -->
+    <link rel="stylesheet" th:href="@{/css/error.css}">
+</head>
+<body class="err-body">
+
+<main class="err">
+    <picture class="err-logo">
+        <source type="image/webp" th:srcset="@{/images/logo-completo-slogan.webp}">
+        <img th:src="@{/images/logo-completo-slogan.png}" width="1200" height="315"
+             alt="Rastroo$, plataforma de gestão e rastreamento financeiro">
+    </picture>
+
+    <!-- O rastro que termina aqui: a trilha tracejada desce do logo e para
+         num ponto dourado, na cor das moedas. Puramente visual. -->
+    <div class="err-trail" aria-hidden="true"></div>
+
+    <h1 class="err-title" th:text="#{${titleKey}}">Esta página não existe</h1>
+    <p class="err-detail" th:text="#{${detailKey}}">
+        O endereço pode estar digitado errado, ter mudado, ou o registro que você procurava foi removido.
+    </p>
+    <p class="err-ref" th:text="#{error.reference(${status}, ${path})}">Código 404 em /app/exemplo</p>
+
+    <div class="err-actions">
+        <a class="err-btn err-btn-primary" th:href="@{${actionHref}}"
+           th:text="#{${actionKey}}">Ir para a visão geral</a>
+        <a class="err-btn" th:if="${secondaryKey != null}" th:href="@{${secondaryHref}}"
+           th:text="#{${secondaryKey}}">Abrir um chamado no Suporte</a>
+    </div>
+</main>
+
+</body>
+</html>

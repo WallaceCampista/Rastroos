@@ -45,21 +45,20 @@ public class AiConfig {
             new GeminiProvider());
 
     /**
-     * Escolhe o fornecedor por {@code ai.provider}. Valor desconhecido cai no
-     * primeiro da lista e avisa no log — a alternativa seria derrubar o app
-     * inteiro por um erro de digitação numa funcionalidade acessória.
+     * Todos os fornecedores como beans: o {@code AiModelClient} monta um motor
+     * para cada um que tiver credencial, e o administrador alterna entre eles
+     * em tempo de execução ({@link com.rastroos.domain.service.AiProviderSetting}).
+     *
+     * <p>A ordem desta lista é a que a UI mostra.
      */
     @Bean
-    AiProvider aiProvider(AiProperties props) {
+    List<AiProvider> aiProviders(AiProperties props) {
         String wanted = props.getProvider() == null ? "" : props.getProvider().trim().toLowerCase();
-        return KNOWN.stream()
-                .filter(p -> p.id().equals(wanted))
-                .findFirst()
-                .orElseGet(() -> {
-                    log.warn("ai.provider='{}' desconhecido; usando '{}'. Disponíveis: {}",
-                            props.getProvider(), KNOWN.get(0).id(),
-                            KNOWN.stream().map(AiProvider::id).collect(Collectors.joining(", ")));
-                    return KNOWN.get(0);
-                });
+        if (KNOWN.stream().noneMatch(p -> p.id().equals(wanted))) {
+            log.warn("ai.provider='{}' desconhecido; o padrão será '{}'. Disponíveis: {}",
+                    props.getProvider(), KNOWN.get(0).id(),
+                    KNOWN.stream().map(AiProvider::id).collect(Collectors.joining(", ")));
+        }
+        return KNOWN;
     }
 }

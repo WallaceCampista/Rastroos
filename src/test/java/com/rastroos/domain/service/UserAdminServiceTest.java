@@ -87,6 +87,64 @@ class UserAdminServiceTest {
         assertThat(u.isPasswordMustChange()).isTrue();
         assertThat(u.isEmailVerified()).isTrue();
         assertThat(u.getStatus()).isEqualTo(UserStatus.ACTIVE);
+        // Sem marcar a caixa, conta nova nasce sem Alfredo.
+        assertThat(u.isAiEnabled()).isFalse();
+    }
+
+    @Test
+    void createComAIaMarcadaJaNasceComAcesso() {
+        when(encoder.encode(anyString())).thenReturn("HASH");
+        when(users.existsByEmailIgnoreCase("com-ia@example.com")).thenReturn(false);
+        when(users.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        UserCreateForm form = new UserCreateForm();
+        form.setName("Maria");
+        form.setEmail("com-ia@example.com");
+        form.setPassword(STRONG);
+        form.setRole(UserRole.USER);
+        form.setStatus(UserStatus.ACTIVE);
+        form.setAiEnabled(true);
+
+        assertThat(service.create(form).user().isAiEnabled()).isTrue();
+    }
+
+    /** Acessor segue a mesma regra: nasce sem IA. */
+    @Test
+    void createDeAcessorTambemNasceSemIa() {
+        UUID alvo = UUID.randomUUID();
+        User titular = new User();
+        titular.setId(alvo);
+        titular.setRole(UserRole.USER);
+        titular.setStatus(UserStatus.ACTIVE);
+
+        when(encoder.encode(anyString())).thenReturn("HASH");
+        when(users.existsByEmailIgnoreCase("acessor@example.com")).thenReturn(false);
+        when(users.findById(alvo)).thenReturn(java.util.Optional.of(titular));
+        when(users.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        UserCreateForm form = new UserCreateForm();
+        form.setName("Acessor");
+        form.setEmail("acessor@example.com");
+        form.setPassword(STRONG);
+        form.setRole(UserRole.ACESSOR);
+        form.setStatus(UserStatus.ACTIVE);
+        form.setAccessesUserId(alvo);
+
+        assertThat(service.create(form).user().isAiEnabled()).isFalse();
+    }
+
+    @Test
+    void changeAiAccessLigaEDesliga() {
+        UUID id = UUID.randomUUID();
+        User alvo = new User();
+        alvo.setId(id);
+        alvo.setRole(UserRole.USER);
+        alvo.setStatus(UserStatus.ACTIVE);
+        when(users.findById(id)).thenReturn(java.util.Optional.of(alvo));
+        when(users.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        assertThat(service.changeAiAccess(id, true).isAiEnabled()).isTrue();
+        assertThat(service.changeAiAccess(id, false).isAiEnabled()).isFalse();
     }
 
     @Test

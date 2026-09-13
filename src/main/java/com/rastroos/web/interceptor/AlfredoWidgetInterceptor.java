@@ -4,6 +4,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.ModelAndView;
 
+import com.rastroos.security.CurrentUser;
 import com.rastroos.web.dto.InsightScreen;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -23,12 +24,22 @@ import jakarta.servlet.http.HttpServletResponse;
  * <p>Fica num interceptor (e não em cada controller) porque o mapa
  * activeNav → tela-com-resumo é único: o enum é a fonte da verdade, e nem o
  * template nem o JS repetem essa lista.
+ *
+ * <p>Conta sem acesso à IA não recebe nada disso: sem orbe, o balão de
+ * sugestão não existe. Esconder aqui é conforto — quem barra de verdade são os
+ * {@code @PreAuthorize} das rotas de chat e resumo.
  */
 @Component
 public class AlfredoWidgetInterceptor implements HandlerInterceptor {
 
     /** Tela do próprio Alfredo: o widget não aparece nela. */
     private static final String MANAGER_NAV = "manager";
+
+    private final CurrentUser currentUser;
+
+    public AlfredoWidgetInterceptor(CurrentUser currentUser) {
+        this.currentUser = currentUser;
+    }
 
     @Override
     public void postHandle(HttpServletRequest request, HttpServletResponse response,
@@ -38,6 +49,13 @@ public class AlfredoWidgetInterceptor implements HandlerInterceptor {
         }
         String viewName = modelAndView.getViewName();
         if (viewName != null && (viewName.startsWith("redirect:") || viewName.startsWith("forward:"))) {
+            return;
+        }
+
+        boolean allowed = currentUser.hasAiAccess();
+        modelAndView.addObject("aiAllowed", allowed);
+        if (!allowed) {
+            modelAndView.addObject("alfredoWidget", false);
             return;
         }
 

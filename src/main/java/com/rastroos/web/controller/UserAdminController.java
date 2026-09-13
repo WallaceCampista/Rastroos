@@ -183,6 +183,26 @@ public class UserAdminController {
         return "redirect:/app/users";
     }
 
+    /**
+     * Liga/desliga o Alfredo para uma conta. A classe inteira já é
+     * {@code hasRole('ADMIN')} — só administrador chega aqui.
+     */
+    @PostMapping("/{id}/ai")
+    public String changeAiAccess(@PathVariable UUID id,
+                                 @RequestParam("enabled") boolean enabled,
+                                 HttpServletRequest request,
+                                 RedirectAttributes flash) {
+        try {
+            service.changeAiAccess(id, enabled);
+            audit.record(currentUser.requireId(), "USER_AI_ACCESS_CHANGE", "user", id.toString(),
+                    request, "{\"aiEnabled\":" + enabled + "}");
+            flash.addFlashAttribute("ok", enabled ? "users.aiEnabled" : "users.aiDisabled");
+        } catch (BusinessRuleException e) {
+            flash.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/app/users";
+    }
+
     @PostMapping("/{id}/status")
     public String changeStatus(@PathVariable UUID id,
                                @RequestParam("status") UserStatus status,
