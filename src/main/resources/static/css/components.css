@@ -190,6 +190,10 @@
     max-width: none;
 }
 
+/* A mensagem do servidor é promovida a toast pelo toast.js; escondida desde
+   o primeiro pixel, ela não pisca no topo da tela antes de virar toast. */
+.screen > .flash { display: none; }
+
 @keyframes modal-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes modal-pop {
     from { opacity: 0; transform: scale(.96) translateY(8px); }
@@ -489,12 +493,13 @@
 .panel-sub { font-size: 12px; }
 
 /* ── Toast (mensagens do servidor) ───────────────────────── */
-/* Fica abaixo da topbar e acima do orbe do Alfredo (z-index 90),
-   mas sempre sob o backdrop do modal (100). */
+/* Acima do orbe do Alfredo (90) e também do fundo desfocado do modal
+   (100): uma ação feita dentro do modal avisa o resultado sem que o
+   aviso fique borrado atrás dele. */
 .toast-stack {
     position: fixed;
     top: 76px; right: 22px;
-    z-index: 95;
+    z-index: 110;
     display: flex; flex-direction: column; gap: 10px;
     width: min(360px, calc(100vw - 44px));
     pointer-events: none;
@@ -587,10 +592,14 @@
 .celebrate-layer {
     position: fixed;
     inset: 0;
-    z-index: 96; /* acima do toast (95), abaixo do modal (100) */
+    z-index: 96; /* acima do orbe do Alfredo (90), abaixo do modal (100) */
     pointer-events: none;
     overflow: hidden;
 }
+/* Com modal aberto, a camada entra DENTRO do fundo desfocado: z-index
+   negativo no contexto de empilhamento dele fica acima do desfoque e
+   atrás da caixa do modal. */
+.modal-backdrop > .celebrate-layer { z-index: -1; }
 .celebrate-emoji {
     position: absolute;
     left: var(--cl-left, 50vw);

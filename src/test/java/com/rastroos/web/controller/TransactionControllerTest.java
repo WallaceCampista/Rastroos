@@ -340,6 +340,7 @@ class TransactionControllerTest {
                 .contains("Todas as parcelas")
                 .contains("value=\"FROM_HERE\"")
                 .contains("name=\"from\" value=\"cards\"")
+                .contains("data-cards-inplace=\"true\"")
                 .contains("/app/cards/" + accountId + "/detail");
     }
 
@@ -355,6 +356,7 @@ class TransactionControllerTest {
                 .andReturn().getResponse().getContentAsString();
 
         org.assertj.core.api.Assertions.assertThat(html)
+                .doesNotContain("data-cards-inplace")
                 .contains("value=\"ONE\"")
                 .doesNotContain("value=\"FROM_HERE\"")
                 .doesNotContain("value=\"ALL\"");

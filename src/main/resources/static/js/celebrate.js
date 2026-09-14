@@ -20,7 +20,7 @@
 
     const aleatorio = (min, max) => min + Math.random() * (max - min);
 
-    const celebrar = (emojis) => {
+    const celebrar = (emojis, quantidade) => {
         // Respeita quem pediu menos movimento no sistema.
         if (window.matchMedia
             && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
@@ -32,7 +32,7 @@
         camada.setAttribute('aria-hidden', 'true');
 
         let maisLongo = 0;
-        for (let i = 0; i < QUANTIDADE; i++) {
+        for (let i = 0; i < (quantidade || QUANTIDADE); i++) {
             const span = document.createElement('span');
             span.className = 'celebrate-emoji';
             span.textContent = emojis[Math.floor(Math.random() * emojis.length)];
@@ -52,13 +52,21 @@
             camada.appendChild(span);
         }
 
-        document.body.appendChild(camada);
+        // Modal aberto: os emojis sobem por cima do desfoque e por trás da caixa
+        // (a regra .modal-backdrop > .celebrate-layer cuida da ordem).
+        const modal = document.querySelector('[data-modal-backdrop]:not([hidden])');
+        (modal || document.body).appendChild(camada);
         // Some sozinha: a camada é decorativa e não pode ficar sobre a tela.
         window.setTimeout(() => camada.remove(), maisLongo + 300);
     };
 
     document.addEventListener('rastroos:flash', (e) => {
-        const key = e.detail && e.detail.key;
-        if (key && FESTEJA[key]) celebrar(FESTEJA[key]);
+        const detail = e.detail || {};
+        // O detalhe da conta comemora com regra própria (pela situação da conta)
+        // e avisa aqui para a festa genérica não sair junto.
+        if (detail.celebrated) return;
+        if (detail.key && FESTEJA[detail.key]) celebrar(FESTEJA[detail.key]);
     });
+
+    window.RastroosCelebrate = { celebrate: celebrar };
 })();

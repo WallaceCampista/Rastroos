@@ -8,7 +8,8 @@
 </head>
 <body>
 <!-- modals.js abre [data-modal-content] no modal central, por cima dos cards. -->
-<div class="acct-detail" data-modal-content th:with="a=${detail.account()}">
+<div class="acct-detail" data-modal-content th:with="a=${detail.account()}"
+     th:attr="data-account-status=${a.status()}">
 
     <!-- Topo fixo: identificação da conta e as ações. A lista rola por baixo. -->
     <div class="acct-detail-top">
@@ -85,7 +86,8 @@
     </div>
 
     <form th:if="${a.kind().name() == 'CARD' and a.total().signum() > 0}" sec:authorize="!hasRole('ACESSOR')"
-          class="pay-invoice-form" method="post" th:action="@{/app/cards/{id}/pay(id=${a.id()})}">
+          class="pay-invoice-form" method="post" th:action="@{/app/cards/{id}/pay(id=${a.id()})}"
+          data-cards-inplace>
         <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
         <input type="hidden" name="ym" th:value="${period}">
         <button type="submit" class="pay-invoice" th:classappend="${a.isFullyPaid()} ? 'is-paid' : ''">
@@ -134,7 +136,8 @@
                 </div>
                 <div class="tx-actions" sec:authorize="!hasRole('ACESSOR')">
                     <form th:unless="${a.kind().name() == 'CARD'}"
-                          th:action="@{/app/expenses/{id}/toggle-paid(id=${t.id()})}" method="post">
+                          th:action="@{/app/expenses/{id}/toggle-paid(id=${t.id()})}" method="post"
+                          data-cards-inplace>
                         <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                         <input type="hidden" name="redirect" th:value="@{/app/cards(ym=${period},open=${a.id()})}">
                         <button type="submit" class="paid-toggle" th:classappend="${t.paid()} ? 'is-paid' : ''"

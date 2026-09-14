@@ -3,11 +3,14 @@
    ─────────────────────────────────────────────────────────────
    O clique no card é tratado pelo modals.js ([data-modal-url]):
    o detalhe abre no modal central, por cima dos cards. Aqui ficam:
-     1. reabrir o detalhe depois de um redirect (?open=<conta>),
-        mostrando dentro dele a mensagem que o servidor mandou —
-        o toast fica atrás do fundo do modal;
-     2. anexar a fatura (📎) → leitura → conferência no modal;
-     3. a conferência: marcar/desmarcar, total marcado, recálculo
+     1. reabrir o detalhe depois de um redirect (?open=<conta>);
+     2. ações dentro do modal SEM recarregar a página (pagar/reabrir
+        fatura, marcar pago, excluir lançamento, lançar a fatura do
+        mês aberto): o POST vai por fetch, os cards por trás são
+        atualizados e o detalhe é redesenhado no lugar — o modal não
+        fecha e reabre;
+     3. anexar a fatura (📎) → leitura → conferência no modal;
+     4. a conferência: marcar/desmarcar, total marcado, recálculo
         quando o vencimento muda de mês, e trava de duplo envio.
    ───────────────────────────────────────────────────────────── */
 (() => {
@@ -38,24 +41,18 @@
         }
     };
 
-    const note = (text, kind) => {
-        const box = document.createElement('div');
-        box.className = 'acct-note' + (kind === 'error' ? ' is-error' : ' is-ok');
-        box.setAttribute('role', kind === 'error' ? 'alert' : 'status');
-        box.textContent = text;
-        return box;
-    };
+    // Só card que está na tela: o id vindo da URL nunca vira URL arbitrária.
+    const tileOf = (accountId) => Array.prototype.find.call(
+        document.querySelectorAll('.card-tile[data-account-id]'),
+        (t) => t.getAttribute('data-account-id') === accountId);
+
+    const modalBody = () => document.querySelector('[data-modal-container] .modal-body');
+
+    const screen = () => document.querySelector('.screen-cards');
 
     // ── 1. Reabrir depois do redirect ────────────────────────────────────
 
-    // O toast.js promove o .flash no DOMContentLoaded e avisa por evento;
-    // guardamos o texto para repetir dentro do modal reaberto.
-    const flashes = [];
-    document.addEventListener('rastroos:flash', (e) => {
-        if (e.detail && e.detail.text) flashes.push(e.detail);
-    });
-
-    document.addEventListener('DOMContentLoaded', async () => {
+    document.addEventListener('DOMContentLoaded', () => {
         const params = new URLSearchParams(window.location.search);
         const accountId = params.get('open');
         if (!accountId) return;
@@ -66,22 +63,169 @@
         window.history.replaceState(null, '',
             window.location.pathname + (query ? '?' + query : '') + window.location.hash);
 
-        // Só abre card que está na tela: o parâmetro nunca vira URL arbitrária.
-        const tile = Array.prototype.find.call(
-            document.querySelectorAll('.card-tile[data-account-id]'),
-            (t) => t.getAttribute('data-account-id') === accountId);
-        if (!tile) return;
-
-        const node = await openUrl(tile.getAttribute('data-modal-url'));
-        if (!node) return;
-        const top = node.querySelector('.acct-detail-top');
-        flashes.forEach((f) => {
-            const box = note(f.text, f.kind);
-            if (top) top.after(box); else node.prepend(box);
-        });
+        const tile = tileOf(accountId);
+        if (tile) openUrl(tile.getAttribute('data-modal-url'));
     });
 
-    // ── 2. Anexar fatura ─────────────────────────────────────────────────
+    // ── 2. Ações no modal sem recarregar a página ────────────────────────
+
+    /**
+     * Atualiza o que está por trás do modal com a página que o servidor
+     * devolveu depois do redirect: valores dos KPIs, a grade de cards, os
+     * chips de mês da topbar e o streak da sidebar. Elementos com ouvinte
+     * próprio ficam (a inclinação dos KPIs e o indicador dos chips).
+     */
+    const refreshScreen = (doc) => {
+        const current = screen();
+        const fresh = doc.querySelector('.screen-cards');
+        if (!current || !fresh) return false;
+
+        const values = current.querySelectorAll('.dash-kpis .kpi-value');
+        const freshValues = fresh.querySelectorAll('.dash-kpis .kpi-value');
+        if (values.length === freshValues.length) {
+            values.forEach((el, i) => {
+                el.textContent = freshValues[i].textContent;
+                if (freshValues[i].hasAttribute('data-amount')) {
+                    el.setAttribute('data-amount', freshValues[i].getAttribute('data-amount'));
+                }
+            });
+        }
+
+        const grid = current.querySelector('.cards-grid');
+        const freshGrid = fresh.querySelector('.cards-grid');
+        if (grid && freshGrid) {
+            const node = document.importNode(freshGrid, true);
+            grid.replaceWith(node);
+            Modal.paintBindings(node);
+            document.dispatchEvent(new CustomEvent('rastroos:cards-refreshed'));
+        }
+
+        const chips = document.querySelectorAll('.ps-track .ps-chip');
+        const freshChips = doc.querySelectorAll('.ps-track .ps-chip');
+        if (chips.length > 0 && chips.length === freshChips.length) {
+            chips.forEach((chip, i) => {
+                chip.className = freshChips[i].className;
+                chip.replaceChildren(...Array.from(freshChips[i].childNodes,
+                    (n) => document.importNode(n, true)));
+            });
+        }
+
+        const streak = document.querySelector('.streak-stats');
+        const freshStreak = doc.querySelector('.streak-stats');
+        if (streak && freshStreak) streak.replaceWith(document.importNode(freshStreak, true));
+        return true;
+    };
+
+    /**
+     * Regra do protótipo: pagar a fatura ou marcar um lançamento como pago solta
+     * emojis conforme a situação da conta NO MOMENTO DO CLIQUE — vencida 🥴,
+     * vence em breve 😮‍💨, no prazo 😍. Reabrir/desmarcar não comemora.
+     */
+    const celebrationFor = (form) => {
+        const detail = form.closest('[data-account-status]');
+        const button = form.querySelector('.pay-invoice, .paid-toggle');
+        if (!detail || !button || button.classList.contains('is-paid')) return null;
+        const status = detail.getAttribute('data-account-status');
+        const emoji = status === 'overdue' ? '🥴' : status === 'soon' ? '😮‍💨' : '😍';
+        return { emojis: [emoji], count: form.classList.contains('pay-invoice-form') ? 22 : 16 };
+    };
+
+    // Mesmo caminho do toast.js no carregamento da página: toast + evento com a
+    // chave. Aqui a comemoração é a da regra acima, então o evento sai marcado
+    // para o celebrate.js não soltar a festa genérica junto.
+    const announce = (doc, celebration) => {
+        let succeeded = false;
+        doc.querySelectorAll('.screen > .flash').forEach((el) => {
+            const detail = {
+                key: el.getAttribute('data-flash-key'),
+                kind: el.classList.contains('flash-error') ? 'error' : 'ok',
+                text: el.textContent.trim(),
+                celebrated: true,
+            };
+            if (detail.kind === 'ok') succeeded = true;
+            if (window.RastroosToast) window.RastroosToast.show(detail.text, detail.kind);
+            document.dispatchEvent(new CustomEvent('rastroos:flash', { detail: detail }));
+        });
+        if (celebration && succeeded && window.RastroosCelebrate) {
+            window.RastroosCelebrate.celebrate(celebration.emojis, celebration.count);
+        }
+    };
+
+    const submitInPlace = async (form) => {
+        const celebration = celebrationFor(form); // situação de ANTES de pagar
+        const body = modalBody();
+        const scroll = body ? body.scrollTop : 0;
+        // urlencoded: a conferência de uma fatura longa passa do limite de partes do multipart.
+        const payload = new URLSearchParams(new FormData(form));
+        form.querySelectorAll('button[type="submit"]').forEach((b) => { b.disabled = true; });
+
+        let resp;
+        let html;
+        try {
+            resp = await fetch(form.action, {
+                method: 'POST',
+                body: payload,
+                headers: { 'X-Requested-With': 'fetch' },
+            });
+            html = await resp.text();
+        } catch (err) {
+            // Não dá para saber se o servidor gravou: mostra o estado real em vez
+            // de reenviar (pagar duas vezes reabriria a fatura).
+            window.location.reload();
+            return;
+        }
+
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        const target = new URL(resp.url, window.location.href);
+        const sameScreen = resp.redirected && target.pathname === '/app/cards'
+            && screen() && target.searchParams.get('ym') === screen().getAttribute('data-period');
+        if (sameScreen && refreshScreen(doc)) {
+            const tile = tileOf(target.searchParams.get('open'));
+            if (tile) {
+                const node = await openUrl(tile.getAttribute('data-modal-url'));
+                const reopened = modalBody();
+                if (node && reopened) reopened.scrollTop = scroll;
+            } else {
+                Modal.close(true);
+            }
+            announce(doc, celebration);
+            return;
+        }
+        // O servidor devolveu o próprio corpo do modal (ex.: conferência com erro).
+        if (openHtml(html)) return;
+        window.location.href = target.href;
+    };
+
+    /** Fatura de outro mês leva a outra tela: essa segue pela navegação normal. */
+    const samePeriod = (form) => {
+        const due = form.querySelector('[name="dueDate"]');
+        const current = screen();
+        if (!due || !current) return true;
+        return (due.value || '').slice(0, 7) === current.getAttribute('data-period');
+    };
+
+    document.addEventListener('submit', (e) => {
+        const form = e.target;
+        if (!form.closest('[data-modal-container]')) return;
+        const review = form.hasAttribute('data-invoice-review');
+        if (!review && !form.hasAttribute('data-cards-inplace')) return;
+
+        if (form.getAttribute('data-sending') === 'true') {
+            e.preventDefault(); // duplo clique — o servidor também não duplicaria
+            return;
+        }
+        form.setAttribute('data-sending', 'true');
+        if (review) {
+            const submit = form.querySelector('[data-invoice-submit]');
+            // Desabilitar no próprio evento cancelaria o envio nativo em alguns navegadores.
+            if (submit) setTimeout(() => { submit.disabled = true; submit.textContent = 'Lançando…'; }, 0);
+            if (!samePeriod(form)) return;
+        }
+        e.preventDefault();
+        submitInPlace(form);
+    });
+
+    // ── 3. Anexar fatura ─────────────────────────────────────────────────
 
     const uploadParts = (form) => ({
         loading: form.querySelector('[data-invoice-loading]'),
@@ -151,7 +295,7 @@
         if (form && file) upload(form, file);
     });
 
-    // ── 3. Conferência ───────────────────────────────────────────────────
+    // ── 4. Conferência ───────────────────────────────────────────────────
 
     const brl = (cents) => 'R$ ' + (cents / 100).toLocaleString('pt-BR',
         { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -206,7 +350,6 @@
         const submit = form.querySelector('[data-invoice-submit]');
         if (submit) submit.disabled = true;
         try {
-            // urlencoded, não multipart: uma fatura longa passa do limite de partes do Tomcat.
             const body = new URLSearchParams(new FormData(form));
             const resp = await fetch(form.getAttribute('data-review-url'), {
                 method: 'POST',
@@ -218,19 +361,4 @@
             if (submit) submit.disabled = false;
         }
     };
-
-    document.addEventListener('submit', (e) => {
-        const form = e.target.closest('[data-invoice-review]');
-        if (!form) return;
-        const submit = form.querySelector('[data-invoice-submit]');
-        if (form.getAttribute('data-sending') === 'true') {
-            e.preventDefault(); // duplo clique — o servidor também não duplicaria
-            return;
-        }
-        form.setAttribute('data-sending', 'true');
-        if (submit) {
-            // Desabilitar no próprio evento cancelaria o envio em alguns navegadores.
-            setTimeout(() => { submit.disabled = true; submit.textContent = 'Lançando…'; }, 0);
-        }
-    });
 })();

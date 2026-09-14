@@ -144,7 +144,7 @@
 .inline-form { display: inline-flex; margin: 0; }
 
 /* Barra de ações no topo — mesmo desenho das abas do "Lançar gasto" */
-.acct-actions { display: flex; gap: 6px; padding: 0 22px 14px; }
+.acct-actions { display: flex; gap: 6px; padding: 12px 22px 14px; }
 .acct-action {
     flex: 1;
     display: inline-flex; align-items: center; justify-content: center; gap: 6px;

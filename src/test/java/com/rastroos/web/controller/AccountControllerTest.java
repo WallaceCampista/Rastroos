@@ -185,7 +185,11 @@ class AccountControllerTest {
                 .contains("acct-actions")
                 .contains("data-invoice-attach")
                 .contains("/app/cards/" + id + "/invoice/extract")
-                .contains("/app/expenses/" + txId + "/delete?from=cards");
+                .contains("/app/expenses/" + txId + "/delete?from=cards")
+                // Pagar/reabrir vai por fetch e redesenha o modal no lugar (sem recarregar a página).
+                .contains("data-cards-inplace")
+                // Situação da conta no clique: decide os emojis ao pagar (🥴 vencida, 😮‍💨 em breve, 😍 no prazo).
+                .contains("data-account-status=\"open\"");
     }
 
     @Test
